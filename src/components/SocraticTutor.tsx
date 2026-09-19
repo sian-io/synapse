@@ -9,11 +9,11 @@ import {
   ArrowRight,
   ShieldAlert,
   Sliders,
-  ChevronDown,
   Info
 } from 'lucide-react';
 import Markdown from 'react-markdown';
 import { ChatMessage, PedagogicalMode } from '../types';
+import { useLanguage } from '../i18n/LanguageContext';
 
 interface SocraticTutorProps {
   currentTopic: string;
@@ -23,38 +23,27 @@ interface SocraticTutorProps {
   initialPrompt?: string | null;
 }
 
-const DEFAULT_WELCOME_MESSAGE: ChatMessage = {
-  id: 'msg_welcome',
-  role: 'assistant',
-  content: `Olá! Eu sou o **Synapse**, seu tutor pedagógico de aprendizagem ativa fundamentado em **Neurociência Cognitiva**.
-
-Diferente de assistentes convencionais que entregam respostas prontas (o que gera a ilusão de fluência e rápido esquecimento), nós priorizamos **Potenciação de Longa Duração (LTP)** e **recuperação ativa**:
-- Não entregamos respostas mastigadas.
-- Desmontamos problemas complexos via **Método Socrático** e **Interrogação Elaborativa**.
-- Você constrói os caminhos neurais através do esforço cognitivo produtivo (*dificuldade desejável*).
-
-**Qual conceito, tema ou matéria você gostaria de dissecar hoje?**`,
-  timestamp: Date.now(),
-  pedagogicalMeta: {
-    cognitivePhase: 'Engajamento Inicial',
-    desirableDifficultyNote: 'A ativação consciente do córtex pré-frontal no início de uma sessão prepara receptores dopaminérgicos para foco na novidade.',
-    suggestedActions: [
-      'Entender Como funciona a Memória de Longo Prazo',
-      'Desvendar a Mecânica Quântica sem jargões',
-      'Dominar o Algoritmo de Dijkstra e Grafos',
-      'Compreender a Inflação e Política Monetária',
-    ],
-  },
-};
-
 export const SocraticTutor: React.FC<SocraticTutorProps> = ({
   currentTopic,
-  onTopicChange,
   onIncrementStats,
   initialPrompt,
 }) => {
+  const { t, language } = useLanguage();
+
+  const getWelcomeMessage = (): ChatMessage => ({
+    id: 'msg_welcome',
+    role: 'assistant',
+    content: t.socratic.defaultWelcome,
+    timestamp: Date.now(),
+    pedagogicalMeta: {
+      cognitivePhase: t.socratic.welcomePhase,
+      desirableDifficultyNote: t.socratic.welcomeNeuroTip,
+      suggestedActions: [...t.socratic.welcomeActions],
+    },
+  });
+
   const [messages, setMessages] = useState<ChatMessage[]>(() => {
-    const saved = localStorage.getItem('synapse_chat_history');
+    const saved = localStorage.getItem(`synapse_chat_history_${language}`) || localStorage.getItem('synapse_chat_history');
     if (saved) {
       try {
         return JSON.parse(saved);
@@ -62,8 +51,15 @@ export const SocraticTutor: React.FC<SocraticTutorProps> = ({
         console.error(e);
       }
     }
-    return [DEFAULT_WELCOME_MESSAGE];
+    return [getWelcomeMessage()];
   });
+
+  // If the initial welcome message is still in another language when language switches and no user messages exist, update it
+  useEffect(() => {
+    if (messages.length === 1 && messages[0].id === 'msg_welcome') {
+      setMessages([getWelcomeMessage()]);
+    }
+  }, [language]);
 
   const [input, setInput] = useState('');
   const [isLoading, setIsLoading] = useState(false);
@@ -79,9 +75,9 @@ export const SocraticTutor: React.FC<SocraticTutorProps> = ({
   }, [initialPrompt]);
 
   useEffect(() => {
-    localStorage.setItem('synapse_chat_history', JSON.stringify(messages));
+    localStorage.setItem(`synapse_chat_history_${language}`, JSON.stringify(messages));
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
-  }, [messages]);
+  }, [messages, language]);
 
   const handleSendMessage = async (customText?: string) => {
     const textToSend = customText || input;
@@ -106,13 +102,14 @@ export const SocraticTutor: React.FC<SocraticTutorProps> = ({
         body: JSON.stringify({
           messages: newMessages.map((m) => ({ role: m.role, content: m.content })),
           mode: pedagogicalMode,
-          currentTopic: currentTopic || 'Aprendizado Ativo',
+          currentTopic: currentTopic || (language === 'pt' ? 'Aprendizado Ativo' : 'Active Learning'),
           studentCalibration: metacognitiveCertainty,
+          language,
         }),
       });
 
       if (!response.ok) {
-        throw new Error('Falha na resposta do servidor.');
+        throw new Error('Server response failure.');
       }
 
       const data = await response.json();
@@ -132,7 +129,7 @@ export const SocraticTutor: React.FC<SocraticTutorProps> = ({
       const errorMessage: ChatMessage = {
         id: `err_${Date.now()}`,
         role: 'assistant',
-        content: `Não foi possível conectar ao núcleo neural no momento: ${err.message}. Verifique a conexão e tente novamente.`,
+        content: `${t.socratic.connectionError} ${err.message}. ${t.socratic.checkConnection}`,
         timestamp: Date.now(),
       };
       setMessages((prev) => [...prev, errorMessage]);
@@ -142,38 +139,14 @@ export const SocraticTutor: React.FC<SocraticTutorProps> = ({
   };
 
   const handleClearHistory = () => {
-    if (window.confirm('Deseja reiniciar a sessão socrática? O histórico atual será limpo.')) {
-      setMessages([DEFAULT_WELCOME_MESSAGE]);
+    if (window.confirm(t.socratic.resetConfirm)) {
+      setMessages([getWelcomeMessage()]);
+      localStorage.removeItem(`synapse_chat_history_${language}`);
       localStorage.removeItem('synapse_chat_history');
     }
   };
 
-  const quickPrompts = [
-    {
-      label: 'Pergunta Socrática',
-      desc: 'Desafia a encontrar o mecanismo central',
-      icon: HelpCircle,
-      prompt: 'Faça uma pergunta socrática que me desafie a encontrar o mecanismo nuclear desse tópico.',
-    },
-    {
-      label: 'Desafiar Premissa',
-      desc: 'Contradições e exceções esquecidas',
-      icon: ShieldAlert,
-      prompt: 'Aponte uma contradição ou exceção comum que as pessoas ignoram sobre esse tema e me pergunte como explicá-la.',
-    },
-    {
-      label: 'Interrogação Elaborativa',
-      desc: 'Por que opera dessa forma e não de outra?',
-      icon: Brain,
-      prompt: 'Por que esse mecanismo funciona exatamente dessa forma e não de outra maneira alternativa?',
-    },
-    {
-      label: 'Teste de Recuperação Rápida',
-      desc: 'Aplicação prática para testar compreensão',
-      icon: Target,
-      prompt: 'Faça-me uma pergunta de aplicação prática para testar se eu realmente compreendi o modelo mental ou apenas decorei.',
-    },
-  ];
+  const quickPromptIcons = [HelpCircle, ShieldAlert, Brain, Target];
 
   return (
     <div className="w-full grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
@@ -187,7 +160,7 @@ export const SocraticTutor: React.FC<SocraticTutorProps> = ({
             </div>
             <div>
               <h2 className="text-xs font-semibold text-zinc-200 tracking-wide uppercase">
-                Tutor Socrático &amp; Interrogação Elaborativa
+                {t.socratic.headerTitle}
               </h2>
             </div>
           </div>
@@ -197,18 +170,18 @@ export const SocraticTutor: React.FC<SocraticTutorProps> = ({
               value={pedagogicalMode}
               onChange={(e) => setPedagogicalMode(e.target.value as PedagogicalMode)}
               className="bg-zinc-900 border border-zinc-800 text-xs text-zinc-300 rounded-lg px-3 py-1.5 focus:outline-none focus:border-zinc-600 transition-colors"
-              title="Alterar postura do tutor pedagógico"
+              title={t.socratic.modeTooltip}
             >
-              <option value="socratic">Método Socrático (Andaimes &amp; Perguntas)</option>
-              <option value="active_retrieval">Desafio de Recuperação (Active Recall)</option>
-              <option value="feynman">Auditoria Feynman (Simplificação &amp; Jargões)</option>
-              <option value="metacognition">Auditoria Metacognitiva (Certeza)</option>
+              <option value="socratic">{t.socratic.modes.socratic}</option>
+              <option value="active_retrieval">{t.socratic.modes.active_retrieval}</option>
+              <option value="feynman">{t.socratic.modes.feynman}</option>
+              <option value="metacognition">{t.socratic.modes.metacognition}</option>
             </select>
 
             <button
               onClick={handleClearHistory}
               className="p-1.5 rounded-lg text-zinc-400 hover:text-zinc-200 hover:bg-zinc-800/70 transition-colors cursor-pointer"
-              title="Reiniciar diálogo socrático"
+              title={t.socratic.resetTooltip}
             >
               <RotateCcw className="w-3.5 h-3.5" />
             </button>
@@ -226,7 +199,7 @@ export const SocraticTutor: React.FC<SocraticTutorProps> = ({
               >
                 <div className="flex items-center gap-2 mb-1.5 px-1">
                   <span className="text-xs font-mono font-medium text-zinc-400">
-                    {isUser ? 'Você' : 'Synapse'}
+                    {isUser ? t.socratic.you : t.socratic.assistant}
                   </span>
                   <span className="text-[11px] text-zinc-500 font-mono">
                     {new Date(message.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
@@ -254,7 +227,7 @@ export const SocraticTutor: React.FC<SocraticTutorProps> = ({
                           <div className="flex flex-wrap items-center gap-2">
                             <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-xs font-mono bg-zinc-950 text-zinc-300 border border-zinc-800">
                               <Sparkles className="w-3.5 h-3.5 text-zinc-400 stroke-[1.75]" />
-                              Fase: {message.pedagogicalMeta.cognitivePhase || 'Reflexão Ativa'}
+                              {t.socratic.phase}: {message.pedagogicalMeta.cognitivePhase || t.socratic.welcomePhase}
                             </span>
                           </div>
 
@@ -263,7 +236,7 @@ export const SocraticTutor: React.FC<SocraticTutorProps> = ({
                               <Brain className="w-4 h-4 text-zinc-400 shrink-0 mt-0.5 stroke-[1.75]" />
                               <div>
                                 <span className="font-medium text-zinc-200 block mb-0.5">
-                                  Fundamento Neurocientífico:
+                                  {t.socratic.neuroBasis}
                                 </span>
                                 <span className="text-zinc-400 leading-relaxed">
                                   {message.pedagogicalMeta.desirableDifficultyNote}
@@ -278,7 +251,7 @@ export const SocraticTutor: React.FC<SocraticTutorProps> = ({
                               <div className="space-y-2 pt-1">
                                 <span className="text-xs font-medium text-zinc-400 flex items-center gap-1">
                                   <ArrowRight className="w-3.5 h-3.5 text-zinc-400 stroke-[1.75]" />
-                                  Ações Cognitivas Recomendadas:
+                                  {t.socratic.recommendedActions}
                                 </span>
                                 <div className="flex flex-wrap gap-2">
                                   {message.pedagogicalMeta.suggestedActions.map((action, idx) => (
@@ -313,7 +286,7 @@ export const SocraticTutor: React.FC<SocraticTutorProps> = ({
                   <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-zinc-400 opacity-75"></span>
                   <span className="relative inline-flex rounded-full h-2 w-2 bg-zinc-400"></span>
                 </span>
-                <span>Construindo andaime cognitivo e formulando pergunta socrática...</span>
+                <span>{t.socratic.loadingText}</span>
               </div>
             </div>
           )}
@@ -334,7 +307,7 @@ export const SocraticTutor: React.FC<SocraticTutorProps> = ({
               type="text"
               value={input}
               onChange={(e) => setInput(e.target.value)}
-              placeholder="Responda ao tutor ou proponha sua hipótese de raciocínio..."
+              placeholder={t.socratic.inputPlaceholder}
               disabled={isLoading}
               className="flex-1 bg-zinc-950 border border-zinc-800 rounded-xl px-4 py-3 text-xs sm:text-sm text-zinc-100 placeholder-zinc-600 focus:outline-none focus:border-zinc-500 focus:ring-1 focus:ring-zinc-700/60 transition-all disabled:opacity-50"
             />
@@ -342,9 +315,9 @@ export const SocraticTutor: React.FC<SocraticTutorProps> = ({
               type="submit"
               disabled={isLoading || !input.trim()}
               className="px-5 py-3 bg-zinc-100 hover:bg-white disabled:bg-zinc-800 disabled:text-zinc-600 text-zinc-950 font-semibold text-xs sm:text-sm rounded-xl transition-all flex items-center justify-center gap-1.5 shrink-0 cursor-pointer shadow-sm"
-              title="Enviar resposta para avaliação socrática"
+              title={t.socratic.sendTooltip}
             >
-              <span>Enviar</span>
+              <span>{t.socratic.sendButton}</span>
               <Send className="w-3.5 h-3.5 stroke-[2]" />
             </button>
           </form>
@@ -358,7 +331,7 @@ export const SocraticTutor: React.FC<SocraticTutorProps> = ({
           <div className="flex items-center justify-between">
             <span className="text-xs font-semibold text-zinc-300 uppercase tracking-wider font-mono flex items-center gap-1.5">
               <Sliders className="w-3.5 h-3.5 text-zinc-400 stroke-[1.75]" />
-              Calibração Metacognitiva
+              {t.socratic.metacognitiveTitle}
             </span>
             <span className="text-xs font-mono font-bold text-zinc-100 bg-zinc-950 px-2 py-0.5 rounded border border-zinc-800">
               {metacognitiveCertainty}/5
@@ -376,15 +349,15 @@ export const SocraticTutor: React.FC<SocraticTutorProps> = ({
               className="w-full accent-zinc-200 cursor-pointer"
             />
             <div className="flex justify-between text-[11px] text-zinc-400 font-mono">
-              <span>1 - Chute</span>
-              <span>3 - Parcial</span>
-              <span>5 - Convicção</span>
+              <span>{t.socratic.guess}</span>
+              <span>{t.socratic.partial}</span>
+              <span>{t.socratic.conviction}</span>
             </div>
           </div>
 
           <div className="p-3 rounded-xl bg-zinc-950/70 border border-zinc-800/80 text-xs text-zinc-400 leading-relaxed">
-            <strong className="text-zinc-300 font-medium block mb-1">Combate ao Dunning-Kruger:</strong>
-            Informar sua autopercepção calibra a profundidade das perguntas do tutor, aumentando o rigor se houver excesso de confiança ou oferecendo andaimes graduais se houver dúvida.
+            <strong className="text-zinc-300 font-medium block mb-1">{t.socratic.dunningKrugerTitle}</strong>
+            {t.socratic.dunningKrugerDesc}
           </div>
         </div>
 
@@ -392,15 +365,15 @@ export const SocraticTutor: React.FC<SocraticTutorProps> = ({
         <div className="p-5 rounded-2xl bg-zinc-900/40 border border-zinc-800/80 space-y-3">
           <span className="text-xs font-semibold text-zinc-300 uppercase tracking-wider font-mono flex items-center gap-1.5">
             <Sparkles className="w-3.5 h-3.5 text-zinc-400" />
-            Provocações Socráticas Rápidas
+            {t.socratic.quickPromptsTitle}
           </span>
           <p className="text-xs text-zinc-500">
-            Dispare um desafio conceitual com um clique para aprofundar seu modelo mental:
+            {t.socratic.quickPromptsDesc}
           </p>
 
           <div className="space-y-2">
-            {quickPrompts.map((item, idx) => {
-              const Icon = item.icon;
+            {t.socratic.quickPrompts.map((item, idx) => {
+              const Icon = quickPromptIcons[idx % quickPromptIcons.length];
               return (
                 <button
                   key={idx}
@@ -429,10 +402,10 @@ export const SocraticTutor: React.FC<SocraticTutorProps> = ({
         <div className="p-5 rounded-2xl bg-zinc-900/30 border border-zinc-800/80 space-y-2">
           <div className="flex items-center gap-2 text-xs font-semibold text-zinc-300 uppercase font-mono">
             <Info className="w-3.5 h-3.5 text-zinc-400" />
-            <span>Por que o Método Socrático?</span>
+            <span>{t.socratic.whySocraticTitle}</span>
           </div>
           <p className="text-xs text-zinc-400 leading-relaxed">
-            Quando o cérebro recebe uma resposta pronta, a carga cognitiva germana é quase nula. Quando estimulado por perguntas guiadas, o hipocampo realiza buscas semânticas profundas, selando a memória na rede neural definitiva.
+            {t.socratic.whySocraticDesc}
           </p>
         </div>
       </div>

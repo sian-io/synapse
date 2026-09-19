@@ -1,6 +1,57 @@
-import { PedagogicalPillar } from '../types';
+import { PedagogicalPillar, Flashcard } from '../types';
 
-export const NEUROSCIENCE_PILLARS: PedagogicalPillar[] = [
+export const NEUROSCIENCE_PILLARS_EN: PedagogicalPillar[] = [
+  {
+    id: 'retrieval_practice',
+    name: 'Retrieval Practice (Active Recall)',
+    scientist: 'Roediger & Karpicke (2006)',
+    neuroBasis: 'Forced retrieval of information activates the prefrontal cortex and hippocampus, triggering Long-Term Potentiation (LTP) and increasing synaptic density of AMPA/NMDA receptors.',
+    practicalAction: 'Instead of rereading notes or highlighting text (illusion of fluency), you must answer questions or reconstruct knowledge from scratch without consulting the source.',
+    iconName: 'Zap',
+  },
+  {
+    id: 'feynman_technique',
+    name: 'Feynman Technique & Deconstruction',
+    scientist: 'Richard Feynman (Nobel Laureate in Physics)',
+    neuroBasis: 'Breaks the "illusion of explanatory depth" (Rozenblit & Keil). Compels the brain to translate abstract jargon into grounded sensory and conceptual representations.',
+    practicalAction: 'Explain the concept in language so simple that a child or layperson can understand, replacing technical jargon with concrete real-world analogies.',
+    iconName: 'Sparkles',
+  },
+  {
+    id: 'socratic_inquiry',
+    name: 'Elaborative Interrogation & Socratic Method',
+    scientist: 'Socrates / Pressley et al. (1992)',
+    neuroBasis: 'Stimulates the integration of new data into pre-existing neocortical semantic networks through causal connections ("Why does this make sense?").',
+    practicalAction: 'The agent never hands out the final answer; it dismantles the problem into premises and guides you to deduce the mechanics through targeted questions.',
+    iconName: 'MessageSquareText',
+  },
+  {
+    id: 'cognitive_load',
+    name: 'Cognitive Load Theory',
+    scientist: 'John Sweller (1988)',
+    neuroBasis: 'Working memory has an ultra-limited capacity (only 4 to 7 simultaneous items). Excessive stimuli induce cognitive overload and block neural schema formation.',
+    practicalAction: 'We present a single conceptual core at a time, mapping prerequisites before introducing mechanical complexity.',
+    iconName: 'Layers',
+  },
+  {
+    id: 'desirable_difficulties',
+    name: 'Desirable Difficulties',
+    scientist: 'Robert & Elizabeth Bjork (2011)',
+    neuroBasis: 'Study conditions that induce productive struggle in the present promote neuroplasticity and long-term retention, whereas easy, passive study creates a fleeting illusion of mastery.',
+    practicalAction: 'Embrace temporary uncertainty. Conscious mental struggle is the biological trigger for lasting synaptic consolidation.',
+    iconName: 'Flame',
+  },
+  {
+    id: 'metacognitive_calibration',
+    name: 'Metacognition & Calibration',
+    scientist: 'John Flavell (1979) / Kruger & Dunning',
+    neuroBasis: 'Activation of the dorsolateral prefrontal cortex monitors the accuracy of personal beliefs, counteracting overconfidence and confirmation bias.',
+    practicalAction: 'Assess your certainty level before checking the answer, deliberately recalibrating your cognitive blind spots.',
+    iconName: 'Target',
+  },
+];
+
+export const NEUROSCIENCE_PILLARS_PT: PedagogicalPillar[] = [
   {
     id: 'retrieval_practice',
     name: 'Prática de Recuperação (Active Recall)',
@@ -51,7 +102,49 @@ export const NEUROSCIENCE_PILLARS: PedagogicalPillar[] = [
   },
 ];
 
-export const INITIAL_PRESET_FLASHCARDS = [
+export const INITIAL_PRESET_FLASHCARDS_EN: Flashcard[] = [
+  {
+    id: 'fc_demo_1',
+    topic: 'Learning Neuroscience',
+    question: 'Why is retrieval practice (Active Recall) biologically superior to passive rereading for long-term retention?',
+    answer: 'Deliberate recall requires the prefrontal cortex and hippocampus to actively reconstruct the neural memory trace. This triggers Long-Term Potentiation (LTP) and signals the brain that the information is vital for survival, initiating synaptic protein synthesis. Passive rereading merely creates an "illusion of fluency" within the visual cortex.',
+    keyConcept: 'Long-Term Potentiation (LTP) and Illusion of Fluency',
+    neuroTip: 'Imagine each retrieval like walking across tall grass: the more you tread upon it, the clearer and faster the neural pathway becomes.',
+    intervalDays: 1,
+    repetitions: 1,
+    easeFactor: 2.5,
+    nextReviewDate: Date.now(),
+    masteryLevel: 1,
+  },
+  {
+    id: 'fc_demo_2',
+    topic: 'Cognitive Pedagogy',
+    question: 'What is the neurocognitive distinction between intrinsic cognitive load and extraneous cognitive load?',
+    answer: 'Intrinsic load stems from the inherent complexity of the subject matter and the interactions among its conceptual elements. Extraneous load is the unnecessary friction imposed by how information is presented (confusing layouts, distractions, unneeded jargon). The pedagogical goal is to minimize extraneous load to free working memory for germane load (schema construction).',
+    keyConcept: "Sweller's Cognitive Load Theory",
+    neuroTip: 'Working memory is a tiny workbench: clear away the clutter (extraneous load) to make room for the actual study material.',
+    intervalDays: 2,
+    repetitions: 1,
+    easeFactor: 2.5,
+    nextReviewDate: Date.now() + 86400000,
+    masteryLevel: 2,
+  },
+  {
+    id: 'fc_demo_3',
+    topic: 'Feynman Technique',
+    question: 'How does prohibiting technical terms in the Feynman Technique unmask the illusion of explanatory depth?',
+    answer: 'We often employ technical terms as "mental shortcuts" (verbal labels) that foster a subjective sense of understanding without truly grasping the underlying causal mechanics. By disallowing technical terms, the brain is forced to articulate the phenomenon using cause, effect, and foundational entities.',
+    keyConcept: 'Illusion of Explanatory Depth (Rozenblit & Keil)',
+    neuroTip: 'If you cannot explain how something works using everyday vocabulary, you have memorized a label, not a principle.',
+    intervalDays: 4,
+    repetitions: 2,
+    easeFactor: 2.6,
+    nextReviewDate: Date.now() + 86400000 * 3,
+    masteryLevel: 3,
+  },
+];
+
+export const INITIAL_PRESET_FLASHCARDS_PT: Flashcard[] = [
   {
     id: 'fc_demo_1',
     topic: 'Neurociência do Aprendizado',
@@ -63,7 +156,7 @@ export const INITIAL_PRESET_FLASHCARDS = [
     repetitions: 1,
     easeFactor: 2.5,
     nextReviewDate: Date.now(),
-    masteryLevel: 1 as const,
+    masteryLevel: 1,
   },
   {
     id: 'fc_demo_2',
@@ -76,7 +169,7 @@ export const INITIAL_PRESET_FLASHCARDS = [
     repetitions: 1,
     easeFactor: 2.5,
     nextReviewDate: Date.now() + 86400000,
-    masteryLevel: 2 as const,
+    masteryLevel: 2,
   },
   {
     id: 'fc_demo_3',
@@ -89,6 +182,18 @@ export const INITIAL_PRESET_FLASHCARDS = [
     repetitions: 2,
     easeFactor: 2.6,
     nextReviewDate: Date.now() + 86400000 * 3,
-    masteryLevel: 3 as const,
+    masteryLevel: 3,
   },
 ];
+
+export function getNeurosciencePillars(language: 'en' | 'pt' = 'en'): PedagogicalPillar[] {
+  return language === 'pt' ? NEUROSCIENCE_PILLARS_PT : NEUROSCIENCE_PILLARS_EN;
+}
+
+export function getInitialPresetFlashcards(language: 'en' | 'pt' = 'en'): Flashcard[] {
+  return language === 'pt' ? INITIAL_PRESET_FLASHCARDS_PT : INITIAL_PRESET_FLASHCARDS_EN;
+}
+
+// Default export in English
+export const NEUROSCIENCE_PILLARS = NEUROSCIENCE_PILLARS_EN;
+export const INITIAL_PRESET_FLASHCARDS = INITIAL_PRESET_FLASHCARDS_EN;

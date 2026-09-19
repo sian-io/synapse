@@ -1,12 +1,12 @@
-# Documentação Técnica e Guia de Engenharia: Synapse (v1)
+# Technical Documentation & Engineering Guide: Synapse (v1)
 
-Este documento descreve a arquitetura técnica, decisões de engenharia, escolhas de dependências e funcionamento interno do **Synapse**. Seu público-alvo são desenvolvedores humanos e agentes autônomos de IA que precisam estender, auditar ou manter o código-fonte.
+This document outlines the technical architecture, engineering decisions, dependency choices, and internal workings of **Synapse**. Its intended audience includes human engineers and autonomous AI agents tasked with extending, auditing, or maintaining the codebase.
 
 ---
 
-## 1. Como o Synapse Funciona? (Arquitetura Técnica & "O Como")
+## 1. How Synapse Works (Technical Architecture & "The How")
 
-O Synapse opera sob uma arquitetura full-stack unificada em TypeScript, onde um único processo Node.js orquestra simultaneamente o backend da API REST e o servidor de desenvolvimento/serviço do frontend via Vite.
+Synapse operates on a unified full-stack TypeScript architecture, where a single Node.js process orchestrates both the REST API backend and the frontend development/serving pipeline via Vite.
 
 ```
 +-------------------------------------------------------------------------+
@@ -31,7 +31,7 @@ O Synapse opera sob uma arquitetura full-stack unificada em TypeScript, onde um 
 |                        Browser Client (React 19)                        |
 |                                                                         |
 |  App.tsx                                                                |
-|  ├── UnifiedConceptBar (Shared Topic State & Sincronização)            |
+|  ├── UnifiedConceptBar (Shared Topic State & Synchronization)           |
 |  ├── SocraticTutor (Conversational Engine & Metacognitive Certainty)   |
 |  ├── FeynmanStudio (Explanation Audit & Jargon Extraction)             |
 |  ├── ActiveRetrievalLab (SM-2 Spaced Repetition Engine & Recall)       |
@@ -42,112 +42,112 @@ O Synapse opera sob uma arquitetura full-stack unificada em TypeScript, onde um 
 +-------------------------------------------------------------------------+
 ```
 
-### 1.1 Unificação Frontend/Backend via Vite Middleware
+### 1.1 Frontend/Backend Unification via Vite Middleware
 
-- Em desenvolvimento (`process.env.NODE_ENV !== 'production'`), o `server.ts` inicializa o Vite em modo middleware (`createServer({ server: { middlewareMode: true }, appType: 'spa' })`).
-- As rotas da API em `/api/*` são tratadas nativamente pelas rotas do Express antes que o tráfego restante seja repassado aos middlewares do Vite.
-- Em produção, o Express atende os arquivos estáticos compilados em `dist/` e aplica fallback para `dist/index.html` em requisições de página.
-- **Racional de Design**: Elimina problemas de CORS, dispensa configuração de proxy reverso em desenvolvimento e viabiliza a execução de todo o sistema com um comando único (`npm run dev`).
+- In development (`process.env.NODE_ENV !== 'production'`), `server.ts` boots Vite in middleware mode (`createServer({ server: { middlewareMode: true }, appType: 'spa' })`).
+- API routes under `/api/*` are handled directly by Express before non-API traffic is delegated to Vite middleware.
+- In production, Express serves compiled static files from `dist/` and falls back to `dist/index.html` for client-side routing.
+- **Design Rationale**: Eliminates CORS complications, avoids reverse-proxy setups during local development, and allows the entire stack to run with a single command (`npm run dev`).
 
 ---
 
-## 2. Escolha de Ferramentas e Tecnologias
+## 2. Tooling and Technology Choices
 
 ### 2.1 Backend
 
-- **Node.js + Express 4**: Framework HTTP minimalista com baixa sobrecarga, compatível com middlewares assíncronos e fácil empacotamento via `esbuild`.
-- **SDK Oficial Google GenAI `@google/genai`**: Versão 2.4.0+. Utilizada para conexão direta com os modelos Gemini mais recentes, suporte a chamadas com parâmetros estruturados (`responseSchema`, `responseMimeType: 'application/json'`) e controle de cabeçalhos HTTP.
-- **`tsx`**: Executor TypeScript para Node.js com suporte nativo a ESM (`"type": "module"`), utilizado para rodar `server.ts` em tempo real sem etapas intermediárias de compilação.
-- **`esbuild`**: Compilador de alta velocidade empregado no script `npm run build` para gerar o bundle CJS de produção (`dist/server.cjs`).
+- **Node.js + Express 4**: Minimalist HTTP framework with low overhead, asynchronous middleware support, and straightforward bundling via `esbuild`.
+- **Google GenAI Official SDK `@google/genai`**: Version 2.4.0+. Connects directly to the latest Gemini models, with native support for structured output (`responseSchema`, `responseMimeType: 'application/json'`) and HTTP header customization.
+- **`tsx`**: TypeScript execution engine for Node.js with native ESM support (`"type": "module"`), used for hot execution of `server.ts` without intermediate compilation steps.
+- **`esbuild`**: High-performance bundler used in `npm run build` to produce the production CJS bundle (`dist/server.cjs`).
 
 ### 2.2 Frontend
 
-- **React 19 `package.json`**: Framework de UI moderno, garantindo renderização eficiente e estabilidade de estado com hooks padrão (`useState`, `useEffect`, `useRef`).
-- **Tailwind CSS v4 `package.json`**: Configurado via plugin `@tailwindcss/vite` `vite.config.ts`, fornecendo estilização rápida, responsiva e com suporte a variáveis CSS nativas.
-- **Lucide React `package.json`**: Conjunto consistente de ícones vetoriais leves para sinalização de estados pedagógicos e metadados.
-- **`react-markdown` `package.json`**: Renderizador de markdown para exibição formatada das respostas do tutor socrático.
+- **React 19 `package.json`**: Modern UI library delivering high rendering efficiency and stable state hooks (`useState`, `useEffect`, `useRef`).
+- **Tailwind CSS v4 `package.json`**: Configured via `@tailwindcss/vite` in `vite.config.ts`, delivering responsive styling with native CSS variable support.
+- **Lucide React `package.json`**: Lightweight vector icon suite providing visual signals for pedagogical states and metadata.
+- **`react-markdown` `package.json`**: Markdown parser rendering structured outputs from the Socratic tutor.
 
 ---
 
-## 3. Estratégia de Resiliência e Fallbacks
+## 3. Resilience Strategy and Fallbacks
 
-A plataforma foi projetada para garantir continuidade pedagógica ininterrupta mesmo diante de esgotamento de cotas de API, falhas de rede ou ausência de chaves de ambiente.
+The platform is designed to maintain uninterrupted pedagogical continuity even in cases of API quota exhaustion, network failures, or missing environment variables.
 
-### 3.1 Cascata de Modelos Gemini
+### 3.1 Gemini Model Cascade
 
-O backend implementa redundância com múltiplos modelos aprovados:
+The backend implements redundancy across approved models:
 
 ```typescript
 const models = ['gemini-3.8-flash', 'gemini-flash-latest', 'gemini-3.1-flash-lite'];
 ```
 
-- Cada modelo recebe até duas tentativas de execução.
-- Erros transitórios com códigos `503`, `UNAVAILABLE`, `429` ou `RESOURCE_EXHAUSTED` ativam um mecanismo de espera com jitter aleatório (`750ms + Math.random() * 500ms`) antes de tentar novamente ou passar para o próximo modelo da lista.
+- Each model is attempted up to twice.
+- Transient errors (`503`, `UNAVAILABLE`, `429`, or `RESOURCE_EXHAUSTED`) trigger a jittered backoff (`750ms + Math.random() * 500ms`) before retrying or advancing to the next candidate model.
 
-### 3.2 Fallbacks Pedagógicos Locais
+### 3.2 Local Pedagogical Fallbacks
 
-Se todas as chamadas upstream falharem ou a variável `GEMINI_API_KEY` estiver ausente, cada endpoint aciona uma rotina heurística determinística:
+If all upstream calls fail or `GEMINI_API_KEY` is not set, each endpoint executes a deterministic heuristic routine:
 
-- `/api/chat`: Analisa a última mensagem do usuário e devolve uma pergunta socrática sobre relação causa-efeito, mantendo o bloco `meta` intacto.
-- `/api/feynman-evaluate`: Executa análise léxica da explicação, detecta palavras conceituais abstratas como potenciais jargões, calcula uma nota proporcional à extensão do texto e formula uma pergunta socrática de fechamento.
-- `/api/generate-retrieval-deck`: Retorna uma estrutura padrão de três cartões desafiadores sobre mecânica causal, perturbação de limites e equívocos frequentes.
-- `/api/generate-concept-breakdown`: Monta a desconstrução em pré-requisitos, mecanismo nuclear, mitos e analogias estruturais com a flag `isPedagogicalFallback: true`.
+- `/api/chat`: Analyzes the student's latest message and returns a Socratic question centered on cause-and-effect mechanisms, keeping the `meta` block intact.
+- `/api/feynman-evaluate`: Performs lexical inspection on the explanation, flags abstract terms as potential jargon, computes a score proportional to length, and generates a closing Socratic question.
+- `/api/generate-retrieval-deck`: Returns a structured default set of challenging cards covering causal mechanics, boundary perturbations, and frequent misconceptions.
+- `/api/generate-concept-breakdown`: Assembles prerequisites, core mechanism, misconceptions, and structural analogies with `isPedagogicalFallback: true`.
 
 ---
 
-## 4. Engenharia de Prompts e Contratos de API
+## 4. Prompt Engineering and API Contracts
 
-### 4.1 Chat Socrático: `POST /api/chat`
+### 4.1 Socratic Chat: `POST /api/chat`
 
-- **Instrução de Sistema**. Proíbe respostas diretas e exige o encerramento com uma única pergunta instigante.
-- **Extração de Metadados**: O modelo inclui ao final da resposta um bloco delimitado:
+- **System Instruction**: Strictly forbids direct explanatory answers and mandates concluding with a single thought-provoking question.
+- **Metadata Extraction**: The model appends a delimited metadata block at the end of the text:
 
   ```
   ```meta
-  CognitivePhase: [Fase]
-  NeuroTip: [Explicação neurobiológica]
-  SuggestedNextSteps: [Ação 1 | Ação 2]
+  CognitivePhase: [Phase]
+  NeuroTip: [Neurobiological explanation]
+  SuggestedNextSteps: [Action 1 | Action 2]
+  ```
   ```
 
-  ```
-  O servidor processa essa string via Expressão Regular `server.ts` e entrega o texto limpo em `content` e os metadados em `meta`.
+  The server parses this block via regular expressions in `server.ts` and returns clean text in `content` and structured data in `meta`.
 
-### 4.2 Avaliação Feynman: `POST /api/feynman-evaluate`
+### 4.2 Feynman Evaluation: `POST /api/feynman-evaluate`
 
-- Utiliza **Structured Outputs** da API Gemini com `responseMimeType: 'application/json'` e schema estrito definido via enum `Type`.
-- Contrato de saída em `FeynmanEvaluation`:
-  - `score` (inteiro 0-100)
+- Uses **Structured Outputs** from the Gemini API with `responseMimeType: 'application/json'` and a strict schema defined via enum `Type`.
+- Output Contract (`FeynmanEvaluation`):
+  - `score` (integer 0-100)
   - `clarityAssessment` (string)
-  - `jargonIdentified` (array de strings)
-  - `conceptualGaps` (array de strings)
-  - `strengths` (array de strings)
+  - `jargonIdentified` (array of strings)
+  - `conceptualGaps` (array of strings)
+  - `strengths` (array of strings)
   - `analogiesEvaluation` (string)
   - `suggestedAnalogy` (string)
   - `simplifiedAlternative` (string)
   - `followUpQuestion` (string)
 
-### 4.3 Geração de Baralhos: `POST /api/generate-retrieval-deck`
+### 4.3 Deck Generation: `POST /api/generate-retrieval-deck`
 
-- Schema JSON forçado com lista de objetos `cards` contendo:
-  - `question` (pergunta de mecanismo, não de decoreba)
-  - `answer` (modelo mental completo)
-  - `keyConcept` (conceito nuclear)
-  - `neuroTip` (âncora mnemônica)
-- O backend normaliza os cartões gerados para o formato `Flashcard`, inicializando os parâmetros de repetição espaçada (`intervalDays: 1`, `repetitions: 0`, `easeFactor: 2.5`, `masteryLevel: 0`).
+- Structured JSON schema producing a `cards` array containing:
+  - `question` (causal mechanism question, not trivia)
+  - `answer` (complete mental model)
+  - `keyConcept` (tested core concept)
+  - `neuroTip` (mnemonic anchor)
+- The backend normalizes generated cards to the `Flashcard` contract, initializing spaced repetition parameters (`intervalDays: 1`, `repetitions: 0`, `easeFactor: 2.5`, `masteryLevel: 0`).
 
-### 4.4 Decomposição Conceitual: `POST /api/generate-concept-breakdown`
+### 4.4 Conceptual Breakdown: `POST /api/generate-concept-breakdown`
 
-- Schema JSON com `ConceptBreakdown`:
+- JSON schema returning `ConceptBreakdown`:
   - `topic`, `overview`, `prerequisites`, `coreMechanism`, `commonMisconceptions`, `elaborativeQuestions`, `realWorldAnalogy`, `neuroscienceRationale`.
 
 ---
 
-## 5. Algoritmo de Repetição Espaçada no Cliente
+## 5. Client-Side Spaced Repetition Algorithm
 
-No componente `ActiveRetrievalLab.tsx`, a função `handleRateCard` implementa uma adaptação do algoritmo **SM-2**:
+In `ActiveRetrievalLab.tsx`, the `handleRateCard` function implements an adaptation of the **SM-2** algorithm:
 
 ```typescript
-// Quality: 0 = Esqueceu / Branco, 1 = Difícil, 2 = Bom, 3 = Perfeito
+// Quality: 0 = Forgot / Blank, 1 = Hard, 2 = Good, 3 = Perfect
 if (quality === 0) {
   newInterval = 1;
   newRepetitions = 0;
@@ -170,32 +170,32 @@ if (quality === 0) {
 }
 ```
 
-A data da próxima revisão é calculada somando `newInterval * 86400000` milissegundos ao timestamp atual.
+The next review timestamp is calculated by adding `newInterval * 86400000` milliseconds to the current time.
 
 ---
 
-## 6. Gerenciamento de Estado e Ciclo de Dados
+## 6. State Management and Data Lifecycle
 
-### 6.1 Estado Global e Persistência
+### 6.1 Global State and Persistence
 
-O componente raiz `App.tsx` mantém os estados centrais sincronizados via `localStorage`:
+The root component `App.tsx` keeps primary state synchronized via `localStorage`:
 
-- `synapse_current_topic`: Conceito ativo selecionado pelo usuário.
-- `synapse_stats`: Objeto `CognitiveStats` rastreando tentativas de recuperação, explicações Feynman, perguntas socráticas respondidas, dias de estímulo contínuo e tempo ativo.
-- `synapse_chat_history`: Histórico de mensagens do chat socrático.
-- `synapse_flashcards`: Baralho de cartões ativos.
+- `synapse_current_topic`: Active concept entered by the user.
+- `synapse_stats`: `CognitiveStats` object tracking retrieval attempts, Feynman explanations, Socratic questions answered, retention streak days, and total active minutes.
+- `synapse_chat_history`: Message history for the Socratic tutor.
+- `synapse_flashcards`: Active flashcard deck.
 
-### 6.2 Comunicação Cruzada entre Ferramentas
+### 6.2 Cross-Tool Communication
 
-- O estado `currentTopic` é propagado para todos os componentes.
-- A função `handleOpenSocraticWithPrompt` em `App.tsx` permite que botões dentro do `FeynmanStudio` e do `CognitiveMap` definam um prompt pré-formatado, alternem automaticamente a aba ativa para `socratic` e iniciem imediatamente a investigação socrática com o tutor.
+- The `currentTopic` state is passed down to all views.
+- The `handleOpenSocraticWithPrompt` callback in `App.tsx` allows buttons inside `FeynmanStudio` and `CognitiveMap` to set a pre-formatted prompt, switch the active tab to `socratic`, and immediately begin guided inquiry.
 
 ---
 
-## 7. Diretrizes para Modificações e Extensões
+## 7. Guidelines for Modifications and Extensions
 
-### 7.1 Regras para Agentes de IA
+### 7.1 Rules for AI Agents
 
-1. **Preservar a Postura Pedagógica**: O modelo do agente de IA jamais deve ser instruído a responder perguntas conceituais de forma expositiva direta. Quaisquer alterações em prompts devem manter a regra de não entregar respostas prontas.
-2. **Respeitar Contratos de Tipagem**: Todas as interfaces em `src/types.ts` devem corresponder estritamente aos esquemas definidos no `server.ts`.
-3. **Manter Fallbacks Heurísticos**: Ao adicionar novos endpoints ou atualizar os existentes, sempre implemente uma resposta de contingência determinística para garantir que a aplicação permaneça funcional offline.
+1. **Preserve Pedagogical Stance**: The agent must never be instructed to answer conceptual questions directly in an expository manner. Any prompt modifications must uphold the policy of guiding students to deduce answers themselves.
+2. **Adhere to Type Contracts**: All TypeScript interfaces in `src/types.ts` must strictly mirror the schemas defined in `server.ts`.
+3. **Maintain Heuristic Fallbacks**: When introducing or modifying endpoints, always provide deterministic offline fallbacks to ensure application resilience.

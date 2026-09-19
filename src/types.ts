@@ -1,9 +1,9 @@
 export type PedagogicalMode = 
-  | 'socratic'          // Método Socrático & Interrogação Elaborativa
-  | 'feynman'           // Técnica de Feynman (Explicar para Aprender)
-  | 'active_retrieval'  // Prática de Recuperação & Desafio
-  | 'concept_breakdown' // Decomposição & Carga Cognitiva
-  | 'metacognition';    // Calibração Metacognitiva & Reflexão
+  | 'socratic'          // Socratic Method & Elaborative Interrogation
+  | 'feynman'           // Feynman Technique (Explain to Learn)
+  | 'active_retrieval'  // Retrieval Practice & Challenge
+  | 'concept_breakdown' // Deconstruction & Cognitive Load
+  | 'metacognition';    // Metacognitive Calibration & Reflection
 
 export interface PedagogicalPillar {
   id: string;
@@ -52,7 +52,7 @@ export interface Flashcard {
   easeFactor: number;
   lastReviewed?: number;
   nextReviewDate: number;
-  masteryLevel: number; // 0: novo, até 5: memória consolidada
+  masteryLevel: number; // 0: new, up to 5: consolidated memory
 }
 
 export interface ConceptBreakdown {

@@ -1,152 +1,154 @@
-# Synapse - Agente de Aprendizagem Ativa
+> **Language / Idioma**: [Versão original em português](docs/pt-br/README.md)
 
-Plataforma educacional fundamentada em neurociência cognitiva e ciências da aprendizagem, desenvolvida para substituir o estudo passivo por esforço mental produtivo, retenção de longo prazo e formação de modelos mentais sólidos.
+# Synapse - Active Learning Agent
 
----
-
-## 1. O Que É o Synapse?
-
-O Synapse é um tutor e ambiente de estudo orientado por inteligência artificial projetado para atuar como um mediador cognitivo. Ao contrário de assistentes convencionais que entregam respostas prontas, resumos condensados e soluções prontas — comportamentos que incentivam o consumo passivo —, o Synapse funciona como um provocador intelectual:
-
-- **Não entrega respostas prontas**: Conduz o estudante por meio de perguntas investigativas para que ele deduza a solução.
-- **Desmonta a falsa sensação de saber**: Obriga o estudante a articular conceitos em palavras próprias, eliminando termos técnicos vazios.
-- **Exige esforço de recuperação deliberada**: Substitui a releitura por testes de evocação a partir da memória de longo prazo.
-- **Adapta-se ao estado metacognitivo do aluno**: Modula o rigor do questionamento com base no nível de certeza informado pelo estudante.
+An educational platform grounded in cognitive neuroscience and the learning sciences, designed to replace passive study with productive mental effort, long-term retention, and solid mental model formation.
 
 ---
 
-## 2. Por Que o Synapse Existe? (A Ciência da Aprendizagem)
+## 1. What Is Synapse?
 
-### O Problema do Estudo Tradicional: A Ilusão de Fluência
+Synapse is an artificial intelligence-driven tutor and study environment engineered to act as a cognitive mediator. Unlike conventional assistants that deliver ready-made answers, condensed summaries, and pre-packaged solutions—behaviors that foster passive consumption—Synapse acts as an intellectual provocateur:
 
-A maioria dos estudantes utiliza métodos de baixa eficiência biológica:
-
-- **Releitura passiva e grifos coloridos**: Ler um texto repetidas vezes cria familiaridade visual. O cérebro confunde facilidade de reconhecimento com domínio real do conteúdo (*ilusão de fluência*).
-- **Consumo passivo de aulas e vídeos**: Ouvir uma explicação linear não exige esforço de reconstrução sináptica. Poucas horas após o término da sessão, a maior parte do conteúdo é descartada pelo hipocampo como ruído biológico.
-- **Memorização de jargões ocos**: Aprender o nome de uma fórmula ou conceito sem compreender a engrenagem causal subjacente mascara lacunas conceituais (*ilusão de profundidade explicativa*).
-
-### A Solução Biológica: Potenciação de Longa Duração (LTP)
-
-Para que uma memória se torne duradoura e seja transferida do hipocampo para o neocórtex, é necessário esforço cognitivo consciente. O Synapse integra seis pilares comprovados pela ciência cognitiva:
-
-1. **Prática de Recuperação (Active Recall - Roediger & Karpicke, 2006)**:
-   Forçar o cérebro a recuperar uma informação sem consultar anotações dispara a síntese de proteínas sinápticas permanentes. O ato de lembrar consolida a memória até três vezes mais do que uma nova leitura.
-2. **Técnica de Feynman (Richard Feynman / Rozenblit & Keil)**:
-   Se você não consegue explicar um conceito em termos simples para uma criança ou leigo, você decorou um rótulo, mas não compreendeu o mecanismo. O sistema exige a desconstrução de jargões em analogias concretas.
-3. **Método Socrático & Interrogação Elaborativa (Pressley et al., 1992)**:
-   Perguntas do tipo "Por que isso ocorre dessa forma e não de outra?" conectam o novo conteúdo às redes neurais pré-existentes, construindo andaimes de raciocínio (*scaffolding*).
-4. **Teoria da Carga Cognitiva (John Sweller, 1988)**:
-   A memória de trabalho suporta apenas entre 4 e 7 elementos simultâneos. O Synapse decompõe tópicos complexos, separando pré-requisitos essenciais e eliminando distrações para focar na construção de esquemas neurais duradouros (*carga germana*).
-5. **Dificuldades Desejáveis (Robert & Elizabeth Bjork, 2011)**:
-   O aprendizado que parece fácil e rápido é esquecido rapidamente. O desconforto produtivo de tentar lembrar ou estruturar uma ideia é o sinal biológico de que a neuroplasticidade está ocorrendo.
-6. **Calibração Metacognitiva (John Flavell, 1979 / Kruger & Dunning)**:
-   Avaliar o próprio grau de certeza antes de verificar a resposta combate o excesso de confiança e revela pontos cegos de compreensão.
+- **Never hands out ready answers**: Guides the student through investigative questions so they deduce the solution themselves.
+- **Dismantles the illusion of competence**: Compels the student to articulate concepts in their own words, stripping away empty technical jargon.
+- **Demands deliberate retrieval effort**: Replaces passive rereading with recall tests drawn from long-term memory.
+- **Adapts to the student's metacognitive state**: Modulates questioning rigor based on the student's reported certainty level.
 
 ---
 
-## 3. Como Utilizar o Synapse de Forma Satisfatória
+## 2. Why Does Synapse Exist? (The Science of Learning)
 
-Para obter o máximo proveito cognitivo da ferramenta, siga este ciclo de estudo recomendado:
+### The Problem with Traditional Studying: The Illusion of Fluency
+
+Most students rely on biologically inefficient methods:
+
+- **Passive rereading and colored highlighting**: Reading a text repeatedly builds visual familiarity. The brain mistakes ease of recognition for actual mastery (*illusion of fluency*).
+- **Passive consumption of lectures and videos**: Listening to a linear explanation requires no synaptic reconstruction effort. Hours after the session ends, most of the material is discarded by the hippocampus as biological noise.
+- **Memorizing hollow jargon**: Memorizing the name of a formula or concept without grasping the underlying causal mechanism masks conceptual gaps (*illusion of explanatory depth*).
+
+### The Biological Solution: Long-Term Potentiation (LTP)
+
+For a memory to endure and transfer from the hippocampus to the neocortex, conscious cognitive effort is required. Synapse integrates six pillars validated by cognitive science:
+
+1. **Retrieval Practice (Active Recall - Roediger & Karpicke, 2006)**:
+   Forcing the brain to retrieve information without consulting notes triggers the synthesis of permanent synaptic proteins. The act of recalling strengthens memory up to three times more than another reading.
+2. **The Feynman Technique (Richard Feynman / Rozenblit & Keil)**:
+   If you cannot explain a concept in simple terms to a child or layperson, you have memorized a label without understanding the mechanism. The system demands the deconstruction of jargon into concrete analogies.
+3. **The Socratic Method & Elaborative Interrogation (Pressley et al., 1992)**:
+   Questions like "Why does this happen this way and not another?" anchor new content to pre-existing neural networks, erecting scaffolding for reasoning.
+4. **Cognitive Load Theory (John Sweller, 1988)**:
+   Working memory can hold only 4 to 7 elements simultaneously. Synapse deconstructs complex topics, isolating essential prerequisites and eliminating distractions to focus on building durable neural schemas (*germane load*).
+5. **Desirable Difficulties (Robert & Elizabeth Bjork, 2011)**:
+   Learning that feels easy and fast is forgotten just as quickly. The productive struggle of attempting to remember or structure an idea is the biological hallmark of neuroplasticity in action.
+6. **Metacognitive Calibration (John Flavell, 1979 / Kruger & Dunning)**:
+   Assessing one's own degree of certainty before verifying an answer curbs overconfidence and reveals cognitive blind spots.
+
+---
+
+## 3. How to Use Synapse Effectively
+
+To maximize cognitive gain from the tool, follow this recommended study cycle:
 
 ```
-[1. Fixar Conceito] ──> [2. Mapear Carga Cognitiva] ──> [3. Dialogar no Tutor Socrático]
-                                                                    │
-[6. Monitorar Métricas] <── [5. Laboratório de Recuperação] <── [4. Estúdio Feynman]
+[1. Pin Concept] ──> [2. Map Cognitive Load] ──> [3. Engage Socratic Tutor]
+                                                               │
+[6. Monitor Stats] <── [5. Active Retrieval Lab] <── [4. Feynman Studio]
 ```
 
-### Passo 1: Definir e Fixar o Conceito Central
+### Step 1: Define and Pin the Core Concept
 
-Utilize a barra persistente no topo da tela para digitar o tema do seu estudo (ex: *Fotossíntese*, *Algoritmo de Dijkstra*, *Inflação Monetária*, *Mecanismos Sinápticos*). Esse conceito será sincronizado automaticamente entre todas as ferramentas da plataforma.
+Use the persistent bar at the top of the screen to enter your study topic (e.g., *Photosynthesis*, *Dijkstra's Algorithm*, *Monetary Inflation*, *Synaptic Mechanisms*). This concept will be synchronized automatically across all platform tools.
 
-### Passo 2: Mapear a Estrutura Conceitual
+### Step 2: Map the Conceptual Structure
 
-Acesse a aba **Carga Cognitiva** e clique em **Desconstruir Carga Cognitiva**:
+Open the **Cognitive Load** tab and click **Deconstruct Cognitive Load**:
 
-- Verifique os **Pré-requisitos**: Garanta que você domina as ideias de base antes de avançar.
-- Leia o **Mecanismo Central**: Entenda a engrenagem fundamental em uma frase.
-- Observe as **Armadilhas Cognitivas**: Previna-se contra os erros mais frequentes.
-- Ancore o raciocínio na **Analogia do Mundo Físico**.
+- Check the **Prerequisites**: Ensure you master foundational ideas before moving forward.
+- Read the **Core Mechanism**: Grasp the essential engine in a single sentence.
+- Review **Cognitive Traps**: Guard against common misconceptions.
+- Anchor your understanding with the **Physical World Analogy**.
 
-### Passo 3: Construir o Raciocínio com o Tutor Socrático
+### Step 3: Build Reasoning with the Socratic Tutor
 
-Navegue até a aba **Tutor Socrático**:
+Navigate to the **Socratic Tutor** tab:
 
-- Ajuste o controle de **Calibração Metacognitiva** (1 a 5) indicando seu nível de segurança atual sobre o assunto.
-- Escolha o modo pedagógico desejado (`socratic`, `active_retrieval`, `feynman` ou `metacognition`).
-- Responda às perguntas do tutor formulando hipóteses com suas próprias palavras. Evite copiar e colar respostas prontas.
-- Utilize as **Ações Cognitivas Recomendadas** exibidas ao final de cada resposta do tutor para direcionar o próximo passo do raciocínio.
+- Adjust the **Metacognitive Calibration** slider (1 to 5) to indicate your current confidence on the topic.
+- Choose your pedagogical mode (`socratic`, `active_retrieval`, `feynman`, or `metacognition`).
+- Answer the tutor's questions by formulating hypotheses in your own words. Avoid copying and pasting pre-made answers.
+- Use the **Recommended Cognitive Actions** displayed at the end of each response to guide your next reasoning step.
 
-### Passo 4: Testar a Compreensão no Estúdio Feynman
+### Step 4: Test Understanding in the Feynman Studio
 
-Acesse o **Estúdio Feynman**:
+Open the **Feynman Studio**:
 
-- Selecione o público-alvo (ex: *Criança de 10 anos*).
-- No campo de texto, redija uma explicação completa do fenômeno sem recorrer a materiais de consulta.
-- Clique em **Auditar com Técnica de Feynman**.
-- Analise os resultados: identifique quais termos foram apontados como jargões não explicados e onde ocorreram saltos lógicos (*lacunas conceituais*).
-- Clique em **Debater no Tutor** para levar a pergunta de fechamento gerada diretamente ao Tutor Socrático e sanar a lacuna.
+- Select the target audience (e.g., *Curious 10-year-old*).
+- In the text area, write a complete explanation of the phenomenon without consulting reference materials.
+- Click **Audit with Feynman Technique**.
+- Analyze the results: see which terms were flagged as unexplained jargon and where logical leaps occurred (*conceptual gaps*).
+- Click **Discuss with Tutor** to take the generated closing question directly into the Socratic Tutor and bridge the gap.
 
-### Passo 5: Consolidar a Memória no Laboratório de Recuperação Ativa
+### Step 5: Consolidate Memory in the Active Retrieval Lab
 
-Acesse a aba **Recuperação Ativa**:
+Open the **Active Retrieval** tab:
 
-- Ao visualizar um cartão, **não vire imediatamente**.
-- Digite sua resposta ou dedução no campo **Forçar a Geração**. A escrita prévia elimina o viés retrospectivo ("eu já sabia disso").
-- Clique em **Conferir Modelo Mental & Resposta** para avaliar seu desempenho em relação ao gabarito.
-- Classifique a dificuldade da evocação (*Errei*, *Muito Difícil*, *Bom Esforço*, *Perfeito*). O algoritmo de repetição espaçada recalculará a data da próxima revisão com base na curva de esquecimento de Ebbinghaus.
-- Se necessário, gere novos cartões clicando em **Sintetizar Novo Baralho**.
+- When viewing a card, **do not flip it immediately**.
+- Type your answer or deduction in the **Force Generation** field. Writing beforehand eliminates hindsight bias ("I already knew that").
+- Click **Check Mental Model & Answer** to evaluate your attempt against the benchmark.
+- Rate your recall difficulty (*Forgot*, *Very Hard*, *Good Effort*, *Perfect*). The spaced repetition algorithm recalculates your next review date based on Ebbinghaus's forgetting curve.
+- When needed, synthesize new cards by clicking **Synthesize New Deck**.
 
-### Passo 6: Aprofundar os Fundamentos Científicos
+### Step 6: Deepen Scientific Foundations
 
-Visite a aba **Base Neurocientífica** a qualquer momento para revisar os estudos empíricos que sustentam cada etapa da metodologia.
+Visit the **Neuroscience Guide** tab at any time to review the empirical studies supporting each step of the methodology.
 
 ---
 
-## 4. Instruções de Execução Local
+## 4. Local Execution Instructions
 
-### Pré-requisitos
+### Prerequisites
 
-- [Node.js](https://nodejs.org/) versão 18 ou superior instalado.
-- Chave de API da Google Gemini (opcional para testes básicos, recomendada para respostas completas de IA).
+- [Node.js](https://nodejs.org/) version 18 or higher installed.
+- Google Gemini API key (optional for basic testing; recommended for full AI responses).
 
-### Passo a Passo de Instalação
+### Installation Steps
 
-1. **Clonar ou acessar o diretório do projeto**:
+1. **Clone or navigate to the project directory**:
 
    ```bash
-   cd /home/gui/Projects/synapse_v1
+   cd /home/gui/Projects/synapse
    ```
 
-2. **Instalar as dependências**:
+2. **Install dependencies**:
 
    ```bash
    npm install
    ```
 
-3. **Configurar as variáveis de ambiente**:
-   Crie ou edite o arquivo `.env` na raiz do projeto e insira sua chave da API Gemini:
+3. **Configure environment variables**:
+   Create or edit the `.env` file in the project root and add your Gemini API key:
 
    ```env
-   GEMINI_API_KEY=sua_chave_gemini_aqui
+   GEMINI_API_KEY=your_gemini_api_key_here
    ```
 
-   *Nota: Caso a chave não seja configurada, o Synapse continuará operacional utilizando seu sistema interno de fallbacks pedagógicos determinísticos.*
+   *Note: If the key is not set, Synapse remains fully operational using its internal deterministic pedagogical fallbacks.*
 
-4. **Iniciar em modo de desenvolvimento**:
+4. **Start in development mode**:
 
    ```bash
    npm run dev
    ```
 
-   A aplicação estará disponível em `http://localhost:3000`.
+   The application will be accessible at `http://localhost:3000`.
 
-5. **Verificação de tipos e qualidade**:
+5. **Type check and linting**:
 
    ```bash
    npm run lint
    ```
 
-6. **Compilação e execução para produção**:
+6. **Build and production run**:
 
    ```bash
    npm run build
@@ -155,12 +157,12 @@ Visite a aba **Base Neurocientífica** a qualquer momento para revisar os estudo
 
 ---
 
-## 5. Estrutura de Arquivos
+## 5. File Structure
 
-Para uma documentação técnica detalhada voltada a desenvolvedores e agentes de IA, consulte `AGENTS.md`
+For detailed technical documentation aimed at developers and AI agents, see `AGENTS.md`.
 
-- `server.ts`: Servidor Express unificado com integração à API Gemini e middleware Vite.
-- `src/App.tsx`: Gerenciador de estado principal, abas e persistência.
-- `src/types.ts`: Definições de tipos e contratos de dados da aplicação.
-- `src/components/`: Componentes de interface do usuário para cada modalidade pedagógica.
-- `src/data/neurosciencePillars.ts`: Conteúdos de base científica e cartões de demonstração.
+- `server.ts`: Unified Express server with Gemini API integration and Vite middleware.
+- `src/App.tsx`: Main state manager, navigation tabs, and persistence.
+- `src/types.ts`: Application type definitions and data contracts.
+- `src/components/`: UI components for each pedagogical mode.
+- `src/data/neurosciencePillars.ts`: Scientific foundation content and demonstration flashcards.

@@ -12,6 +12,7 @@ import {
   RotateCw
 } from 'lucide-react';
 import { ConceptBreakdown } from '../types';
+import { useLanguage } from '../i18n/LanguageContext';
 
 interface CognitiveMapProps {
   currentTopic: string;
@@ -23,6 +24,7 @@ export const CognitiveMap: React.FC<CognitiveMapProps> = ({
   currentTopic,
   onOpenSocraticWithPrompt,
 }) => {
+  const { t, language } = useLanguage();
   const [isLoading, setIsLoading] = useState(false);
   const [breakdown, setBreakdown] = useState<ConceptBreakdown | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -39,19 +41,22 @@ export const CognitiveMap: React.FC<CognitiveMapProps> = ({
       const response = await fetch('/api/generate-concept-breakdown', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ topic: activeConcept }),
+        body: JSON.stringify({
+          topic: activeConcept,
+          language,
+        }),
       });
 
       if (!response.ok) {
         const errData = await response.json().catch(() => null);
-        throw new Error(errData?.error || 'Falha ao desconstruir conceito.');
+        throw new Error(errData?.error || t.cognitiveMap.errorFallback);
       }
 
       const data: ConceptBreakdown = await response.json();
       setBreakdown(data);
     } catch (err: any) {
       console.error(err);
-      setError(err.message || 'Erro inesperado ao gerar decomposição.');
+      setError(err.message || t.cognitiveMap.errorFallback);
     } finally {
       setIsLoading(false);
     }
@@ -68,11 +73,11 @@ export const CognitiveMap: React.FC<CognitiveMapProps> = ({
           <div className="space-y-1">
             <div className="flex items-center gap-2">
               <h2 className="text-base font-semibold text-zinc-100 tracking-tight">
-                Mapeamento &amp; Gestão de Carga Cognitiva
+                {t.cognitiveMap.bannerTitle}
               </h2>
             </div>
             <p className="text-xs sm:text-sm text-zinc-400 leading-relaxed max-w-4xl">
-              A memória de trabalho gerencia apenas 4 a 7 elementos simultâneos. Ao desconstruir o tema em pré-requisitos, mecanismo nuclear, analogias do mundo físico e armadilhas mentais, eliminamos a carga extrínseca para construir esquemas duradouros no córtex.
+              {t.cognitiveMap.bannerDesc}
             </p>
           </div>
         </div>
@@ -82,9 +87,9 @@ export const CognitiveMap: React.FC<CognitiveMapProps> = ({
       <div className="p-5 rounded-2xl bg-zinc-900/30 border border-zinc-800/80">
         <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-4">
           <div className="flex items-center gap-2.5 text-xs sm:text-sm">
-            <span className="text-zinc-400 font-medium">Conceito a ser mapeado:</span>
+            <span className="text-zinc-400 font-medium">{t.cognitiveMap.conceptToMap}</span>
             <span className="font-semibold text-zinc-100 text-sm sm:text-base truncate max-w-[340px]">
-              {currentTopic || 'Defina um conceito no topo'}
+              {currentTopic || t.feynman.defineConceptPrompt}
             </span>
           </div>
 
@@ -97,12 +102,12 @@ export const CognitiveMap: React.FC<CognitiveMapProps> = ({
             {isLoading ? (
               <>
                 <RotateCw className="w-4 h-4 animate-spin" />
-                <span>Mapeando Esquemas Neurais...</span>
+                <span>{t.cognitiveMap.mappingButton}</span>
               </>
             ) : (
               <>
                 <Compass className="w-4 h-4 stroke-[1.75]" />
-                <span>Desconstruir Carga Cognitiva</span>
+                <span>{t.cognitiveMap.deconstructButton}</span>
               </>
             )}
           </button>
@@ -120,7 +125,7 @@ export const CognitiveMap: React.FC<CognitiveMapProps> = ({
               className="px-3 py-1 bg-zinc-900 hover:bg-zinc-800 border border-zinc-700 rounded-lg text-zinc-200 font-medium transition-colors flex items-center gap-1.5 shrink-0 cursor-pointer"
             >
               <RotateCw className="w-3 h-3" />
-              Tentar Novamente
+              {t.cognitiveMap.tryAgain}
             </button>
           </div>
         )}
@@ -134,7 +139,7 @@ export const CognitiveMap: React.FC<CognitiveMapProps> = ({
               <div className="flex items-center gap-2">
                 <Sparkles className="w-4 h-4 text-zinc-400 shrink-0" />
                 <span>
-                  Esquema cognitivo sintetizado estruturalmente.
+                  {t.cognitiveMap.synthesizedNotice}
                 </span>
               </div>
               <button
@@ -144,7 +149,7 @@ export const CognitiveMap: React.FC<CognitiveMapProps> = ({
                 className="px-2.5 py-1 bg-zinc-800 hover:bg-zinc-700 border border-zinc-700 rounded-md text-zinc-200 font-medium transition-colors flex items-center gap-1.5 shrink-0 cursor-pointer disabled:opacity-50"
               >
                 <RotateCw className={`w-3 h-3 ${isLoading ? 'animate-spin' : ''}`} />
-                Atualizar via IA
+                {t.cognitiveMap.updateAI}
               </button>
             </div>
           )}
@@ -153,9 +158,9 @@ export const CognitiveMap: React.FC<CognitiveMapProps> = ({
           <div className="p-6 sm:p-8 rounded-2xl bg-zinc-900/40 border border-zinc-800/80 space-y-4 shadow-sm">
             <div className="flex items-center justify-between">
               <span className="text-xs font-mono font-medium text-zinc-400 uppercase tracking-wider">
-                Núcleo Essencial (Carga Germana)
+                {t.cognitiveMap.essentialCore}
               </span>
-              <span className="text-xs text-zinc-400 font-mono">Tópico: {breakdown.topic}</span>
+              <span className="text-xs text-zinc-400 font-mono">{t.cognitiveMap.topicLabel} {breakdown.topic}</span>
             </div>
 
             <p className="text-sm sm:text-base text-zinc-300 leading-relaxed max-w-5xl">
@@ -165,7 +170,7 @@ export const CognitiveMap: React.FC<CognitiveMapProps> = ({
             <div className="p-4 sm:p-5 rounded-xl bg-zinc-950/80 border border-zinc-800 space-y-2">
               <span className="text-xs font-semibold text-zinc-200 flex items-center gap-2 font-mono uppercase tracking-wider">
                 <Brain className="w-4 h-4 text-zinc-400 stroke-[1.75]" />
-                O Mecanismo Central em Uma Frase:
+                {t.cognitiveMap.coreMechanismTitle}
               </span>
               <p className="text-sm sm:text-base text-zinc-100 font-medium leading-relaxed">
                 "{breakdown.coreMechanism}"
@@ -179,7 +184,7 @@ export const CognitiveMap: React.FC<CognitiveMapProps> = ({
             <div className="p-6 rounded-2xl bg-zinc-900/30 border border-zinc-800/80 space-y-4">
               <span className="text-xs font-semibold text-zinc-200 flex items-center gap-2 font-mono uppercase tracking-wider">
                 <ShieldCheck className="w-4 h-4 text-zinc-400 stroke-[1.75]" />
-                Esquemas Prévios (Andaime):
+                {t.cognitiveMap.prerequisitesTitle}
               </span>
               <ul className="space-y-2.5 text-xs sm:text-sm text-zinc-300">
                 {breakdown.prerequisites.map((p, idx) => (
@@ -195,19 +200,19 @@ export const CognitiveMap: React.FC<CognitiveMapProps> = ({
             <div className="p-6 rounded-2xl bg-zinc-900/30 border border-zinc-800/80 space-y-4">
               <span className="text-xs font-semibold text-zinc-200 flex items-center gap-2 font-mono uppercase tracking-wider">
                 <Lightbulb className="w-4 h-4 text-zinc-400 stroke-[1.75]" />
-                Analogia do Mundo Físico:
+                {t.cognitiveMap.physicalAnalogyTitle}
               </span>
               <div className="bg-zinc-950/70 p-4 rounded-xl border border-zinc-800/70 space-y-2">
                 <p className="text-xs sm:text-sm text-zinc-200 leading-relaxed">
                   {breakdown.realWorldAnalogy}
                 </p>
                 <span className="text-[11px] text-zinc-500 block font-mono">
-                  Teoria do Duplo Código de Paivio
+                  {t.cognitiveMap.dualCoding}
                 </span>
               </div>
 
               <div className="p-3.5 rounded-xl bg-zinc-950/50 border border-zinc-800/80 text-xs text-zinc-400 leading-relaxed">
-                <strong className="text-zinc-300 font-medium block mb-1">Por que gera sobrecarga:</strong>
+                <strong className="text-zinc-300 font-medium block mb-1">{t.cognitiveMap.whyOverloadTitle}</strong>
                 {breakdown.neuroscienceRationale}
               </div>
             </div>
@@ -216,7 +221,7 @@ export const CognitiveMap: React.FC<CognitiveMapProps> = ({
             <div className="p-6 rounded-2xl bg-zinc-900/30 border border-zinc-800/80 space-y-4">
               <span className="text-xs font-semibold text-zinc-200 flex items-center gap-2 font-mono uppercase tracking-wider">
                 <AlertTriangle className="w-4 h-4 text-zinc-400 stroke-[1.75]" />
-                Armadilhas Cognitivas &amp; Mitos:
+                {t.cognitiveMap.misconceptionsTitle}
               </span>
               <ul className="space-y-2.5 text-xs sm:text-sm text-zinc-300">
                 {breakdown.commonMisconceptions.map((m, idx) => (
@@ -234,9 +239,9 @@ export const CognitiveMap: React.FC<CognitiveMapProps> = ({
             <div className="flex items-center justify-between">
               <span className="text-xs font-semibold text-zinc-200 flex items-center gap-2 font-mono uppercase tracking-wider">
                 <HelpCircle className="w-4 h-4 text-zinc-400 stroke-[1.75]" />
-                Perguntas de Interrogação Elaborativa (Gatilhos de Reflexão):
+                {t.cognitiveMap.elaborativeTitle}
               </span>
-              <span className="text-xs text-zinc-500 font-mono">Clique para debater no Tutor</span>
+              <span className="text-xs text-zinc-500 font-mono">{t.cognitiveMap.clickToDebate}</span>
             </div>
 
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-3">
@@ -256,12 +261,12 @@ export const CognitiveMap: React.FC<CognitiveMapProps> = ({
                     <button
                       onClick={() =>
                         onOpenSocraticWithPrompt(
-                          `Estou explorando a pergunta elaborativa sobre ${breakdown.topic}: "${q}". Como podemos destrinchar essa questão socraticamente?`
+                          `${t.cognitiveMap.investigatePromptPrefix} ${breakdown.topic}: "${q}". ${t.cognitiveMap.investigatePromptSuffix}`
                         )
                       }
                       className="px-3 py-1.5 rounded-lg bg-zinc-900 hover:bg-zinc-800 text-zinc-300 hover:text-zinc-100 border border-zinc-800 text-xs font-medium transition-colors flex items-center gap-1.5 shrink-0 cursor-pointer"
                     >
-                      <span>Investigar</span>
+                      <span>{t.cognitiveMap.investigateButton}</span>
                       <ArrowRight className="w-3.5 h-3.5 stroke-[2]" />
                     </button>
                   )}

@@ -14,13 +14,17 @@ import {
   TrendingUp,
   ShieldAlert
 } from 'lucide-react';
-import { NEUROSCIENCE_PILLARS } from '../data/neurosciencePillars';
+import { getNeurosciencePillars } from '../data/neurosciencePillars';
+import { useLanguage } from '../i18n/LanguageContext';
 
 interface NeuroscienceGuideProps {
-  onSelectAction: (mode: 'socratic' | 'feynman' | 'retrieval' | 'cognitive_map') => void;
+  onSelectAction?: (mode: 'socratic' | 'feynman' | 'retrieval' | 'cognitive_map') => void;
 }
 
 export const NeuroscienceGuide: React.FC<NeuroscienceGuideProps> = () => {
+  const { t, language } = useLanguage();
+  const pillars = getNeurosciencePillars(language);
+
   const iconMap: Record<string, any> = {
     Zap,
     Sparkles,
@@ -37,10 +41,10 @@ export const NeuroscienceGuide: React.FC<NeuroscienceGuideProps> = () => {
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-center">
           <div className="lg:col-span-8 space-y-3.5">
             <h2 className="text-2xl sm:text-3xl lg:text-4xl font-semibold text-zinc-100 tracking-tight leading-tight">
-              Como o Cérebro Realmente Consolida Conhecimento Duradouro:
+              {t.neuroscience.heroTitle}
             </h2>
             <p className="text-sm sm:text-base text-zinc-400 leading-relaxed max-w-3xl">
-              Mais de um século de ciência cognitiva comprova que as práticas de estudo mais difundidas — como releitura passiva, resumos lineares e grifos coloridos — produzem ilusão de competência com retenção quase nula. A memória duradoura (LTP) depende de esforço cognitivo deliberado: evocar, simplificar e conectar.
+              {t.neuroscience.heroDesc}
             </p>
           </div>
 
@@ -48,23 +52,23 @@ export const NeuroscienceGuide: React.FC<NeuroscienceGuideProps> = () => {
           <div className="lg:col-span-4 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-1 gap-3">
             <div className="p-4 rounded-xl bg-zinc-950/80 border border-zinc-800/80 space-y-1">
               <div className="flex items-center justify-between">
-                <span className="text-xs font-mono text-zinc-400">Eficiência de Retenção</span>
+                <span className="text-xs font-mono text-zinc-400">{t.neuroscience.metricRetentionTitle}</span>
                 <TrendingUp className="w-4 h-4 text-zinc-400" />
               </div>
-              <div className="text-2xl font-bold font-mono text-zinc-100">3x Superior</div>
+              <div className="text-2xl font-bold font-mono text-zinc-100">{t.neuroscience.metricRetentionValue}</div>
               <p className="text-xs text-zinc-400">
-                Evocação ativa vs releitura passiva em testes aplicados após 7 dias (Roediger &amp; Karpicke).
+                {t.neuroscience.metricRetentionDesc}
               </p>
             </div>
 
             <div className="p-4 rounded-xl bg-zinc-950/80 border border-zinc-800/80 space-y-1">
               <div className="flex items-center justify-between">
-                <span className="text-xs font-mono text-zinc-400">Barreira de Jargões</span>
+                <span className="text-xs font-mono text-zinc-400">{t.neuroscience.metricJargonTitle}</span>
                 <ShieldAlert className="w-4 h-4 text-zinc-400" />
               </div>
-              <div className="text-2xl font-bold font-mono text-zinc-100">Zero Muletas</div>
+              <div className="text-2xl font-bold font-mono text-zinc-100">{t.neuroscience.metricJargonValue}</div>
               <p className="text-xs text-zinc-400">
-                A técnica de Feynman força o cérebro a articular elos de causa e efeito sem vocabulário vazio.
+                {t.neuroscience.metricJargonDesc}
               </p>
             </div>
           </div>
@@ -75,7 +79,7 @@ export const NeuroscienceGuide: React.FC<NeuroscienceGuideProps> = () => {
       <div className="p-6 sm:p-8 rounded-2xl bg-zinc-900/30 border border-zinc-800/80 space-y-5">
         <h3 className="text-xs sm:text-sm font-semibold text-zinc-400 uppercase tracking-wider font-mono flex items-center gap-2">
           <Activity className="w-4 h-4 text-zinc-400 stroke-[1.75]" />
-          Estudo Passivo Tradicional vs. Aprendizado Ativo Synapse
+          {t.neuroscience.comparisonTitle}
         </h3>
 
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 text-xs sm:text-sm">
@@ -83,20 +87,20 @@ export const NeuroscienceGuide: React.FC<NeuroscienceGuideProps> = () => {
           <div className="p-5 sm:p-6 rounded-xl bg-zinc-950/70 border border-zinc-800/80 space-y-4">
             <span className="font-semibold text-zinc-200 flex items-center gap-2 text-sm sm:text-base">
               <XCircle className="w-4.5 h-4.5 text-zinc-500 stroke-[1.75]" />
-              A Ilusão do Estudo Passivo (Releitura &amp; Grifos)
+              {t.neuroscience.passiveTitle}
             </span>
             <ul className="space-y-3 text-zinc-400 leading-relaxed">
               <li className="flex items-start gap-2.5">
                 <span className="text-zinc-600 font-mono font-bold">•</span>
-                <span><strong className="text-zinc-200 font-medium">Ilusão de Fluência:</strong> Reconhecer visualmente um texto cria a sensação reconfortante de que o conteúdo foi assimilado, mas o traço mnêmico se dissipa em horas.</span>
+                <span><strong className="text-zinc-200 font-medium">{t.neuroscience.passivePoint1Title}</strong> {t.neuroscience.passivePoint1Desc}</span>
               </li>
               <li className="flex items-start gap-2.5">
                 <span className="text-zinc-600 font-mono font-bold">•</span>
-                <span><strong className="text-zinc-200 font-medium">Baixa Síntese Sináptica:</strong> Como não há demanda de recuperação pelo córtex, o hipocampo classifica a informação como ruído descartável.</span>
+                <span><strong className="text-zinc-200 font-medium">{t.neuroscience.passivePoint2Title}</strong> {t.neuroscience.passivePoint2Desc}</span>
               </li>
               <li className="flex items-start gap-2.5">
                 <span className="text-zinc-600 font-mono font-bold">•</span>
-                <span><strong className="text-zinc-200 font-medium">Dependência de Pistas Externas:</strong> O estudante só consegue responder se tiver o texto original à sua frente para fornecer gatilhos de reconhecimento.</span>
+                <span><strong className="text-zinc-200 font-medium">{t.neuroscience.passivePoint3Title}</strong> {t.neuroscience.passivePoint3Desc}</span>
               </li>
             </ul>
           </div>
@@ -105,20 +109,20 @@ export const NeuroscienceGuide: React.FC<NeuroscienceGuideProps> = () => {
           <div className="p-5 sm:p-6 rounded-xl bg-zinc-950/70 border border-zinc-700/80 space-y-4">
             <span className="font-semibold text-zinc-100 flex items-center gap-2 text-sm sm:text-base">
               <CheckCircle2 className="w-4.5 h-4.5 text-zinc-300 stroke-[1.75]" />
-              O Método Synapse (Potenciação Sináptica Ativa)
+              {t.neuroscience.activeTitle}
             </span>
             <ul className="space-y-3 text-zinc-400 leading-relaxed">
               <li className="flex items-start gap-2.5">
                 <span className="text-zinc-400 font-mono font-bold">•</span>
-                <span><strong className="text-zinc-100 font-medium">Prática de Recuperação:</strong> Forçar a evocação do traço de memória a partir do zero desencadeia a síntese de proteínas sinápticas permanentes (LTP).</span>
+                <span><strong className="text-zinc-100 font-medium">{t.neuroscience.activePoint1Title}</strong> {t.neuroscience.activePoint1Desc}</span>
               </li>
               <li className="flex items-start gap-2.5">
                 <span className="text-zinc-400 font-mono font-bold">•</span>
-                <span><strong className="text-zinc-100 font-medium">Técnica de Feynman:</strong> Desconstrói jargões técnicos em linguagem elementar e ancora conceitos abstratos na memória semântica e do duplo código.</span>
+                <span><strong className="text-zinc-100 font-medium">{t.neuroscience.activePoint2Title}</strong> {t.neuroscience.activePoint2Desc}</span>
               </li>
               <li className="flex items-start gap-2.5">
                 <span className="text-zinc-400 font-mono font-bold">•</span>
-                <span><strong className="text-zinc-100 font-medium">Dificuldades Desejáveis:</strong> O esforço consciente durante a aprendizagem garante retenção de longo prazo e habilidade de aplicar o modelo a problemas inéditos.</span>
+                <span><strong className="text-zinc-100 font-medium">{t.neuroscience.activePoint3Title}</strong> {t.neuroscience.activePoint3Desc}</span>
               </li>
             </ul>
           </div>
@@ -130,13 +134,13 @@ export const NeuroscienceGuide: React.FC<NeuroscienceGuideProps> = () => {
         <div className="flex items-center justify-between">
           <h3 className="text-xs sm:text-sm font-semibold text-zinc-400 uppercase tracking-wider font-mono flex items-center gap-2">
             <BookOpen className="w-4 h-4 text-zinc-400 stroke-[1.75]" />
-            Os 6 Pilares Pedagógicos Integrados no Synapse
+            {t.neuroscience.pillarsTitle}
           </h3>
-          <span className="text-xs text-zinc-400 font-mono hidden sm:inline">6 pilares validados</span>
+          <span className="text-xs text-zinc-400 font-mono hidden sm:inline">{t.neuroscience.pillarsCount}</span>
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-5 sm:gap-6">
-          {NEUROSCIENCE_PILLARS.map((pillar) => {
+          {pillars.map((pillar) => {
             const Icon = iconMap[pillar.iconName] || Brain;
             return (
               <div
@@ -158,7 +162,7 @@ export const NeuroscienceGuide: React.FC<NeuroscienceGuideProps> = () => {
 
                   <div className="space-y-1 text-xs">
                     <span className="text-[11px] font-mono font-medium text-zinc-400 uppercase tracking-wider block">
-                      Fundamento Neurobiológico:
+                      {t.neuroscience.neuroBasisLabel}
                     </span>
                     <p className="text-zinc-300 leading-relaxed bg-zinc-950/70 p-3 rounded-lg border border-zinc-800/70 text-xs sm:text-sm">
                       {pillar.neuroBasis}
@@ -167,7 +171,7 @@ export const NeuroscienceGuide: React.FC<NeuroscienceGuideProps> = () => {
 
                   <div className="space-y-1 text-xs">
                     <span className="text-[11px] font-mono font-medium text-zinc-400 uppercase tracking-wider block">
-                      Aplicação Prática no Agente:
+                      {t.neuroscience.practicalActionLabel}
                     </span>
                     <p className="text-zinc-400 leading-relaxed text-xs sm:text-sm">
                       {pillar.practicalAction}
@@ -184,7 +188,7 @@ export const NeuroscienceGuide: React.FC<NeuroscienceGuideProps> = () => {
       <div className="p-6 sm:p-8 rounded-2xl bg-zinc-900/30 border border-zinc-800/80 space-y-5">
         <h3 className="text-xs sm:text-sm font-semibold text-zinc-400 uppercase tracking-wider font-mono flex items-center gap-2">
           <Award className="w-4 h-4 text-zinc-400 stroke-[1.75]" />
-          O Ciclo de Consolidação da Memória (Do Estímulo à Permanência)
+          {t.neuroscience.cycleTitle}
         </h3>
 
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-5">
@@ -192,9 +196,9 @@ export const NeuroscienceGuide: React.FC<NeuroscienceGuideProps> = () => {
             <span className="w-7 h-7 rounded-md bg-zinc-900 border border-zinc-800 text-zinc-300 font-mono font-semibold flex items-center justify-center text-xs">
               1
             </span>
-            <span className="font-semibold text-zinc-200 block text-sm">1. Codificação Inicial</span>
+            <span className="font-semibold text-zinc-200 block text-sm">{t.neuroscience.step1Name}</span>
             <p className="text-zinc-400 leading-relaxed text-xs sm:text-sm">
-              Córtex sensorial e pré-frontal processam a nova ideia. A memória de trabalho requer foco para reter os primeiros 4 a 7 elementos.
+              {t.neuroscience.step1Desc}
             </p>
           </div>
 
@@ -202,9 +206,9 @@ export const NeuroscienceGuide: React.FC<NeuroscienceGuideProps> = () => {
             <span className="w-7 h-7 rounded-md bg-zinc-900 border border-zinc-800 text-zinc-300 font-mono font-semibold flex items-center justify-center text-xs">
               2
             </span>
-            <span className="font-semibold text-zinc-200 block text-sm">2. Desconstrução Feynman</span>
+            <span className="font-semibold text-zinc-200 block text-sm">{t.neuroscience.step2Name}</span>
             <p className="text-zinc-400 leading-relaxed text-xs sm:text-sm">
-              Traduzir termos complexos em linguagem elementar força a ativação de redes semânticas e conexões mnemônicas profundas.
+              {t.neuroscience.step2Desc}
             </p>
           </div>
 
@@ -212,9 +216,9 @@ export const NeuroscienceGuide: React.FC<NeuroscienceGuideProps> = () => {
             <span className="w-7 h-7 rounded-md bg-zinc-900 border border-zinc-800 text-zinc-300 font-mono font-semibold flex items-center justify-center text-xs">
               3
             </span>
-            <span className="font-semibold text-zinc-200 block text-sm">3. Recuperação Ativa (LTP)</span>
+            <span className="font-semibold text-zinc-200 block text-sm">{t.neuroscience.step3Name}</span>
             <p className="text-zinc-400 leading-relaxed text-xs sm:text-sm">
-              Evocar o conceito sem consulta estimula o hipocampo a sintetizar proteínas e aumentar a densidade de receptores sinápticos.
+              {t.neuroscience.step3Desc}
             </p>
           </div>
 
@@ -222,9 +226,9 @@ export const NeuroscienceGuide: React.FC<NeuroscienceGuideProps> = () => {
             <span className="w-7 h-7 rounded-md bg-zinc-900 border border-zinc-800 text-zinc-300 font-mono font-semibold flex items-center justify-center text-xs">
               4
             </span>
-            <span className="font-semibold text-zinc-200 block text-sm">4. Espaçamento &amp; Sono</span>
+            <span className="font-semibold text-zinc-200 block text-sm">{t.neuroscience.step4Name}</span>
             <p className="text-zinc-400 leading-relaxed text-xs sm:text-sm">
-              Revisar nos intervalos ótimos de Ebbinghaus e ciclos de sono profundo transfere o conhecimento do hipocampo para o neocórtex permanente.
+              {t.neuroscience.step4Desc}
             </p>
           </div>
         </div>

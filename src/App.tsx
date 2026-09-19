@@ -7,6 +7,7 @@ import {
   Layers,
   BookOpen,
   Flame,
+  Globe,
 } from 'lucide-react';
 import { SocraticTutor } from './components/SocraticTutor';
 import { FeynmanStudio } from './components/FeynmanStudio';
@@ -15,13 +16,15 @@ import { CognitiveMap } from './components/CognitiveMap';
 import { NeuroscienceGuide } from './components/NeuroscienceGuide';
 import { UnifiedConceptBar } from './components/UnifiedConceptBar';
 import { CognitiveStats } from './types';
+import { LanguageProvider, useLanguage } from './i18n/LanguageContext';
 
 type ActiveTab = 'socratic' | 'feynman' | 'retrieval' | 'cognitive_map' | 'neuroscience';
 
-export default function App() {
+function AppContent() {
+  const { t, language, setLanguage } = useLanguage();
   const [activeTab, setActiveTab] = useState<ActiveTab>('neuroscience');
   const [currentTopic, setCurrentTopic] = useState<string>(() => {
-    return localStorage.getItem('synapse_current_topic') || 'Mecanismos de Memória e Neuroplasticidade';
+    return localStorage.getItem('synapse_current_topic') || t.conceptBar.defaultTopic;
   });
   const [socraticPromptOverride, setSocraticPromptOverride] = useState<string | null>(null);
 
@@ -70,27 +73,27 @@ export default function App() {
   const navItems = [
     {
       id: 'socratic' as ActiveTab,
-      label: 'Tutor Socrático',
+      label: t.app.nav.socratic,
       icon: MessageSquareText,
     },
     {
       id: 'feynman' as ActiveTab,
-      label: 'Estúdio Feynman',
+      label: t.app.nav.feynman,
       icon: Sparkles,
     },
     {
       id: 'retrieval' as ActiveTab,
-      label: 'Recuperação Ativa',
+      label: t.app.nav.retrieval,
       icon: Zap,
     },
     {
       id: 'cognitive_map' as ActiveTab,
-      label: 'Carga Cognitiva',
+      label: t.app.nav.cognitive_map,
       icon: Layers,
     },
     {
       id: 'neuroscience' as ActiveTab,
-      label: 'Base Neurocientífica',
+      label: t.app.nav.neuroscience,
       icon: BookOpen,
     },
   ];
@@ -132,24 +135,57 @@ export default function App() {
             })}
           </nav>
 
-          {/* Neuro Cognitive Stats Pills */}
+          {/* Header Controls: Language Selector & Neuro Cognitive Stats Pills */}
           <div className="flex items-center gap-2 sm:gap-3 shrink-0">
-            <div
-              className="flex items-center gap-2 px-3 py-1.5 sm:px-3.5 rounded-lg bg-zinc-900/90 border border-zinc-800 text-xs text-zinc-300 font-medium transition-colors hover:border-zinc-700"
-              title="Dias consecutivos de prática de recuperação ativa"
-            >
-              <Flame className="w-4 h-4 text-zinc-400 stroke-[1.75]" />
-              <span className="hidden sm:inline"><strong className="text-zinc-100 font-semibold">{stats.retentionStreakDays}</strong> dias de estímulo</span>
-              <span className="sm:hidden"><strong className="text-zinc-100 font-semibold">{stats.retentionStreakDays}</strong>d</span>
+            {/* Language Switcher */}
+            <div className="flex items-center rounded-lg bg-zinc-900/90 border border-zinc-800 p-0.5 text-xs text-zinc-300 font-medium">
+              <div className="flex items-center px-1.5 text-zinc-500">
+                <Globe className="w-3.5 h-3.5 stroke-[1.75]" />
+              </div>
+              <button
+                type="button"
+                onClick={() => setLanguage('en')}
+                className={`px-2 py-1 rounded text-xs font-mono font-semibold transition-colors cursor-pointer ${
+                  language === 'en'
+                    ? 'bg-zinc-100 text-zinc-950'
+                    : 'text-zinc-400 hover:text-zinc-200'
+                }`}
+                title="Switch to English"
+              >
+                EN
+              </button>
+              <button
+                type="button"
+                onClick={() => setLanguage('pt')}
+                className={`px-2 py-1 rounded text-xs font-mono font-semibold transition-colors cursor-pointer ${
+                  language === 'pt'
+                    ? 'bg-zinc-100 text-zinc-950'
+                    : 'text-zinc-400 hover:text-zinc-200'
+                }`}
+                title="Mudar para Português"
+              >
+                PT
+              </button>
             </div>
 
+            {/* Retention Streak */}
             <div
               className="flex items-center gap-2 px-3 py-1.5 sm:px-3.5 rounded-lg bg-zinc-900/90 border border-zinc-800 text-xs text-zinc-300 font-medium transition-colors hover:border-zinc-700"
-              title="Total de recuperações ativas e diálogos socráticos"
+              title={t.app.stats.retentionStreakTooltip}
+            >
+              <Flame className="w-4 h-4 text-zinc-400 stroke-[1.75]" />
+              <span className="hidden sm:inline"><strong className="text-zinc-100 font-semibold">{stats.retentionStreakDays}</strong> {t.app.stats.retentionStreak}</span>
+              <span className="sm:hidden"><strong className="text-zinc-100 font-semibold">{stats.retentionStreakDays}</strong>{t.app.stats.retentionStreakShort}</span>
+            </div>
+
+            {/* LTP Recalls */}
+            <div
+              className="flex items-center gap-2 px-3 py-1.5 sm:px-3.5 rounded-lg bg-zinc-900/90 border border-zinc-800 text-xs text-zinc-300 font-medium transition-colors hover:border-zinc-700"
+              title={t.app.stats.recallsLTPTooltip}
             >
               <Zap className="w-4 h-4 text-zinc-400 stroke-[1.75]" />
-              <span className="hidden sm:inline"><strong className="text-zinc-100 font-semibold">{stats.retrievalAttempts + stats.socraticQuestionsAnswered}</strong> evocações LTP</span>
-              <span className="sm:hidden"><strong className="text-zinc-100 font-semibold">{stats.retrievalAttempts + stats.socraticQuestionsAnswered}</strong> LTP</span>
+              <span className="hidden sm:inline"><strong className="text-zinc-100 font-semibold">{stats.retrievalAttempts + stats.socraticQuestionsAnswered}</strong> {t.app.stats.recallsLTP}</span>
+              <span className="sm:hidden"><strong className="text-zinc-100 font-semibold">{stats.retrievalAttempts + stats.socraticQuestionsAnswered}</strong> {t.app.stats.recallsLTPShort}</span>
             </div>
           </div>
         </div>
@@ -203,5 +239,13 @@ export default function App() {
         )}
       </main>
     </div>
+  );
+}
+
+export default function App() {
+  return (
+    <LanguageProvider>
+      <AppContent />
+    </LanguageProvider>
   );
 }
