@@ -134,7 +134,7 @@ export const ActiveRetrievalLab: React.FC<ActiveRetrievalLabProps> = ({
 
       const data = await response.json();
       if (data.flashcards && data.flashcards.length > 0) {
-        setCards((prev) => [...data.flashcards, ...prev]);
+        setCards(data.flashcards);
         setCurrentIndex(0);
         setIsFlipped(false);
         setUserDraftAnswer('');
