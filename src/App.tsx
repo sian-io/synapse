@@ -206,6 +206,7 @@ function AppContent() {
             onTopicChange={setCurrentTopic}
             onIncrementStats={handleIncrementStats}
             initialPrompt={socraticPromptOverride}
+            onClearInitialPrompt={() => setSocraticPromptOverride(null)}
           />
         )}
 

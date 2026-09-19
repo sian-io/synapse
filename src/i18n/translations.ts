@@ -540,3 +540,113 @@ Diferente de assistentes convencionais que entregam respostas prontas (o que ger
 } as const;
 
 export type TranslationKeys = typeof translations.en;
+
+const phaseMapEnToPt: Record<string, string> = {
+  'active retrieval': 'Recuperação Ativa',
+  'retrieval practice': 'Prática de Recuperação',
+  'illusion diagnosis': 'Diagnóstico de Ilusão',
+  'elaborative interrogation': 'Interrogação Elaborativa',
+  'consolidation': 'Consolidação',
+  'initial engagement': 'Engajamento Inicial',
+  'metacognitive calibration': 'Calibração Metacognitiva',
+  'metacognition': 'Metacognição',
+  'desirable difficulty': 'Dificuldade Desejável',
+  'desirable difficulties': 'Dificuldades Desejáveis',
+  'scaffolding': 'Andaime Cognitivo',
+  'feynman technique': 'Técnica de Feynman',
+  'feynman audit': 'Auditoria Feynman',
+  'feynman deconstruction': 'Desconstrução Feynman',
+  'concept breakdown': 'Mapeamento Conceitual',
+  'guided inquiry': 'Investigação Guiada',
+  'socratic dialogue': 'Diálogo Socrático',
+  'deep questioning': 'Questionamento Profundo',
+  'boundary exploration': 'Exploração de Limites',
+  'causal analysis': 'Análise Causal',
+  'self-explanation': 'Autoexplicação',
+  'cognitive restructuring': 'Reestruturação Cognitiva',
+  'conceptual clarification': 'Clarificação Conceitual',
+  'knowledge integration': 'Integração de Conhecimento',
+};
+
+const phaseMapPtToEn: Record<string, string> = {
+  'recuperação ativa': 'Active Retrieval',
+  'prática de recuperação': 'Retrieval Practice',
+  'diagnóstico de ilusão': 'Illusion Diagnosis',
+  'interrogação elaborativa': 'Elaborative Interrogation',
+  'consolidação': 'Consolidation',
+  'engajamento inicial': 'Initial Engagement',
+  'calibração metacognitiva': 'Metacognitive Calibration',
+  'metacognição': 'Metacognition',
+  'dificuldade desejável': 'Desirable Difficulty',
+  'dificuldades desejáveis': 'Desirable Difficulties',
+  'andaime cognitivo': 'Scaffolding',
+  'técnica de feynman': 'Feynman Technique',
+  'auditoria feynman': 'Feynman Audit',
+  'desconstrução feynman': 'Feynman Deconstruction',
+  'mapeamento conceitual': 'Concept Breakdown',
+  'investigação guiada': 'Guided Inquiry',
+  'diálogo socrático': 'Socratic Dialogue',
+  'questionamento profundo': 'Deep Questioning',
+  'exploração de limites': 'Boundary Exploration',
+  'análise causal': 'Causal Analysis',
+  'autoexplicação': 'Self-Explanation',
+  'reestruturação cognitiva': 'Cognitive Restructuring',
+  'clarificação conceitual': 'Conceptual Clarification',
+  'integração de conhecimento': 'Knowledge Integration',
+};
+
+function normalizePhaseString(str: string): string {
+  return str
+    .toLowerCase()
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .trim();
+}
+
+export function translateCognitivePhase(phase: string | undefined, targetLanguage: Language): string {
+  if (!phase) return '';
+  const cleaned = normalizePhaseString(phase);
+
+  if (targetLanguage === 'pt') {
+    for (const [k, v] of Object.entries(phaseMapEnToPt)) {
+      if (normalizePhaseString(k) === cleaned) return v;
+    }
+    for (const v of Object.values(phaseMapEnToPt)) {
+      if (normalizePhaseString(v) === cleaned) return v;
+    }
+    if (cleaned.includes('retrieval')) return 'Recuperação Ativa';
+    if (cleaned.includes('interrogat')) return 'Interrogação Elaborativa';
+    if (cleaned.includes('illusion')) return 'Diagnóstico de Ilusão';
+    if (cleaned.includes('consolidat')) return 'Consolidação';
+    if (cleaned.includes('engagement')) return 'Engajamento Inicial';
+    if (cleaned.includes('metacognit')) return 'Calibração Metacognitiva';
+    if (cleaned.includes('scaffold')) return 'Andaime Cognitivo';
+    if (cleaned.includes('feynman')) return 'Técnica de Feynman';
+    if (cleaned.includes('difficult')) return 'Dificuldade Desejável';
+    if (cleaned.includes('boundary')) return 'Exploração de Limites';
+    if (cleaned.includes('causal')) return 'Análise Causal';
+    if (cleaned.includes('breakdown')) return 'Mapeamento Conceitual';
+    if (cleaned.includes('inquiry')) return 'Investigação Guiada';
+    return phase;
+  } else {
+    for (const [k, v] of Object.entries(phaseMapPtToEn)) {
+      if (normalizePhaseString(k) === cleaned) return v;
+    }
+    for (const v of Object.values(phaseMapPtToEn)) {
+      if (normalizePhaseString(v) === cleaned) return v;
+    }
+    if (cleaned.includes('recupera')) return 'Active Retrieval';
+    if (cleaned.includes('interroga')) return 'Elaborative Interrogation';
+    if (cleaned.includes('ilusa')) return 'Illusion Diagnosis';
+    if (cleaned.includes('consolida')) return 'Consolidation';
+    if (cleaned.includes('engaja')) return 'Initial Engagement';
+    if (cleaned.includes('metacogni')) return 'Metacognitive Calibration';
+    if (cleaned.includes('andaime')) return 'Scaffolding';
+    if (cleaned.includes('feynman')) return 'Feynman Technique';
+    if (cleaned.includes('dificuldade')) return 'Desirable Difficulty';
+    if (cleaned.includes('limite')) return 'Boundary Exploration';
+    if (cleaned.includes('causal')) return 'Causal Analysis';
+    if (cleaned.includes('mapeamento')) return 'Concept Breakdown';
+    return phase;
+  }
+}

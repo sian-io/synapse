@@ -6,7 +6,6 @@ import {
   HelpCircle,
   RotateCcw,
   Target,
-  ArrowRight,
   ShieldAlert,
   Sliders,
   Info
@@ -14,6 +13,7 @@ import {
 import Markdown from 'react-markdown';
 import { ChatMessage, PedagogicalMode } from '../types';
 import { useLanguage } from '../i18n/LanguageContext';
+import { translateCognitivePhase } from '../i18n/translations';
 
 interface SocraticTutorProps {
   currentTopic: string;
@@ -21,12 +21,14 @@ interface SocraticTutorProps {
   onAddRetrievalCard?: (question: string, answer: string, topic: string) => void;
   onIncrementStats: (type: 'socratic' | 'retrieval' | 'feynman') => void;
   initialPrompt?: string | null;
+  onClearInitialPrompt?: () => void;
 }
 
 export const SocraticTutor: React.FC<SocraticTutorProps> = ({
   currentTopic,
   onIncrementStats,
   initialPrompt,
+  onClearInitialPrompt,
 }) => {
   const { t, language } = useLanguage();
 
@@ -67,10 +69,19 @@ export const SocraticTutor: React.FC<SocraticTutorProps> = ({
   const [metacognitiveCertainty, setMetacognitiveCertainty] = useState<number>(3);
 
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const isSendingRef = useRef(false);
+  const lastHandledPromptRef = useRef<string | null>(null);
 
   useEffect(() => {
-    if (initialPrompt && initialPrompt.trim()) {
-      handleSendMessage(initialPrompt.trim());
+    if (!initialPrompt) {
+      lastHandledPromptRef.current = null;
+      return;
+    }
+    const trimmed = initialPrompt.trim();
+    if (trimmed && lastHandledPromptRef.current !== trimmed) {
+      lastHandledPromptRef.current = trimmed;
+      handleSendMessage(trimmed);
+      onClearInitialPrompt?.();
     }
   }, [initialPrompt]);
 
@@ -81,7 +92,8 @@ export const SocraticTutor: React.FC<SocraticTutorProps> = ({
 
   const handleSendMessage = async (customText?: string) => {
     const textToSend = customText || input;
-    if (!textToSend.trim() || isLoading) return;
+    if (!textToSend.trim() || isLoading || isSendingRef.current) return;
+    isSendingRef.current = true;
 
     const userMessage: ChatMessage = {
       id: `user_${Date.now()}`,
@@ -135,6 +147,7 @@ export const SocraticTutor: React.FC<SocraticTutorProps> = ({
       setMessages((prev) => [...prev, errorMessage]);
     } finally {
       setIsLoading(false);
+      isSendingRef.current = false;
     }
   };
 
@@ -217,58 +230,18 @@ export const SocraticTutor: React.FC<SocraticTutorProps> = ({
                     <p className="whitespace-pre-wrap">{message.content}</p>
                   ) : (
                     <div className="space-y-4">
-                      <div className="prose prose-invert prose-sm sm:prose-base max-w-none text-zinc-200 leading-relaxed prose-headings:text-zinc-100 prose-headings:font-semibold prose-strong:text-zinc-100 prose-code:text-zinc-200 prose-code:bg-zinc-950 prose-code:px-1.5 prose-code:py-0.5 prose-code:rounded prose-code:border prose-code:border-zinc-800">
-                        <Markdown>{message.content}</Markdown>
-                      </div>
-
-                      {/* Pedagogical Metadata Box */}
                       {message.pedagogicalMeta && (
-                        <div className="mt-5 pt-4 border-t border-zinc-800/80 space-y-3">
-                          <div className="flex flex-wrap items-center gap-2">
-                            <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-xs font-mono bg-zinc-950 text-zinc-300 border border-zinc-800">
-                              <Sparkles className="w-3.5 h-3.5 text-zinc-400 stroke-[1.75]" />
-                              {t.socratic.phase}: {message.pedagogicalMeta.cognitivePhase || t.socratic.welcomePhase}
-                            </span>
-                          </div>
-
-                          {message.pedagogicalMeta.desirableDifficultyNote && (
-                            <div className="p-3.5 rounded-xl bg-zinc-950/70 border border-zinc-800/80 text-xs sm:text-sm text-zinc-300 flex items-start gap-3">
-                              <Brain className="w-4 h-4 text-zinc-400 shrink-0 mt-0.5 stroke-[1.75]" />
-                              <div>
-                                <span className="font-medium text-zinc-200 block mb-0.5">
-                                  {t.socratic.neuroBasis}
-                                </span>
-                                <span className="text-zinc-400 leading-relaxed">
-                                  {message.pedagogicalMeta.desirableDifficultyNote}
-                                </span>
-                              </div>
-                            </div>
-                          )}
-
-                          {/* Suggested Active Next Steps */}
-                          {message.pedagogicalMeta.suggestedActions &&
-                            message.pedagogicalMeta.suggestedActions.length > 0 && (
-                              <div className="space-y-2 pt-1">
-                                <span className="text-xs font-medium text-zinc-400 flex items-center gap-1">
-                                  <ArrowRight className="w-3.5 h-3.5 text-zinc-400 stroke-[1.75]" />
-                                  {t.socratic.recommendedActions}
-                                </span>
-                                <div className="flex flex-wrap gap-2">
-                                  {message.pedagogicalMeta.suggestedActions.map((action, idx) => (
-                                    <button
-                                      key={idx}
-                                      onClick={() => handleSendMessage(action)}
-                                      className="text-xs text-left px-3 py-2 rounded-lg bg-zinc-950 hover:bg-zinc-800 text-zinc-300 hover:text-zinc-100 border border-zinc-800/80 hover:border-zinc-700 transition-colors flex items-center gap-2 cursor-pointer"
-                                    >
-                                      <Sparkles className="w-3.5 h-3.5 text-zinc-400 shrink-0 stroke-[1.75]" />
-                                      <span>{action}</span>
-                                    </button>
-                                  ))}
-                                </div>
-                              </div>
-                            )}
+                        <div className="flex flex-wrap items-center gap-2">
+                          <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-xs font-mono bg-zinc-950 text-zinc-300 border border-zinc-800">
+                            <Sparkles className="w-3.5 h-3.5 text-zinc-400 stroke-[1.75]" />
+                            {t.socratic.phase}: {translateCognitivePhase(message.pedagogicalMeta.cognitivePhase || t.socratic.welcomePhase, language)}
+                          </span>
                         </div>
                       )}
+
+                      <div className="prose prose-invert prose-sm sm:prose-base max-w-none text-zinc-200 leading-relaxed prose-headings:text-zinc-100 prose-headings:font-semibold prose-strong:text-zinc-100 prose-code:text-zinc-200 prose-code:bg-zinc-950 prose-code:px-1.5 prose-code:py-0.5 prose-code:rounded prose-code:border prose-code:border-zinc-800">
+                        <Markdown>{message.content.replace(/(?:[\r\n]+\s*(?:[-*_]\s*){3,})+$/, '').trim()}</Markdown>
+                      </div>
                     </div>
                   )}
                 </div>

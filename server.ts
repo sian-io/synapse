@@ -118,9 +118,9 @@ Specific Mode Guidelines:
 Format your response in clean, direct, empathetic Markdown focused on student action.
 Always conclude your response with a special section formatted as:
 \`\`\`meta
-CognitivePhase: [e.g., Active Retrieval | Illusion Diagnosis | Elaborative Interrogation | Consolidation]
-NeuroTip: [One concise sentence explaining the neurobiological mechanism behind what is being trained]
-SuggestedNextSteps: [Action 1 | Action 2]
+CognitivePhase: [${isPt ? 'em português, ex: Recuperação Ativa | Diagnóstico de Ilusão | Interrogação Elaborativa | Consolidação' : 'in English, e.g., Active Retrieval | Illusion Diagnosis | Elaborative Interrogation | Consolidation'}]
+NeuroTip: [${isPt ? 'Uma frase concisa em português explicando o mecanismo neurobiológico' : 'One concise sentence explaining the neurobiological mechanism behind what is being trained'}]
+SuggestedNextSteps: [${isPt ? 'Ação 1 | Ação 2' : 'Action 1 | Action 2'}]
 \`\`\`
 `.trim();
 
@@ -151,6 +151,40 @@ SuggestedNextSteps: [Action 1 | Action 2]
       : 'Active retrieval stimulates synaptic protein synthesis, consolidating durable memories.';
     let suggestedActions: string[] = [];
 
+    const normalizeCognitivePhaseServer = (phase: string, targetLanguage: 'pt' | 'en'): string => {
+      const cleaned = phase.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').trim();
+      if (targetLanguage === 'pt') {
+        if (cleaned.includes('retrieval')) return 'Recuperação Ativa';
+        if (cleaned.includes('interrogat')) return 'Interrogação Elaborativa';
+        if (cleaned.includes('illusion')) return 'Diagnóstico de Ilusão';
+        if (cleaned.includes('consolidat')) return 'Consolidação';
+        if (cleaned.includes('engagement')) return 'Engajamento Inicial';
+        if (cleaned.includes('metacognit')) return 'Calibração Metacognitiva';
+        if (cleaned.includes('scaffold')) return 'Andaime Cognitivo';
+        if (cleaned.includes('feynman')) return 'Técnica de Feynman';
+        if (cleaned.includes('difficult')) return 'Dificuldade Desejável';
+        if (cleaned.includes('boundary')) return 'Exploração de Limites';
+        if (cleaned.includes('causal')) return 'Análise Causal';
+        if (cleaned.includes('breakdown')) return 'Mapeamento Conceitual';
+        if (cleaned.includes('inquiry')) return 'Investigação Guiada';
+        return phase;
+      } else {
+        if (cleaned.includes('recupera')) return 'Active Retrieval';
+        if (cleaned.includes('interroga')) return 'Elaborative Interrogation';
+        if (cleaned.includes('ilusa')) return 'Illusion Diagnosis';
+        if (cleaned.includes('consolida')) return 'Consolidation';
+        if (cleaned.includes('engaja')) return 'Initial Engagement';
+        if (cleaned.includes('metacogni')) return 'Metacognitive Calibration';
+        if (cleaned.includes('andaime')) return 'Scaffolding';
+        if (cleaned.includes('feynman')) return 'Feynman Technique';
+        if (cleaned.includes('dificuldade')) return 'Desirable Difficulty';
+        if (cleaned.includes('limite')) return 'Boundary Exploration';
+        if (cleaned.includes('causal')) return 'Causal Analysis';
+        if (cleaned.includes('mapeamento')) return 'Concept Breakdown';
+        return phase;
+      }
+    };
+
     const metaMatch = responseText.match(/```meta\s*([\s\S]*?)\s*```/);
     if (metaMatch) {
       cleanedText = responseText.replace(/```meta\s*[\s\S]*?\s*```/, '').trim();
@@ -159,12 +193,17 @@ SuggestedNextSteps: [Action 1 | Action 2]
       const tipMatch = metaContent.match(/NeuroTip:\s*(.*)/i);
       const stepsMatch = metaContent.match(/SuggestedNextSteps:\s*(.*)/i);
 
-      if (phaseMatch) cognitivePhase = phaseMatch[1].trim();
+      if (phaseMatch) {
+        cognitivePhase = normalizeCognitivePhaseServer(phaseMatch[1].trim(), isPt ? 'pt' : 'en');
+      }
       if (tipMatch) neuroTip = tipMatch[1].trim();
       if (stepsMatch) {
         suggestedActions = stepsMatch[1].split('|').map((s) => s.trim()).filter(Boolean);
       }
     }
+
+    // Strip trailing markdown horizontal rules (e.g. ---, ***, ___) left over before the meta block
+    cleanedText = cleanedText.replace(/(?:[\r\n]+\s*(?:[-*_]\s*){3,})+$/, '').trim();
 
     const defaultActions = isPt
       ? [
