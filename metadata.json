@@ -1,0 +1,6 @@
+{
+  "name": "Synapse - Agente de Aprendizado Ativo",
+  "description": "Agente pedagógico inteligente fundamentado em neurociência cognitiva, prática de recuperação ativa, método socrático, técnica de Feynman e repetição espaçada.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
