@@ -6,7 +6,6 @@ import {
   Lightbulb,
   Brain,
   HelpCircle,
-  CheckCircle2,
   Compass,
   ArrowRight,
   ShieldCheck,
@@ -22,7 +21,6 @@ interface CognitiveMapProps {
 
 export const CognitiveMap: React.FC<CognitiveMapProps> = ({
   currentTopic,
-  onTopicChange,
   onOpenSocraticWithPrompt,
 }) => {
   const [isLoading, setIsLoading] = useState(false);
@@ -60,37 +58,32 @@ export const CognitiveMap: React.FC<CognitiveMapProps> = ({
   };
 
   return (
-    <div className="space-y-6 max-w-5xl mx-auto">
+    <div className="space-y-6 w-full">
       {/* Top Banner on Cognitive Load Theory */}
-      <div className="p-5 rounded-2xl bg-gradient-to-r from-cyan-500/10 via-slate-900 to-indigo-950/40 border border-cyan-500/20 text-slate-200">
+      <div className="p-6 sm:p-7 rounded-2xl bg-zinc-900/40 border border-zinc-800/80 text-zinc-200">
         <div className="flex items-start gap-4">
-          <div className="w-10 h-10 rounded-xl bg-cyan-500/20 border border-cyan-500/30 flex items-center justify-center text-cyan-400 shrink-0">
-            <Layers className="w-5 h-5" />
+          <div className="w-9 h-9 rounded-xl bg-zinc-900 border border-zinc-700/60 flex items-center justify-center text-zinc-200 shrink-0">
+            <Layers className="w-4.5 h-4.5 stroke-[1.75]" />
           </div>
           <div className="space-y-1">
             <div className="flex items-center gap-2">
-              <h2 className="text-base font-semibold text-cyan-300">
-                Mapeamento & Gestão de Carga Cognitiva
+              <h2 className="text-base font-semibold text-zinc-100 tracking-tight">
+                Mapeamento &amp; Gestão de Carga Cognitiva
               </h2>
-              <span className="text-xs px-2 py-0.5 rounded-full bg-cyan-500/20 text-cyan-300 border border-cyan-500/30">
-                Teoria de Sweller
-              </span>
             </div>
-            <p className="text-xs text-slate-300 leading-relaxed">
-              A memória de trabalho só consegue gerenciar cerca de 4 a 7 elementos simultâneos. Ao desconstruir o tema em
-              pré-requisitos, mecanismo nuclear, analogias do mundo físico e armadilhas mentais, eliminamos a carga
-              extrínseca e permitimos que o cérebro construa esquemas semânticos duradouros.
+            <p className="text-xs sm:text-sm text-zinc-400 leading-relaxed max-w-4xl">
+              A memória de trabalho gerencia apenas 4 a 7 elementos simultâneos. Ao desconstruir o tema em pré-requisitos, mecanismo nuclear, analogias do mundo físico e armadilhas mentais, eliminamos a carga extrínseca para construir esquemas duradouros no córtex.
             </p>
           </div>
         </div>
       </div>
 
       {/* Unified Concept Action Bar */}
-      <div className="p-4 rounded-2xl bg-slate-900/80 border border-slate-800 shadow-lg">
-        <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3">
-          <div className="flex items-center gap-2 text-xs">
-            <span className="text-slate-400">Conceito a ser mapeado:</span>
-            <span className="font-semibold text-cyan-300 text-sm truncate max-w-[280px]">
+      <div className="p-5 rounded-2xl bg-zinc-900/30 border border-zinc-800/80">
+        <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-4">
+          <div className="flex items-center gap-2.5 text-xs sm:text-sm">
+            <span className="text-zinc-400 font-medium">Conceito a ser mapeado:</span>
+            <span className="font-semibold text-zinc-100 text-sm sm:text-base truncate max-w-[340px]">
               {currentTopic || 'Defina um conceito no topo'}
             </span>
           </div>
@@ -99,7 +92,7 @@ export const CognitiveMap: React.FC<CognitiveMapProps> = ({
             type="button"
             onClick={() => handleDeconstruct()}
             disabled={isLoading || !currentTopic.trim()}
-            className="px-5 py-2.5 bg-cyan-600 hover:bg-cyan-500 disabled:bg-slate-800 disabled:text-slate-600 text-slate-950 font-semibold text-xs sm:text-sm rounded-xl transition-all flex items-center justify-center gap-2 shrink-0 cursor-pointer shadow-lg shadow-cyan-600/20"
+            className="px-5 py-2.5 bg-zinc-100 hover:bg-white disabled:bg-zinc-800 disabled:text-zinc-600 text-zinc-950 font-semibold text-xs sm:text-sm rounded-xl transition-all flex items-center justify-center gap-2 shrink-0 cursor-pointer shadow-sm"
           >
             {isLoading ? (
               <>
@@ -108,7 +101,7 @@ export const CognitiveMap: React.FC<CognitiveMapProps> = ({
               </>
             ) : (
               <>
-                <Compass className="w-4 h-4" />
+                <Compass className="w-4 h-4 stroke-[1.75]" />
                 <span>Desconstruir Carga Cognitiva</span>
               </>
             )}
@@ -116,15 +109,15 @@ export const CognitiveMap: React.FC<CognitiveMapProps> = ({
         </div>
 
         {error && (
-          <div className="mt-3 p-3 rounded-xl bg-rose-950/40 border border-rose-800/40 flex items-center justify-between gap-3 text-xs text-rose-300">
+          <div className="mt-3.5 p-3 rounded-xl bg-zinc-950 border border-zinc-800 flex items-center justify-between gap-3 text-xs text-zinc-300">
             <div className="flex items-center gap-2">
-              <AlertTriangle className="w-4 h-4 text-rose-400 shrink-0" />
+              <AlertTriangle className="w-4 h-4 text-zinc-400 shrink-0" />
               <span>{error}</span>
             </div>
             <button
               type="button"
               onClick={() => handleDeconstruct()}
-              className="px-3 py-1 bg-rose-500/20 hover:bg-rose-500/30 border border-rose-500/30 rounded-lg text-rose-200 font-medium transition-colors flex items-center gap-1.5 shrink-0 cursor-pointer"
+              className="px-3 py-1 bg-zinc-900 hover:bg-zinc-800 border border-zinc-700 rounded-lg text-zinc-200 font-medium transition-colors flex items-center gap-1.5 shrink-0 cursor-pointer"
             >
               <RotateCw className="w-3 h-3" />
               Tentar Novamente
@@ -135,20 +128,20 @@ export const CognitiveMap: React.FC<CognitiveMapProps> = ({
 
       {/* Breakdown Display */}
       {breakdown && (
-        <div className="space-y-5 animate-fade-in">
+        <div className="space-y-6 animate-fade-in">
           {breakdown.isPedagogicalFallback && (
-            <div className="p-3.5 rounded-xl bg-amber-500/10 border border-amber-500/20 flex items-center justify-between gap-3 text-xs text-amber-300">
+            <div className="p-3.5 rounded-xl bg-zinc-900/60 border border-zinc-800 flex items-center justify-between gap-3 text-xs text-zinc-300">
               <div className="flex items-center gap-2">
-                <Sparkles className="w-4 h-4 text-amber-400 shrink-0" />
+                <Sparkles className="w-4 h-4 text-zinc-400 shrink-0" />
                 <span>
-                  Esquema cognitivo gerado via síntese pedagógica estruturada (tráfego temporariamente intenso nos servidores de IA).
+                  Esquema cognitivo sintetizado estruturalmente.
                 </span>
               </div>
               <button
                 type="button"
                 onClick={() => handleDeconstruct()}
                 disabled={isLoading}
-                className="px-3 py-1 bg-amber-500/20 hover:bg-amber-500/30 border border-amber-500/30 rounded-lg text-amber-200 font-medium transition-colors flex items-center gap-1.5 shrink-0 cursor-pointer disabled:opacity-50"
+                className="px-2.5 py-1 bg-zinc-800 hover:bg-zinc-700 border border-zinc-700 rounded-md text-zinc-200 font-medium transition-colors flex items-center gap-1.5 shrink-0 cursor-pointer disabled:opacity-50"
               >
                 <RotateCw className={`w-3 h-3 ${isLoading ? 'animate-spin' : ''}`} />
                 Atualizar via IA
@@ -156,97 +149,107 @@ export const CognitiveMap: React.FC<CognitiveMapProps> = ({
             </div>
           )}
 
-          {/* Core Overview & Mechanism */}
-          <div className="p-6 rounded-2xl bg-slate-900 border border-slate-800 shadow-xl space-y-4">
+          {/* Core Overview & Mechanism - Full Width Banner */}
+          <div className="p-6 sm:p-8 rounded-2xl bg-zinc-900/40 border border-zinc-800/80 space-y-4 shadow-sm">
             <div className="flex items-center justify-between">
-              <span className="text-xs font-semibold text-cyan-400 uppercase tracking-wider">
+              <span className="text-xs font-mono font-medium text-zinc-400 uppercase tracking-wider">
                 Núcleo Essencial (Carga Germana)
               </span>
-              <span className="text-xs text-slate-400">Tópico: {breakdown.topic}</span>
+              <span className="text-xs text-zinc-400 font-mono">Tópico: {breakdown.topic}</span>
             </div>
 
-            <p className="text-sm text-slate-200 leading-relaxed">
+            <p className="text-sm sm:text-base text-zinc-300 leading-relaxed max-w-5xl">
               {breakdown.overview}
             </p>
 
-            <div className="p-4 rounded-xl bg-cyan-950/30 border border-cyan-500/30 space-y-1.5">
-              <span className="text-xs font-bold text-cyan-300 flex items-center gap-1.5">
-                <Brain className="w-4 h-4 text-cyan-400" />
+            <div className="p-4 sm:p-5 rounded-xl bg-zinc-950/80 border border-zinc-800 space-y-2">
+              <span className="text-xs font-semibold text-zinc-200 flex items-center gap-2 font-mono uppercase tracking-wider">
+                <Brain className="w-4 h-4 text-zinc-400 stroke-[1.75]" />
                 O Mecanismo Central em Uma Frase:
               </span>
-              <p className="text-xs sm:text-sm text-slate-100 font-medium leading-relaxed">
+              <p className="text-sm sm:text-base text-zinc-100 font-medium leading-relaxed">
                 "{breakdown.coreMechanism}"
               </p>
             </div>
           </div>
 
-          {/* Grid: Prerequisites vs Misconceptions */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            {/* Prerequisites */}
-            <div className="p-5 rounded-2xl bg-slate-900 border border-slate-800 space-y-3">
-              <span className="text-xs font-semibold text-emerald-400 flex items-center gap-1.5">
-                <ShieldCheck className="w-4 h-4" />
-                Esquemas Prévios Necessários (Andaime Cognitivo):
+          {/* 3 Column Desktop Grid: Prerequisites, Analogy, Misconceptions */}
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {/* Column 1: Prerequisites */}
+            <div className="p-6 rounded-2xl bg-zinc-900/30 border border-zinc-800/80 space-y-4">
+              <span className="text-xs font-semibold text-zinc-200 flex items-center gap-2 font-mono uppercase tracking-wider">
+                <ShieldCheck className="w-4 h-4 text-zinc-400 stroke-[1.75]" />
+                Esquemas Prévios (Andaime):
               </span>
-              <ul className="space-y-2 text-xs text-slate-300">
+              <ul className="space-y-2.5 text-xs sm:text-sm text-zinc-300">
                 {breakdown.prerequisites.map((p, idx) => (
-                  <li key={idx} className="flex items-start gap-2 bg-slate-950/60 p-2.5 rounded-xl border border-slate-800/80">
-                    <span className="text-emerald-400 font-bold shrink-0">#{idx + 1}</span>
-                    <span>{p}</span>
+                  <li key={idx} className="flex items-start gap-2.5 bg-zinc-950/70 p-3 rounded-xl border border-zinc-800/70">
+                    <span className="text-zinc-500 font-mono font-semibold shrink-0">#{idx + 1}</span>
+                    <span className="leading-relaxed">{p}</span>
                   </li>
                 ))}
               </ul>
             </div>
 
-            {/* Misconceptions */}
-            <div className="p-5 rounded-2xl bg-slate-900 border border-slate-800 space-y-3">
-              <span className="text-xs font-semibold text-amber-400 flex items-center gap-1.5">
-                <AlertTriangle className="w-4 h-4" />
-                Armadilhas Cognitivas & Mitos Mais Comuns:
+            {/* Column 2: Dual Coding Analogy & Rationale */}
+            <div className="p-6 rounded-2xl bg-zinc-900/30 border border-zinc-800/80 space-y-4">
+              <span className="text-xs font-semibold text-zinc-200 flex items-center gap-2 font-mono uppercase tracking-wider">
+                <Lightbulb className="w-4 h-4 text-zinc-400 stroke-[1.75]" />
+                Analogia do Mundo Físico:
               </span>
-              <ul className="space-y-2 text-xs text-slate-300">
+              <div className="bg-zinc-950/70 p-4 rounded-xl border border-zinc-800/70 space-y-2">
+                <p className="text-xs sm:text-sm text-zinc-200 leading-relaxed">
+                  {breakdown.realWorldAnalogy}
+                </p>
+                <span className="text-[11px] text-zinc-500 block font-mono">
+                  Teoria do Duplo Código de Paivio
+                </span>
+              </div>
+
+              <div className="p-3.5 rounded-xl bg-zinc-950/50 border border-zinc-800/80 text-xs text-zinc-400 leading-relaxed">
+                <strong className="text-zinc-300 font-medium block mb-1">Por que gera sobrecarga:</strong>
+                {breakdown.neuroscienceRationale}
+              </div>
+            </div>
+
+            {/* Column 3: Misconceptions */}
+            <div className="p-6 rounded-2xl bg-zinc-900/30 border border-zinc-800/80 space-y-4">
+              <span className="text-xs font-semibold text-zinc-200 flex items-center gap-2 font-mono uppercase tracking-wider">
+                <AlertTriangle className="w-4 h-4 text-zinc-400 stroke-[1.75]" />
+                Armadilhas Cognitivas &amp; Mitos:
+              </span>
+              <ul className="space-y-2.5 text-xs sm:text-sm text-zinc-300">
                 {breakdown.commonMisconceptions.map((m, idx) => (
-                  <li key={idx} className="flex items-start gap-2 bg-slate-950/60 p-2.5 rounded-xl border border-slate-800/80">
-                    <span className="text-amber-400 font-bold shrink-0">⚠️</span>
-                    <span>{m}</span>
+                  <li key={idx} className="flex items-start gap-2.5 bg-zinc-950/70 p-3 rounded-xl border border-zinc-800/70">
+                    <span className="text-zinc-500 shrink-0 font-mono font-bold">!</span>
+                    <span className="leading-relaxed">{m}</span>
                   </li>
                 ))}
               </ul>
             </div>
           </div>
 
-          {/* Real World Analogy (Dual Coding) */}
-          <div className="p-5 rounded-2xl bg-indigo-950/20 border border-indigo-500/30 space-y-2">
-            <span className="text-xs font-semibold text-indigo-300 flex items-center gap-1.5">
-              <Lightbulb className="w-4 h-4 text-amber-400" />
-              Analogia do Mundo Físico (Teoria do Duplo Código de Paivio):
-            </span>
-            <p className="text-xs sm:text-sm text-slate-200 leading-relaxed">
-              {breakdown.realWorldAnalogy}
-            </p>
-          </div>
-
-          {/* Elaborative Questions */}
-          <div className="p-5 rounded-2xl bg-slate-900 border border-slate-800 space-y-3">
+          {/* Elaborative Questions - 2 Column Grid */}
+          <div className="p-6 sm:p-7 rounded-2xl bg-zinc-900/30 border border-zinc-800/80 space-y-4">
             <div className="flex items-center justify-between">
-              <span className="text-xs font-semibold text-slate-200 flex items-center gap-1.5">
-                <HelpCircle className="w-4 h-4 text-cyan-400" />
+              <span className="text-xs font-semibold text-zinc-200 flex items-center gap-2 font-mono uppercase tracking-wider">
+                <HelpCircle className="w-4 h-4 text-zinc-400 stroke-[1.75]" />
                 Perguntas de Interrogação Elaborativa (Gatilhos de Reflexão):
               </span>
-              <span className="text-[11px] text-slate-500">Clique para debater no Tutor</span>
+              <span className="text-xs text-zinc-500 font-mono">Clique para debater no Tutor</span>
             </div>
 
-            <div className="space-y-2">
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-3">
               {breakdown.elaborativeQuestions.map((q, idx) => (
                 <div
                   key={idx}
-                  className="p-3.5 rounded-xl bg-slate-950 border border-slate-800 flex items-center justify-between gap-3 text-xs text-slate-200 hover:border-cyan-500/50 transition-colors"
+                  className="p-4 rounded-xl bg-zinc-950 border border-zinc-800/80 flex items-center justify-between gap-3 text-xs sm:text-sm text-zinc-200 hover:border-zinc-700 transition-colors"
                 >
-                  <div className="flex items-center gap-2">
-                    <span className="w-5 h-5 rounded-full bg-cyan-950 text-cyan-400 flex items-center justify-center font-bold text-[10px] shrink-0">
+                  <div className="flex items-center gap-3">
+                    <span className="w-5 h-5 rounded-full bg-zinc-900 border border-zinc-800 text-zinc-400 flex items-center justify-center font-mono text-[10px] shrink-0">
                       {idx + 1}
                     </span>
-                    <span>{q}</span>
+                    <span className="leading-relaxed">{q}</span>
                   </div>
 
                   {onOpenSocraticWithPrompt && (
@@ -256,27 +259,14 @@ export const CognitiveMap: React.FC<CognitiveMapProps> = ({
                           `Estou explorando a pergunta elaborativa sobre ${breakdown.topic}: "${q}". Como podemos destrinchar essa questão socraticamente?`
                         )
                       }
-                      className="px-2.5 py-1.5 rounded-lg bg-slate-800 hover:bg-cyan-600 hover:text-slate-950 text-slate-300 text-[11px] font-medium transition-colors flex items-center gap-1 shrink-0"
+                      className="px-3 py-1.5 rounded-lg bg-zinc-900 hover:bg-zinc-800 text-zinc-300 hover:text-zinc-100 border border-zinc-800 text-xs font-medium transition-colors flex items-center gap-1.5 shrink-0 cursor-pointer"
                     >
                       <span>Investigar</span>
-                      <ArrowRight className="w-3 h-3" />
+                      <ArrowRight className="w-3.5 h-3.5 stroke-[2]" />
                     </button>
                   )}
                 </div>
               ))}
-            </div>
-          </div>
-
-          {/* Neuroscience Rationale */}
-          <div className="p-4 rounded-xl bg-slate-950 border border-slate-800 flex items-start gap-3">
-            <Brain className="w-5 h-5 text-indigo-400 shrink-0 mt-0.5" />
-            <div className="space-y-1">
-              <span className="text-xs font-semibold text-indigo-300">
-                Por que este conceito gera sobrecarga cognitiva:
-              </span>
-              <p className="text-xs text-slate-400 leading-relaxed">
-                {breakdown.neuroscienceRationale}
-              </p>
             </div>
           </div>
         </div>

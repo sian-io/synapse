@@ -6,12 +6,7 @@ import {
   Zap,
   Layers,
   BookOpen,
-  Activity,
   Flame,
-  Award,
-  ChevronRight,
-  HelpCircle,
-  BarChart2
 } from 'lucide-react';
 import { SocraticTutor } from './components/SocraticTutor';
 import { FeynmanStudio } from './components/FeynmanStudio';
@@ -24,7 +19,7 @@ import { CognitiveStats } from './types';
 type ActiveTab = 'socratic' | 'feynman' | 'retrieval' | 'cognitive_map' | 'neuroscience';
 
 export default function App() {
-  const [activeTab, setActiveTab] = useState<ActiveTab>('socratic');
+  const [activeTab, setActiveTab] = useState<ActiveTab>('neuroscience');
   const [currentTopic, setCurrentTopic] = useState<string>(() => {
     return localStorage.getItem('synapse_current_topic') || 'Mecanismos de Memória e Neuroplasticidade';
   });
@@ -77,121 +72,91 @@ export default function App() {
       id: 'socratic' as ActiveTab,
       label: 'Tutor Socrático',
       icon: MessageSquareText,
-      badge: 'Andaimes & Diálogo',
     },
     {
       id: 'feynman' as ActiveTab,
       label: 'Estúdio Feynman',
       icon: Sparkles,
-      badge: 'Desconstrução',
     },
     {
       id: 'retrieval' as ActiveTab,
       label: 'Recuperação Ativa',
       icon: Zap,
-      badge: 'LTP & Espaçamento',
     },
     {
       id: 'cognitive_map' as ActiveTab,
       label: 'Carga Cognitiva',
       icon: Layers,
-      badge: 'Sweller',
     },
     {
       id: 'neuroscience' as ActiveTab,
       label: 'Base Neurocientífica',
       icon: BookOpen,
-      badge: 'Evidências',
     },
   ];
 
   return (
-    <div className="min-h-screen bg-slate-950 text-slate-100 flex flex-col font-sans selection:bg-indigo-500 selection:text-white">
+    <div className="min-h-screen bg-[#09090b] text-zinc-100 flex flex-col font-sans selection:bg-zinc-800 selection:text-zinc-100">
       {/* Top Header */}
-      <header className="sticky top-0 z-40 border-b border-slate-800/80 bg-slate-950/80 backdrop-blur-xl px-4 sm:px-6 py-3">
-        <div className="max-w-7xl mx-auto flex flex-col md:flex-row items-center justify-between gap-3">
+      <header className="sticky top-0 z-40 border-b border-zinc-800/70 bg-[#09090b]/90 backdrop-blur-xl px-4 sm:px-8 xl:px-12 py-3.5">
+        <div className="max-w-[1600px] w-full mx-auto flex items-center justify-between gap-4">
           {/* Brand Identity */}
-          <div className="flex items-center gap-3 w-full md:w-auto justify-between md:justify-start">
-            <div className="flex items-center gap-2.5">
-              <div className="w-10 h-10 rounded-2xl bg-gradient-to-tr from-indigo-600 via-purple-600 to-cyan-500 p-0.5 shadow-lg shadow-indigo-600/30 flex items-center justify-center">
-                <div className="w-full h-full bg-slate-950 rounded-[14px] flex items-center justify-center text-indigo-400">
-                  <Brain className="w-5 h-5" />
-                </div>
-              </div>
-              <div>
-                <div className="flex items-center gap-2">
-                  <h1 className="text-base font-extrabold tracking-tight bg-gradient-to-r from-slate-100 via-indigo-200 to-indigo-400 bg-clip-text text-transparent">
-                    SYNAPSE
-                  </h1>
-                  <span className="text-[10px] uppercase font-bold tracking-wider px-2 py-0.5 rounded-full bg-indigo-500/10 text-indigo-400 border border-indigo-500/20">
-                    Active AI
-                  </span>
-                </div>
-                <p className="text-[11px] text-slate-400 font-medium">
-                  Agente Pedagógico Fundamentado em Neurociência
-                </p>
-              </div>
+          <div className="flex items-center gap-3.5 shrink-0">
+            <div className="w-11 h-11 rounded-xl bg-zinc-900 border border-zinc-700/80 flex items-center justify-center text-zinc-100 shadow-md shadow-zinc-950/40">
+              <Brain className="w-6 h-6 text-zinc-100 stroke-[2]" />
             </div>
-
-            {/* Mobile streak indicator */}
-            <div className="flex md:hidden items-center gap-1 text-xs px-2.5 py-1 rounded-full bg-amber-500/10 text-amber-400 border border-amber-500/20">
-              <Flame className="w-3.5 h-3.5 fill-amber-400" />
-              <span className="font-bold">{stats.retentionStreakDays}d</span>
-            </div>
+            <span className="text-xl sm:text-2xl font-bold tracking-wider text-zinc-100">
+              SYNAPSE
+            </span>
           </div>
 
-          {/* Neuro Cognitive Stats Pills */}
-          <div className="hidden sm:flex items-center gap-2">
-            <div
-              className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-amber-500/10 border border-amber-500/20 text-xs text-amber-300 font-medium"
-              title="Dias consecutivos de prática de recuperação ativa"
-            >
-              <Flame className="w-3.5 h-3.5 fill-amber-400 text-amber-400" />
-              <span>{stats.retentionStreakDays} dias de estímulo</span>
-            </div>
-
-            <div
-              className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-indigo-500/10 border border-indigo-500/20 text-xs text-indigo-300 font-medium"
-              title="Total de recuperações ativas e diálogos socráticos"
-            >
-              <Zap className="w-3.5 h-3.5 text-indigo-400" />
-              <span>{stats.retrievalAttempts + stats.socraticQuestionsAnswered} evocações LTP</span>
-            </div>
-          </div>
-        </div>
-
-        {/* Navigation Tabs */}
-        <div className="max-w-7xl mx-auto mt-3 pt-2 border-t border-slate-800/60 flex items-center gap-1.5 overflow-x-auto no-scrollbar">
-          {navItems.map((item) => {
-            const Icon = item.icon;
-            const isActive = activeTab === item.id;
-            return (
-              <button
-                key={item.id}
-                onClick={() => setActiveTab(item.id)}
-                className={`px-3.5 py-2 rounded-xl text-xs font-semibold transition-all flex items-center gap-2 shrink-0 cursor-pointer ${
-                  isActive
-                    ? 'bg-indigo-600 text-white shadow-lg shadow-indigo-600/25 border border-indigo-400/30'
-                    : 'bg-slate-900/60 hover:bg-slate-800/80 text-slate-300 hover:text-white border border-slate-800/80'
-                }`}
-              >
-                <Icon className={`w-4 h-4 ${isActive ? 'text-white' : 'text-slate-400'}`} />
-                <span>{item.label}</span>
-                <span
-                  className={`text-[10px] px-1.5 py-0.5 rounded-md hidden lg:inline ${
-                    isActive ? 'bg-indigo-800/60 text-indigo-100' : 'bg-slate-800 text-slate-400'
+          {/* Navigation Tabs */}
+          <nav className="flex items-center justify-center gap-1.5 overflow-x-auto no-scrollbar min-w-0 flex-1 px-2">
+            {navItems.map((item) => {
+              const Icon = item.icon;
+              const isActive = activeTab === item.id;
+              return (
+                <button
+                  key={item.id}
+                  onClick={() => setActiveTab(item.id)}
+                  className={`px-3.5 py-2 rounded-lg text-xs sm:text-sm font-medium transition-all flex items-center gap-2 shrink-0 cursor-pointer ${
+                    isActive
+                      ? 'bg-zinc-100 text-zinc-950 shadow-sm'
+                      : 'text-zinc-400 hover:text-zinc-200 hover:bg-zinc-900/80'
                   }`}
                 >
-                  {item.badge}
-                </span>
-              </button>
-            );
-          })}
+                  <Icon className={`w-4 h-4 stroke-[1.75] ${isActive ? 'text-zinc-950' : 'text-zinc-400'}`} />
+                  <span>{item.label}</span>
+                </button>
+              );
+            })}
+          </nav>
+
+          {/* Neuro Cognitive Stats Pills */}
+          <div className="flex items-center gap-2 sm:gap-3 shrink-0">
+            <div
+              className="flex items-center gap-2 px-3 py-1.5 sm:px-3.5 rounded-lg bg-zinc-900/90 border border-zinc-800 text-xs text-zinc-300 font-medium transition-colors hover:border-zinc-700"
+              title="Dias consecutivos de prática de recuperação ativa"
+            >
+              <Flame className="w-4 h-4 text-zinc-400 stroke-[1.75]" />
+              <span className="hidden sm:inline"><strong className="text-zinc-100 font-semibold">{stats.retentionStreakDays}</strong> dias de estímulo</span>
+              <span className="sm:hidden"><strong className="text-zinc-100 font-semibold">{stats.retentionStreakDays}</strong>d</span>
+            </div>
+
+            <div
+              className="flex items-center gap-2 px-3 py-1.5 sm:px-3.5 rounded-lg bg-zinc-900/90 border border-zinc-800 text-xs text-zinc-300 font-medium transition-colors hover:border-zinc-700"
+              title="Total de recuperações ativas e diálogos socráticos"
+            >
+              <Zap className="w-4 h-4 text-zinc-400 stroke-[1.75]" />
+              <span className="hidden sm:inline"><strong className="text-zinc-100 font-semibold">{stats.retrievalAttempts + stats.socraticQuestionsAnswered}</strong> evocações LTP</span>
+              <span className="sm:hidden"><strong className="text-zinc-100 font-semibold">{stats.retrievalAttempts + stats.socraticQuestionsAnswered}</strong> LTP</span>
+            </div>
+          </div>
         </div>
       </header>
 
       {/* Main Content Viewport */}
-      <main className="flex-1 max-w-7xl w-full mx-auto p-4 sm:p-6 space-y-5">
+      <main className="flex-1 max-w-[1600px] w-full mx-auto px-4 sm:px-8 xl:px-12 py-6 space-y-6">
         {/* Unified Concept Definition Bar - Persistent Across All Pages */}
         <UnifiedConceptBar
           currentTopic={currentTopic}
@@ -204,6 +169,7 @@ export default function App() {
             currentTopic={currentTopic}
             onTopicChange={setCurrentTopic}
             onIncrementStats={handleIncrementStats}
+            initialPrompt={socraticPromptOverride}
           />
         )}
 
@@ -236,15 +202,6 @@ export default function App() {
           <NeuroscienceGuide onSelectAction={(tab) => setActiveTab(tab)} />
         )}
       </main>
-
-      {/* Bottom Cognitive Science Tip Banner */}
-      <footer className="border-t border-slate-900 bg-slate-950/60 py-3 px-4 text-center text-xs text-slate-500">
-        <p>
-          🧠 Fundamentado em: <strong>Roediger & Karpicke (2006)</strong> (Recuperação Ativa),{' '}
-          <strong>Richard Feynman</strong> (Compreensão sem Jargão), <strong>John Sweller</strong> (Carga Cognitiva) e{' '}
-          <strong>Robert Bjork</strong> (Dificuldades Desejáveis).
-        </p>
-      </footer>
     </div>
   );
 }

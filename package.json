@@ -34,7 +34,7 @@
     "@types/express": "^4.17.21"
   },
   "allowScripts": {
-    "@google/genai@2.23.0": true,
+    "@google/genai@2.22.0": true,
     "esbuild@0.25.12": true,
     "esbuild@0.28.2": true,
     "protobufjs@7.6.6": true

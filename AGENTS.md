@@ -1,445 +1,201 @@
-## 1. Project Overview & Core Mission
+# Documentação Técnica e Guia de Engenharia: Synapse (v1)
 
-**Synapse** is an elite educational AI agent and web application engineered strictly around **evidence-based cognitive neuroscience** and **active learning methodologies**. Unlike traditional generative AI tutors that produce passive, lengthy essays—which inadvertently induce the *illusion of explanatory depth* and *illusion of fluency*—Synapse acts as a cognitive gym.
-
-### Core Pedagogical Directives
-
-1. **Never Give Answers for Free:** Deconstruct problems, provide scaffolding (*andaimes cognitivos*), and demand active retrieval from the learner.
-2. **Promote Long-Term Potentiation (LTP):** Stimulate synaptic consolidation through effortful recall, interrogative elaboration, and structured spacing.
-3. **Bust Superficial Fluency:** Use Richard Feynman's principles to detect empty jargon, uncover cognitive blind spots, and demand intuitive physical analogies.
-4. **Respect Working Memory Constraints:** Use John Sweller’s Cognitive Load Theory to deliver concise, atomic chunks that minimize extraneous load.
-5. **Calibrate Metacognition:** Force learners to explicitly estimate their confidence to combat the Dunning-Kruger effect.
+Este documento descreve a arquitetura técnica, decisões de engenharia, escolhas de dependências e funcionamento interno do **Synapse**. Seu público-alvo são desenvolvedores humanos e agentes autônomos de IA que precisam estender, auditar ou manter o código-fonte.
 
 ---
 
-## 2. Theoretical Pillars (Cognitive Neuroscience)
+## 1. Como o Synapse Funciona? (Arquitetura Técnica & "O Como")
 
-Any iteration or harness rebuilding Synapse must adhere to these 6 foundational pillars:
-
-| Pillar | Pioneer / Literature | Neurobiological Basis | Agent Implementation |
-| :--- | :--- | :--- | :--- |
-| **Active Retrieval Practice** | Roediger & Karpicke (2006) | Prefrontal cortex & hippocampal activation triggers LTP; increases synaptic AMPA/NMDA receptor density. | Flashcards with "Generation Effect" (drafting mandatory before revealing); challenging retrieval quizzes. |
-| **Feynman Technique** | Richard Feynman / Rozenblit & Keil | Eliminates the "Illusion of Explanatory Depth" by forcing translation of abstract tokens into somatic/concrete networks. | Automated audit for ungrounded jargon, identification of logical breaks, and generation of everyday analogies. |
-| **Socratic Inquiry & Elaboration** | Socrates / Pressley et al. (1992) | Stimulates semantic neocortical integration via causal linking (*"Why does this hold?"*, *"What triggers Y?"*). | Dialogical tutor that never answers directly; uses incremental hints and concludes each turn with a single guiding question. |
-| **Cognitive Load Theory (CLT)** | John Sweller (1988) | Working memory holds only 4–7 elements. High extraneous load halts schema construction. | Deconstructs concepts into prerequisites, core mechanisms, common traps, and physical analogies. |
-| **Desirable Difficulties** | Robert & Elizabeth Bjork (2011) | Productive struggle in retrieval triggers durable neuroplastic changes; effortless study produces fragile memories. | High cognitive friction prompts, edge-case perturbations, and validation of mistakes as biological signals. |
-| **Metacognitive Calibration** | John Flavell (1979) / Kruger & Dunning | Dorsolateral prefrontal cortex self-monitoring; mitigates confirmation bias and overconfidence. | Explicit 1–5 confidence ratings prior to revealing answers, dynamically tuning the scaffolding level. |
-
----
-
-## 3. Technology Stack & Environment
-
-When rebuilding from scratch with an AI harness, use the following configuration:
-
-- **Runtime / Language:** Node.js (v20+) or Bun with TypeScript (`~5.8.2`).
-- **Server:** Express (`^4.21.2`) wrapped with `tsx` for TypeScript execution.
-- **Frontend:** React 19 (`^19.0.1`), React DOM 19, Vite 6 (`^6.2.3`).
-- **Styling:** Tailwind CSS v4 (`@tailwindcss/vite` & `tailwindcss@4`).
-- **Icons & UI:** `lucide-react`, `motion` (Framer Motion v12), `react-markdown`.
-- **LLM SDK:** `@google/genai` (`^2.4.0`) accessing Gemini Flash models (`gemini-3.8-flash`, `gemini-flash-latest`, `gemini-3.1-flash-lite`).
-- **Environment Variables:**
-  - `GEMINI_API_KEY`: Google Gemini API key.
-  - `APP_URL`: Hosting deployment URL (optional for cloud runtime).
-  - `PORT`: Default `3000`.
-
----
-
-## 4. System Architecture
-
-Synapse uses a **unified full-stack single-port pattern**:
-
-- In **development**, Express serves as the primary HTTP server and injects Vite via middleware mode (`createViteServer({ server: { middlewareMode: true }, appType: 'spa' })`).
-- In **production**, `vite build` creates static assets in `dist/`, and `esbuild server.ts --bundle --platform=node` generates `dist/server.cjs`. Express serves `dist/` statically with SPA fallback.
+O Synapse opera sob uma arquitetura full-stack unificada em TypeScript, onde um único processo Node.js orquestra simultaneamente o backend da API REST e o servidor de desenvolvimento/serviço do frontend via Vite.
 
 ```
-┌────────────────────────────────────────────────────────┐
-│                   React 19 Frontend                    │
-│  ┌──────────────────────────────────────────────────┐  │
-│  │ UnifiedConceptBar (Syncs currentTopic globally)  │  │
-│  ├──────────────────────────────────────────────────┤  │
-│  │ Tabs: Socratic | Feynman | Retrieval | CLT | Doc │  │
-│  └──────────────────────────────────────────────────┘  │
-└───────────────────────────▲────────────────────────────┘
-                            │ JSON API (/api/*)
-┌───────────────────────────▼────────────────────────────┐
-│                  Express Backend                       │
-│  ┌──────────────────────────────────────────────────┐  │
-│  │ Fallback Runner (gemini-3.8-flash -> lite -> etc)│  │
-│  ├──────────────────────────────────────────────────┤  │
-│  │ Resilient Fallback Heuristics (Offline-ready)    │  │
-│  ├──────────────────────────────────────────────────┤  │
-│  │ Vite Middleware / Static Production File Server  │  │
-│  └──────────────────────────────────────────────────┘  │
-└────────────────────────────────────────────────────────┘
++-------------------------------------------------------------------------+
+|                              Node.js Process                            |
+|                                                                         |
+|  +-------------------------------------------------------------------+  |
+|  |                     Express Server (server.ts)                    |  |
+|  |                                                                   |  |
+|  |   [Port 3000]                                                     |  |
+|  |   ├── /api/health                                                 |  |
+|  |   ├── /api/chat                    ──> Gemini SDK / Fallback      |  |
+|  |   ├── /api/feynman-evaluate        ──> Gemini SDK (JSON Schema)   |  |
+|  |   ├── /api/generate-retrieval-deck ──> Gemini SDK (JSON Schema)   |  |
+|  |   └── /api/generate-concept-breakdown ──> Gemini SDK (JSON Schema)|  |
+|  |                                                                   |  |
+|  |   Vite Middleware (dev) / Express Static Dist (prod)              |  |
+|  +---------------------------------+---------------------------------+  |
++------------------------------------|------------------------------------+
+                                     │ Serves SPA
+                                     v
++-------------------------------------------------------------------------+
+|                        Browser Client (React 19)                        |
+|                                                                         |
+|  App.tsx                                                                |
+|  ├── UnifiedConceptBar (Shared Topic State & Sincronização)            |
+|  ├── SocraticTutor (Conversational Engine & Metacognitive Certainty)   |
+|  ├── FeynmanStudio (Explanation Audit & Jargon Extraction)             |
+|  ├── ActiveRetrievalLab (SM-2 Spaced Repetition Engine & Recall)       |
+|  ├── CognitiveMap (Sweller / Paivio Structural Deconstruction)         |
+|  └── NeuroscienceGuide (Theoretical Foundations)                        |
+|                                                                         |
+|  Client Storage: localStorage (synapse_chat_history, flashcards, stats) |
++-------------------------------------------------------------------------+
 ```
+
+### 1.1 Unificação Frontend/Backend via Vite Middleware
+
+- Em desenvolvimento (`process.env.NODE_ENV !== 'production'`), o `server.ts` inicializa o Vite em modo middleware (`createServer({ server: { middlewareMode: true }, appType: 'spa' })`).
+- As rotas da API em `/api/*` são tratadas nativamente pelas rotas do Express antes que o tráfego restante seja repassado aos middlewares do Vite.
+- Em produção, o Express atende os arquivos estáticos compilados em `dist/` e aplica fallback para `dist/index.html` em requisições de página.
+- **Racional de Design**: Elimina problemas de CORS, dispensa configuração de proxy reverso em desenvolvimento e viabiliza a execução de todo o sistema com um comando único (`npm run dev`).
 
 ---
 
-## 5. Agent Specifications, Prompts & API Contracts
+## 2. Escolha de Ferramentas e Tecnologias
 
-### 5.1. Common Resilience Protocol (Fallback Strategy)
+### 2.1 Backend
 
-AI harnesses must implement the `generateWithFallback` pattern to guarantee continuous pedagogy even during upstream API limits or network transients:
+- **Node.js + Express 4**: Framework HTTP minimalista com baixa sobrecarga, compatível com middlewares assíncronos e fácil empacotamento via `esbuild`.
+- **SDK Oficial Google GenAI `@google/genai`**: Versão 2.4.0+. Utilizada para conexão direta com os modelos Gemini mais recentes, suporte a chamadas com parâmetros estruturados (`responseSchema`, `responseMimeType: 'application/json'`) e controle de cabeçalhos HTTP.
+- **`tsx`**: Executor TypeScript para Node.js com suporte nativo a ESM (`"type": "module"`), utilizado para rodar `server.ts` em tempo real sem etapas intermediárias de compilação.
+- **`esbuild`**: Compilador de alta velocidade empregado no script `npm run build` para gerar o bundle CJS de produção (`dist/server.cjs`).
+
+### 2.2 Frontend
+
+- **React 19 `package.json`**: Framework de UI moderno, garantindo renderização eficiente e estabilidade de estado com hooks padrão (`useState`, `useEffect`, `useRef`).
+- **Tailwind CSS v4 `package.json`**: Configurado via plugin `@tailwindcss/vite` `vite.config.ts`, fornecendo estilização rápida, responsiva e com suporte a variáveis CSS nativas.
+- **Lucide React `package.json`**: Conjunto consistente de ícones vetoriais leves para sinalização de estados pedagógicos e metadados.
+- **`react-markdown` `package.json`**: Renderizador de markdown para exibição formatada das respostas do tutor socrático.
+
+---
+
+## 3. Estratégia de Resiliência e Fallbacks
+
+A plataforma foi projetada para garantir continuidade pedagógica ininterrupta mesmo diante de esgotamento de cotas de API, falhas de rede ou ausência de chaves de ambiente.
+
+### 3.1 Cascata de Modelos Gemini
+
+O backend implementa redundância com múltiplos modelos aprovados:
 
 ```typescript
-// Model Fallback Hierarchy
 const models = ['gemini-3.8-flash', 'gemini-flash-latest', 'gemini-3.1-flash-lite'];
-
-// Exponential Jitter Backoff on 429 / 503 / RESOURCE_EXHAUSTED
-// Heuristic Fallback Responses if all LLM attempts fail.
 ```
+
+- Cada modelo recebe até duas tentativas de execução.
+- Erros transitórios com códigos `503`, `UNAVAILABLE`, `429` ou `RESOURCE_EXHAUSTED` ativam um mecanismo de espera com jitter aleatório (`750ms + Math.random() * 500ms`) antes de tentar novamente ou passar para o próximo modelo da lista.
+
+### 3.2 Fallbacks Pedagógicos Locais
+
+Se todas as chamadas upstream falharem ou a variável `GEMINI_API_KEY` estiver ausente, cada endpoint aciona uma rotina heurística determinística:
+
+- `/api/chat`: Analisa a última mensagem do usuário e devolve uma pergunta socrática sobre relação causa-efeito, mantendo o bloco `meta` intacto.
+- `/api/feynman-evaluate`: Executa análise léxica da explicação, detecta palavras conceituais abstratas como potenciais jargões, calcula uma nota proporcional à extensão do texto e formula uma pergunta socrática de fechamento.
+- `/api/generate-retrieval-deck`: Retorna uma estrutura padrão de três cartões desafiadores sobre mecânica causal, perturbação de limites e equívocos frequentes.
+- `/api/generate-concept-breakdown`: Monta a desconstrução em pré-requisitos, mecanismo nuclear, mitos e analogias estruturais com a flag `isPedagogicalFallback: true`.
 
 ---
 
-### 5.2. Endpoint 1: Socratic Tutor & Active Dialogue
+## 4. Engenharia de Prompts e Contratos de API
 
-- **Path:** `POST /api/chat`
-- **Purpose:** Conduct iterative Socratic dialogue with scaffolding, cognitive phase tracking, and neurobiological anchors.
-- **Request Body:**
+### 4.1 Chat Socrático: `POST /api/chat`
 
-  ```json
-  {
-    "messages": [
-      { "role": "user", "content": "Por que a inflação aumenta quando o governo imprime dinheiro?" }
-    ],
-    "mode": "socratic",
-    "currentTopic": "Inflação e Moeda",
-    "studentCalibration": 3
-  }
+- **Instrução de Sistema**. Proíbe respostas diretas e exige o encerramento com uma única pergunta instigante.
+- **Extração de Metadados**: O modelo inclui ao final da resposta um bloco delimitado:
+
   ```
-
-- **System Instruction (Exact Prompt):**
-
-  ```text
-  Você é o **Synapse**, um Agente de IA Pedagógico de Elite fundamentado estritamente em **Neurociência Cognitiva** e **Metodologias de Aprendizado Ativo** comprovadas pela ciência da aprendizagem:
-  1. **Prática de Recuperação & Efeito de Testagem (Roediger & Karpicke, 2006)**: Não entregue respostas prontas! Force o aluno a recuperar a informação da memória de longo prazo (LTP - Potenciação de Longa Duração).
-  2. **Método Socrático & Interrogação Elaborativa**: Guie o aluno por meio de perguntas perspicazes ("Por que isso ocorre?", "Qual é o elo causal entre X e Y?").
-  3. **Técnica de Feynman**: Ao avaliar ou pedir explicações, proíba jargões vazios; exija analogias simples e cheque lacunas de profundidade ilusória.
-  4. **Teoria da Carga Cognitiva (Sweller)**: Entregue blocos curtos, digeríveis e precisos. Evite "overload" de texto passivo.
-  5. **Dificuldade Desejável (Robert Bjork)**: O aprendizado real exige esforço produtivo. Incentive o erro como sinal biológico de neuroplasticidade.
-  6. **Metacognição (Flavell)**: Provoque reflexão sobre o próprio processo de raciocínio e verificação de certeza.
-
-  Modo Pedagógico Atual: ${mode || 'socratic'}
-  Tópico em Estudo: ${currentTopic || 'Geral'}
-  ${studentCalibration ? `Nível de Certeza Metacognitiva do Estudante: ${studentCalibration}/5` : ''}
-
-  Diretrizes Específicas por Modo:
-  - socratic: Faça perguntas que decomponham o problema. Dê pistas graduais (scaffolding/andaime), mas faça o aluno concluir o raciocínio. Termine com UMA pergunta instigante.
-  - feynman: Aja como um avaliador perspicaz. Aponte termos técnicos que precisam ser desempacotados, elogie boas analogias e peça uma simplificação ainda maior de partes vagas.
-  - active_retrieval: Desafie o estudante com um problema prático ou pergunta de recuperação conceitual profunda (não decoreba). Avalie a resposta dele criticamente.
-  - metacognition: Desafie o estudante a auditar como ele chegou a uma conclusão, quais premissas ele adotou e onde ele sente que sua compreensão é mais frágil.
-
-  Formate sua resposta em Markdown limpo, direto, empático e focado na ação do estudante. No final da resposta, inclua sempre uma seção especial chamada:
   ```meta
-  CognitivePhase: [ex: Recuperação Ativa | Diagnóstico de Ilusão | Interrogação Elaborativa | Consolidação Sináptica]
-  NeuroTip: [Uma frase rápida explicando o mecanismo neurobiológico do que está sendo treinado]
+  CognitivePhase: [Fase]
+  NeuroTip: [Explicação neurobiológica]
   SuggestedNextSteps: [Ação 1 | Ação 2]
   ```
 
   ```
+  O servidor processa essa string via Expressão Regular `server.ts` e entrega o texto limpo em `content` e os metadados em `meta`.
 
-- **Metadata Parsing Logic:**
-  Backend extracts content within the ` ```meta ... ``` ` block using regex:
-  - `CognitivePhase:` $\to$ `meta.cognitivePhase`
-  - `NeuroTip:` $\to$ `meta.desirableDifficultyNote`
-  - `SuggestedNextSteps:` (split by `|`) $\to$ `meta.suggestedActions`
-  - Remaining text is stripped and rendered cleanly in markdown.
+### 4.2 Avaliação Feynman: `POST /api/feynman-evaluate`
 
-- **Response Body:**
+- Utiliza **Structured Outputs** da API Gemini com `responseMimeType: 'application/json'` e schema estrito definido via enum `Type`.
+- Contrato de saída em `FeynmanEvaluation`:
+  - `score` (inteiro 0-100)
+  - `clarityAssessment` (string)
+  - `jargonIdentified` (array de strings)
+  - `conceptualGaps` (array de strings)
+  - `strengths` (array de strings)
+  - `analogiesEvaluation` (string)
+  - `suggestedAnalogy` (string)
+  - `simplifiedAlternative` (string)
+  - `followUpQuestion` (string)
 
-  ```json
-  {
-    "content": "Imagine que em uma ilha isolada existam apenas 10 maçãs e 10 moedas de ouro...\n\nSe de repente cada habitante encontrar mais 10 moedas na praia, a quantidade de maçãs aumentou?",
-    "meta": {
-      "cognitivePhase": "Interrogação Elaborativa",
-      "desirableDifficultyNote": "Construir modelos causais simples estimula a rede neuronal default a criar âncoras lógicas duradouras.",
-      "suggestedActions": [
-        "Responder o que acontece com o preço de cada maçã",
-        "Pensar em como a velocidade de circulação afeta isso",
-        "Explicar com outra analogia física"
-      ]
-    }
-  }
-  ```
+### 4.3 Geração de Baralhos: `POST /api/generate-retrieval-deck`
 
----
+- Schema JSON forçado com lista de objetos `cards` contendo:
+  - `question` (pergunta de mecanismo, não de decoreba)
+  - `answer` (modelo mental completo)
+  - `keyConcept` (conceito nuclear)
+  - `neuroTip` (âncora mnemônica)
+- O backend normaliza os cartões gerados para o formato `Flashcard`, inicializando os parâmetros de repetição espaçada (`intervalDays: 1`, `repetitions: 0`, `easeFactor: 2.5`, `masteryLevel: 0`).
 
-### 5.3. Endpoint 2: Feynman Studio Auditor
+### 4.4 Decomposição Conceitual: `POST /api/generate-concept-breakdown`
 
-- **Path:** `POST /api/feynman-evaluate`
-- **Purpose:** Audit a student's explanation against a target audience, detecting unexplained jargon, logical gaps, and generating analogies.
-- **Request Body:**
-
-  ```json
-  {
-    "topic": "Fotossíntese",
-    "explanation": "As plantas usam a energia fotônica para excitar elétrons na clorofila e produzir ATP e NADPH que fixam o CO2.",
-    "targetAudience": "uma criança de 10 anos curiosa"
-  }
-  ```
-
-- **Structured Output Schema (`responseSchema`):**
-
-  ```typescript
-  {
-    score: number;                   // 0 to 100 based on clarity & lack of jargon
-    clarityAssessment: string;       // Pedagogical critique
-    jargonIdentified: string[];      // Detected jargon words (e.g. "fotônica", "NADPH")
-    conceptualGaps: string[];        // Missing causal steps ("de onde vem a água?", etc.)
-    strengths: string[];             // What the learner explained well
-    analogiesEvaluation: string;     // Critique of analogies provided
-    suggestedAnalogy: string;        // Vivid real-world analogy
-    simplifiedAlternative: string;   // How Feynman would explain in 2-3 lines
-    followUpQuestion: string;        // Socratic question targeted at the biggest gap
-  }
-  ```
-
-- **Prompt Construction:**
-
-  ```text
-  Avalie a seguinte explicação de um estudante utilizando a **Técnica de Feynman** e princípios neurocognitivos de compreensão profunda:
-  - Tópico: "${topic}"
-  - Público-alvo pretendido: "${targetAudience}"
-  - Explicação do estudante: """${explanation}"""
-
-  Analise criticamente:
-  1. Clareza e fidelidade científica (sem distorções graves).
-  2. Detecção de jargões técnicos não explicados (palavras pomposas que escondem falta de compreensão mecânica).
-  3. Lacunas de raciocínio onde falta o "como" ou "por que".
-  4. Qualidade e precisão das analogias utilizadas.
-  5. Uma alternativa hiper-simplificada e elegante.
-  6. Uma pergunta socrática cirúrgica para que o estudante conserte sua maior lacuna.
-  ```
+- Schema JSON com `ConceptBreakdown`:
+  - `topic`, `overview`, `prerequisites`, `coreMechanism`, `commonMisconceptions`, `elaborativeQuestions`, `realWorldAnalogy`, `neuroscienceRationale`.
 
 ---
 
-### 5.4. Endpoint 3: Active Retrieval Deck Synthesizer
+## 5. Algoritmo de Repetição Espaçada no Cliente
 
-- **Path:** `POST /api/generate-retrieval-deck`
-- **Purpose:** Generate mechanism-focused flashcards (avoiding trivial rote memorization) incorporating Spaced Repetition (SM-2 parameters).
-- **Request Body:**
-
-  ```json
-  {
-    "topic": "Neuroplasticidade",
-    "difficulty": "intermediario",
-    "count": 4
-  }
-  ```
-
-- **Structured Output Schema (`responseSchema`):**
-
-  ```typescript
-  {
-    cards: Array<{
-      question: string;     // Mechanism-driven inquiry ("O que ocorre se X falhar?")
-      answer: string;       // Mental model explanation
-      keyConcept: string;   // Core node tested
-      neuroTip: string;     // Mnemonic anchor / neuroscience hint
-    }>
-  }
-  ```
-
-- **Server-Side Card Enrichment:**
-  Before returning to the frontend, each card is hydrated with SM-2 spaced repetition defaults:
-
-  ```typescript
-  {
-    id: `fc_${Date.now()}_${index}`,
-    topic,
-    question: c.question,
-    answer: c.answer,
-    keyConcept: c.keyConcept,
-    neuroTip: c.neuroTip,
-    intervalDays: 1,
-    repetitions: 0,
-    easeFactor: 2.5,
-    nextReviewDate: Date.now(),
-    masteryLevel: 0 // Range 0 (new) to 5 (consolidated)
-  }
-  ```
-
----
-
-### 5.5. Endpoint 4: Cognitive Load & Schema Breakdown (Sweller)
-
-- **Path:** `POST /api/generate-concept-breakdown`
-- **Purpose:** Break complex topics into atomic components to eliminate extraneous cognitive load.
-- **Request Body:**
-
-  ```json
-  { "topic": "Mecânica Quântica e Princípio da Incerteza" }
-  ```
-
-- **Structured Output Schema (`responseSchema`):**
-
-  ```typescript
-  {
-    topic: string;
-    overview: string;                 // Low extraneous load overview
-    prerequisites: string[];          // Prior neural schemas required
-    coreMechanism: string;            // The fundamental engine in 1 sentence
-    commonMisconceptions: string[];   // 3 intuitive traps
-    elaborativeQuestions: string[];   // 3 deep questions ("Why?", "What if?")
-    realWorldAnalogy: string;         // Dual coding physical analogy
-    neuroscienceRationale: string;    // Why working memory overloads on this concept
-  }
-  ```
-
----
-
-## 6. Mathematical & Algorithmic Foundations
-
-### 6.1. Spaced Repetition Algorithm (Modified SuperMemo-2 / SM-2)
-
-Each retrieval card in Synapse tracks retention with an adapted SM-2 decay model:
-
-Let $q \in \{0, 1, 2, 3\}$ be the student's self-assessed recall quality:
-
-- $0$: **Forgot / Blank** (*Errei / Branco*)
-- $1$: **Difficult Recall** (*Muito Difícil*)
-- $2$: **Good Recall** (*Bom Esforço*)
-- $3$: **Perfect Recall** (*Perfeito / Fácil*)
-
-#### State Transition Equations
-
-1. **Ease Factor Update ($EF'$):**
-   $$EF' = \max\left(1.3, \; EF + \Delta EF\right)$$
-   Where:
-   $$\Delta EF = \begin{cases}
-   -0.20 & \text{if } q = 0 \\
-   -0.10 & \text{if } q = 1 \\
-   0.00 & \text{if } q = 2 \\
-   +0.15 & \text{if } q = 3
-   \end{cases}$$
-
-2. **Interval Days Update ($I'$):**
-   $$I' = \begin{cases}
-   1 & \text{if } q = 0 \\
-   \max(1, \lfloor I \times 1.2 \rfloor) & \text{if } q = 1 \\
-   \max(2, \lfloor I \times EF \rfloor) & \text{if } q = 2 \\
-   \max(3, \lfloor I \times EF \times 1.3 \rfloor) & \text{if } q = 3
-   \end{cases}$$
-
-3. **Mastery Level ($M \in [0, 5]$):**
-   $$M' = \begin{cases}
-   0 & \text{if } q = 0 \\
-   \min(5, M + 1) & \text{if } q \in \{1, 2\} \\
-   \min(5, M + 2) & \text{if } q = 3
-   \end{cases}$$
-
-4. **Next Scheduled Review Timestamp:**
-   $$T_{\text{next}} = T_{\text{now}} + (I' \times 86,400,000 \text{ ms})$$
-
----
-
-### 6.2. Metacognitive Calibration Metric
-
-The learner inputs their confidence level $C \in \{1, 2, 3, 4, 5\}$ before answering. In future iterations, actual correctness $P \in \{0, 1\}$ can be compared against $C$ to compute the **Brier Calibration Score**:
-
-$$B = \frac{1}{N} \sum_{i=1}^{N} \left( \frac{C_i}{5} - P_i \right)^2$$
-
-A lower Brier score denotes superior metacognitive calibration (reduced Dunning-Kruger gap).
-
----
-
-## 7. Frontend Structure & User Flows
-
-The application UI is divided into 5 cohesive views synchronized by a persistent concept bar:
-
-```
-App.tsx (Main Coordinator & LocalStorage Sync)
- ├── UnifiedConceptBar (Syncs currentTopic, quick concept suggestions)
- ├── Tab 1: SocraticTutor
- │    ├── Mode Selector (socratic | feynman | active_retrieval | metacognition)
- │    ├── Chat Stream (Markdown, Phase Badges, NeuroTips, Next Action Buttons)
- │    ├── Quick Socratic Prompts (Premise Challenger, Elaborative Question)
- │    └── Metacognitive Certainty Slider (1 to 5)
- ├── Tab 2: FeynmanStudio
- │    ├── Target Audience Selector (10yo child | Intelligent Layperson | Beginner)
- │    ├── Active Explanation Textarea with live word counter & samples
- │    └── Evaluation Card (Score ring, Jargon list, Conceptual Gaps, Feynman Ideal)
- ├── Tab 3: ActiveRetrievalLab
- │    ├── Generator Bar (Topic & Difficulty selector)
- │    └── Flashcard Viewer (Drafting box for "Generation Effect", Flipper, SM-2 buttons)
- ├── Tab 4: CognitiveMap
- │    └── Sweller CLT Schema (Prerequisites, Core Mechanism, Traps, Analogies)
- └── Tab 5: NeuroscienceGuide
-      ├── Passive vs Active Comparison Matrix
-      ├── 6 Pedagogical Pillars Detailed Cards
-      └── Memory Consolidation Infographic (Encoding -> Feynman -> LTP -> Sleep)
-```
-
-### Data Storage Contracts (Local-First)
-
-- `synapse_current_topic`: Current string active across all tools.
-- `synapse_chat_history`: Array of `ChatMessage`.
-- `synapse_flashcards`: Array of `Flashcard` objects.
-- `synapse_stats`: Object tracking streaks, active minutes, and counts (`CognitiveStats`).
-
----
-
-## 8. Harness Rebuilding Guide (Zero-to-Hero)
-
-Follow this recipe when directing an autonomous coding agent to spin up a new iteration from scratch:
-
-### Step 1: Initialize Project & Install Packages
-
-```bash
-# 1. Initialize package
-npm init -y
-
-# 2. Install production dependencies
-npm install @google/genai @tailwindcss/vite @vitejs/plugin-react dotenv express lucide-react motion react react-dom react-markdown vite
-
-# 3. Install developer dependencies
-npm install -D @types/express @types/node autoprefixer esbuild tailwindcss tsx typescript
-```
-
-### Step 2: Configure TypeScript (`tsconfig.json`)
-
-Set `"target": "ES2022"`, `"moduleResolution": "bundler"`, `"jsx": "react-jsx"`, `"paths": { "@/*": ["./*"] }`, and `"allowImportingTsExtensions": true`.
-
-### Step 3: Configure Tailwind v4 & Vite (`vite.config.ts`)
+No componente `ActiveRetrievalLab.tsx`, a função `handleRateCard` implementa uma adaptação do algoritmo **SM-2**:
 
 ```typescript
-import { defineConfig } from 'vite';
-import react from '@vitejs/plugin-react';
-import tailwindcss from '@tailwindcss/vite';
-import path from 'path';
-
-export default defineConfig({
-  plugins: [react(), tailwindcss()],
-  resolve: {
-    alias: { '@': path.resolve(__dirname, '.') },
-  },
-});
+// Quality: 0 = Esqueceu / Branco, 1 = Difícil, 2 = Bom, 3 = Perfeito
+if (quality === 0) {
+  newInterval = 1;
+  newRepetitions = 0;
+  newEase = Math.max(1.3, currentCard.easeFactor - 0.2);
+  newMastery = 0;
+} else if (quality === 1) {
+  newInterval = Math.max(1, Math.round(currentCard.intervalDays * 1.2));
+  newRepetitions += 1;
+  newEase = Math.max(1.3, currentCard.easeFactor - 0.1);
+  newMastery = Math.min(5, currentCard.masteryLevel + 1);
+} else if (quality === 2) {
+  newInterval = Math.max(2, Math.round(currentCard.intervalDays * currentCard.easeFactor));
+  newRepetitions += 1;
+  newMastery = Math.min(5, currentCard.masteryLevel + 1);
+} else {
+  newInterval = Math.max(3, Math.round(currentCard.intervalDays * currentCard.easeFactor * 1.3));
+  newRepetitions += 1;
+  newEase = currentCard.easeFactor + 0.15;
+  newMastery = Math.min(5, currentCard.masteryLevel + 2);
+}
 ```
 
-### Step 4: Implement Express Server (`server.ts`)
-
-- Instantiate `GoogleGenAI` with `process.env.GEMINI_API_KEY`.
-- Implement `generateWithFallback(ai, payload)` with exponential backoff on transient errors (`429`, `503`, `RESOURCE_EXHAUSTED`).
-- Register endpoints:
-  - `POST /api/chat`
-  - `POST /api/feynman-evaluate`
-  - `POST /api/generate-retrieval-deck`
-  - `POST /api/generate-concept-breakdown`
-- Mount Vite in middleware mode if `NODE_ENV !== 'production'`.
-
-### Step 5: Implement React State & Views (`src/`)
-
-- Ensure `UnifiedConceptBar` writes to `localStorage` and updates parent state so switching between Socratic, Feynman, and Retrieval maintains context.
-- Implement the "Generation Effect" textarea in `ActiveRetrievalLab.tsx` so users must type an answer before checking it.
+A data da próxima revisão é calculada somando `newInterval * 86400000` milissegundos ao timestamp atual.
 
 ---
 
-## 9. Verification & Quality Acceptance Criteria
+## 6. Gerenciamento de Estado e Ciclo de Dados
 
-An automated test or harness validation run must check off the following criteria:
+### 6.1 Estado Global e Persistência
 
-- [ ] **No Direct Answers:** Socratic queries like *"O que é fotossíntese?"* must yield an everyday analogy or leading question, NOT an encyclopedia definition.
-- [ ] **Jargon Detection:** Submitting an explanation with ungrounded terms like *"ATP synthase"* or *"mitocôndria"* to `FeynmanStudio` must flag them in `jargonIdentified`.
-- [ ] **SM-2 State Integrity:** Rating a flashcard as `0` resets `intervalDays` to 1 and `repetitions` to 0. Rating `3` increments `easeFactor` and extends intervals.
-- [ ] **Resilience:** The backend must return valid, pedagogically structured heuristic fallback JSON even when `GEMINI_API_KEY` is missing or upstream is rate-limited.
-- [ ] **Single Port Access:** Web app and API endpoints must both resolve through port `3000`.
+O componente raiz `App.tsx` mantém os estados centrais sincronizados via `localStorage`:
+
+- `synapse_current_topic`: Conceito ativo selecionado pelo usuário.
+- `synapse_stats`: Objeto `CognitiveStats` rastreando tentativas de recuperação, explicações Feynman, perguntas socráticas respondidas, dias de estímulo contínuo e tempo ativo.
+- `synapse_chat_history`: Histórico de mensagens do chat socrático.
+- `synapse_flashcards`: Baralho de cartões ativos.
+
+### 6.2 Comunicação Cruzada entre Ferramentas
+
+- O estado `currentTopic` é propagado para todos os componentes.
+- A função `handleOpenSocraticWithPrompt` em `App.tsx` permite que botões dentro do `FeynmanStudio` e do `CognitiveMap` definam um prompt pré-formatado, alternem automaticamente a aba ativa para `socratic` e iniciem imediatamente a investigação socrática com o tutor.
+
+---
+
+## 7. Diretrizes para Modificações e Extensões
+
+### 7.1 Regras para Agentes de IA
+
+1. **Preservar a Postura Pedagógica**: O modelo do agente de IA jamais deve ser instruído a responder perguntas conceituais de forma expositiva direta. Quaisquer alterações em prompts devem manter a regra de não entregar respostas prontas.
+2. **Respeitar Contratos de Tipagem**: Todas as interfaces em `src/types.ts` devem corresponder estritamente aos esquemas definidos no `server.ts`.
+3. **Manter Fallbacks Heurísticos**: Ao adicionar novos endpoints ou atualizar os existentes, sempre implemente uma resposta de contingência determinística para garantir que a aplicação permaneça funcional offline.

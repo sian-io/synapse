@@ -1,11 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import {
   Brain,
-  Sparkles,
   Check,
   X,
   Compass,
-  Layers,
+  Sparkles,
   ArrowRight
 } from 'lucide-react';
 
@@ -52,25 +51,22 @@ export const UnifiedConceptBar: React.FC<UnifiedConceptBarProps> = ({
   };
 
   return (
-    <div className="w-full bg-slate-900/90 border border-indigo-500/25 rounded-2xl p-3 sm:p-3.5 shadow-xl backdrop-blur-md transition-all">
-      <div className="flex flex-col md:flex-row items-stretch md:items-center justify-between gap-3">
+    <div className="w-full bg-zinc-900/40 border border-zinc-800/80 rounded-2xl p-4 sm:p-5 backdrop-blur-md transition-all shadow-sm">
+      <div className="flex flex-col lg:flex-row items-stretch lg:items-center justify-between gap-4">
         {/* Label & Active Context */}
-        <div className="flex items-center gap-2.5 shrink-0">
-          <div className="w-8 h-8 rounded-xl bg-gradient-to-br from-indigo-500 to-cyan-500 flex items-center justify-center text-slate-950 font-bold shadow-md shadow-indigo-500/20">
-            <Compass className="w-4 h-4 text-white" />
+        <div className="flex items-center gap-3 shrink-0">
+          <div className="w-9 h-9 rounded-xl bg-zinc-900 border border-zinc-700/60 flex items-center justify-center text-zinc-300">
+            <Compass className="w-4 h-4 stroke-[1.75]" />
           </div>
-          <div className="flex items-center gap-2">
-            <span className="text-xs font-bold uppercase tracking-wider text-indigo-200">
+          <div>
+            <span className="text-xs font-semibold uppercase tracking-wider text-zinc-300">
               Conceito em Estudo
-            </span>
-            <span className="text-[10px] px-2 py-0.5 rounded-full bg-indigo-500/15 text-indigo-300 border border-indigo-500/30 font-medium">
-              Sincronizado
             </span>
           </div>
         </div>
 
         {/* Input & Action */}
-        <div className="flex-1 flex items-center gap-2">
+        <div className="flex-1 flex items-center gap-2.5">
           <div className="relative flex-1">
             <input
               id="unified-concept-input"
@@ -82,8 +78,8 @@ export const UnifiedConceptBar: React.FC<UnifiedConceptBarProps> = ({
               }}
               onBlur={() => handleApply(inputValue)}
               onKeyDown={handleKeyDown}
-              placeholder="Digite o conceito central (ex: Termodinâmica, Sinapses, Criptografia RSA...)"
-              className="w-full bg-slate-950/90 border border-slate-700/80 focus:border-indigo-400 rounded-xl px-3.5 py-2 text-xs sm:text-sm text-slate-100 placeholder-slate-500 focus:outline-none transition-all pr-8 shadow-inner"
+              placeholder="Digite o conceito central para estudar (ex: Termodinâmica, Sinapses, Redes Neurais...)"
+              className="w-full bg-zinc-950 border border-zinc-800 focus:border-zinc-500 rounded-xl px-4 py-2.5 text-sm sm:text-base text-zinc-100 placeholder-zinc-600 focus:outline-none focus:ring-1 focus:ring-zinc-700/60 transition-all pr-9 shadow-inner"
             />
             {inputValue && (
               <button
@@ -92,10 +88,10 @@ export const UnifiedConceptBar: React.FC<UnifiedConceptBarProps> = ({
                   setInputValue('');
                   onTopicChange('');
                 }}
-                className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-200 transition-colors p-0.5 cursor-pointer"
+                className="absolute right-3 top-1/2 -translate-y-1/2 text-zinc-500 hover:text-zinc-300 transition-colors p-0.5 cursor-pointer"
                 title="Limpar campo"
               >
-                <X className="w-3.5 h-3.5" />
+                <X className="w-4 h-4" />
               </button>
             )}
           </div>
@@ -103,21 +99,21 @@ export const UnifiedConceptBar: React.FC<UnifiedConceptBarProps> = ({
           <button
             type="button"
             onClick={() => handleApply(inputValue)}
-            className={`px-3.5 py-2 rounded-xl text-xs font-semibold flex items-center gap-1.5 transition-all shrink-0 cursor-pointer shadow-md ${
+            className={`px-5 py-2.5 rounded-xl text-xs sm:text-sm font-medium flex items-center gap-2 transition-all shrink-0 cursor-pointer shadow-sm ${
               isSavedRecently
-                ? 'bg-emerald-600 text-white shadow-emerald-600/20'
-                : 'bg-indigo-600 hover:bg-indigo-500 text-white shadow-indigo-600/20'
+                ? 'bg-zinc-800 text-zinc-200 border border-zinc-700'
+                : 'bg-zinc-100 hover:bg-white text-zinc-950 font-semibold'
             }`}
           >
             {isSavedRecently ? (
               <>
-                <Check className="w-3.5 h-3.5" />
+                <Check className="w-4 h-4 text-zinc-300 stroke-[2.5]" />
                 <span>Fixado</span>
               </>
             ) : (
               <>
-                <Sparkles className="w-3.5 h-3.5" />
-                <span>Fixar</span>
+                <Sparkles className="w-4 h-4 stroke-[1.75]" />
+                <span>Fixar Conceito</span>
               </>
             )}
           </button>
@@ -125,10 +121,10 @@ export const UnifiedConceptBar: React.FC<UnifiedConceptBarProps> = ({
       </div>
 
       {/* Quick Concept Suggestions Chips */}
-      <div className="mt-2.5 pt-2.5 border-t border-slate-800/80 flex items-center gap-1.5 overflow-x-auto no-scrollbar text-xs">
-        <span className="text-[11px] text-slate-500 shrink-0 flex items-center gap-1">
-          <Brain className="w-3 h-3 text-slate-400" />
-          Sugestões rápidas:
+      <div className="mt-3.5 pt-3 border-t border-zinc-800/60 flex flex-wrap items-center gap-2 text-xs">
+        <span className="text-xs text-zinc-400 shrink-0 flex items-center gap-1.5 mr-1 font-medium">
+          <Brain className="w-3.5 h-3.5 text-zinc-400 stroke-[1.75]" />
+          Sugestões rápidas de temas:
         </span>
         {PRESET_TOPICS.map((preset) => {
           const isSelected = currentTopic.toLowerCase() === preset.toLowerCase();
@@ -142,10 +138,10 @@ export const UnifiedConceptBar: React.FC<UnifiedConceptBarProps> = ({
                 setIsSavedRecently(true);
                 setTimeout(() => setIsSavedRecently(false), 1800);
               }}
-              className={`px-2.5 py-1 rounded-lg text-[11px] font-medium transition-all shrink-0 cursor-pointer ${
+              className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-all shrink-0 cursor-pointer ${
                 isSelected
-                  ? 'bg-indigo-500/20 text-indigo-300 border border-indigo-500/40'
-                  : 'bg-slate-950/70 hover:bg-slate-800 text-slate-400 hover:text-slate-200 border border-slate-800'
+                  ? 'bg-zinc-800 text-zinc-100 border border-zinc-600'
+                  : 'bg-zinc-950/80 hover:bg-zinc-900 text-zinc-400 hover:text-zinc-200 border border-zinc-800'
               }`}
             >
               {preset}
