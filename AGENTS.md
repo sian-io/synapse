@@ -6,23 +6,23 @@ This document outlines the technical architecture, engineering decisions, depend
 
 ## 1. How Synapse Works (Technical Architecture & "The How")
 
-Synapse operates on a unified full-stack TypeScript architecture, where a single Node.js process orchestrates both the REST API backend and the frontend development/serving pipeline via Vite.
+Synapse operates on a unified full-stack TypeScript architecture powered by **Bun**, **Hono**, and **Vite**, where a single runtime orchestrates both the Web Standards REST API backend and the React 19 frontend pipeline.
 
 ```
 +-------------------------------------------------------------------------+
-|                              Node.js Process                            |
+|                               Bun Runtime                               |
 |                                                                         |
 |  +-------------------------------------------------------------------+  |
-|  |                     Express Server (server.ts)                    |  |
+|  |                      Hono Server (server.ts)                      |  |
 |  |                                                                   |  |
-|  |   [Port 3000]                                                     |  |
+|  |   [Port 3000 - Web Standards Fetch API]                           |  |
 |  |   ├── /api/health                                                 |  |
 |  |   ├── /api/chat                    ──> Gemini SDK / Fallback      |  |
 |  |   ├── /api/feynman-evaluate        ──> Gemini SDK (JSON Schema)   |  |
 |  |   ├── /api/generate-retrieval-deck ──> Gemini SDK (JSON Schema)   |  |
 |  |   └── /api/generate-concept-breakdown ──> Gemini SDK (JSON Schema)|  |
 |  |                                                                   |  |
-|  |   Vite Middleware (dev) / Express Static Dist (prod)              |  |
+|  |   @hono/vite-dev-server (dev) / Hono Bun serveStatic Dist (prod)  |  |
 |  +---------------------------------+---------------------------------+  |
 +------------------------------------|------------------------------------+
                                      │ Serves SPA
@@ -42,23 +42,22 @@ Synapse operates on a unified full-stack TypeScript architecture, where a single
 +-------------------------------------------------------------------------+
 ```
 
-### 1.1 Frontend/Backend Unification via Vite Middleware
+### 1.1 Frontend/Backend Unification via `@hono/vite-dev-server` & Bun
 
-- In development (`process.env.NODE_ENV !== 'production'`), `server.ts` boots Vite in middleware mode (`createServer({ server: { middlewareMode: true }, appType: 'spa' })`).
-- API routes under `/api/*` are handled directly by Express before non-API traffic is delegated to Vite middleware.
-- In production, Express serves compiled static files from `dist/` and falls back to `dist/index.html` for client-side routing.
-- **Design Rationale**: Eliminates CORS complications, avoids reverse-proxy setups during local development, and allows the entire stack to run with a single command (`npm run dev`).
+- In development (`bun run dev`), Vite starts the dev server on port `3000` and uses `@hono/vite-dev-server` to dispatch `/api/*` requests directly to the Hono application (`server.ts`) via standard Web `Request`/`Response` objects while serving the React 19 SPA with HMR.
+- In production (`bun run start`, which executes `bun server.ts`), Bun natively runs `server.ts` without any secondary backend bundling step (`esbuild` is eliminated) and serves compiled static assets from `dist/` via `hono/bun`'s `serveStatic`.
+- **Design Rationale**: Eliminates Node.js HTTP coupling, `express`, `tsx`, `esbuild`, and manual `createViteServer` middleware injection, unifying execution around native TypeScript and open Web Standards.
 
 ---
 
 ## 2. Tooling and Technology Choices
 
-### 2.1 Backend
+### 2.1 Backend & Runtime
 
-- **Node.js + Express 4**: Minimalist HTTP framework with low overhead, asynchronous middleware support, and straightforward bundling via `esbuild`.
+- **Bun**: All-in-one JavaScript/TypeScript runtime and package manager (`bun.lock`). Executes `server.ts` natively in both development and production, and automatically loads `.env` variables without requiring `dotenv`.
+- **Hono**: Ultrafast, lightweight Web framework built entirely on Web Standards (`Request`, `Response`, `Fetch`). Replaces Express and `@types/express`.
+- **`@hono/vite-dev-server`**: Bridges Vite's development server with the Hono application via the Fetch API, preserving single-port HMR without Connect/Express middleware coupling.
 - **Google GenAI Official SDK `@google/genai`**: Version 2.4.0+. Connects directly to the latest Gemini models, with native support for structured output (`responseSchema`, `responseMimeType: 'application/json'`) and HTTP header customization.
-- **`tsx`**: TypeScript execution engine for Node.js with native ESM support (`"type": "module"`), used for hot execution of `server.ts` without intermediate compilation steps.
-- **`esbuild`**: High-performance bundler used in `npm run build` to produce the production CJS bundle (`dist/server.cjs`).
 
 ### 2.2 Frontend
 

@@ -11,7 +11,6 @@ import { useLanguage } from '../i18n/LanguageContext';
 interface UnifiedConceptBarProps {
   currentTopic: string;
   onTopicChange: (newTopic: string) => void;
-  activeTabLabel: string;
 }
 
 export const UnifiedConceptBar: React.FC<UnifiedConceptBarProps> = ({

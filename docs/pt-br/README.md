@@ -106,7 +106,7 @@ Visite a aba **Base Neurocientífica** a qualquer momento para revisar os estudo
 
 ### Pré-requisitos
 
-- [Node.js](https://nodejs.org/) versão 18 ou superior instalado.
+- [Bun](https://bun.sh/) versão 1.1 ou superior instalado.
 - Chave de API da Google Gemini (opcional para testes básicos, recomendada para respostas completas de IA).
 
 ### Passo a Passo de Instalação
@@ -120,7 +120,7 @@ Visite a aba **Base Neurocientífica** a qualquer momento para revisar os estudo
 2. **Instalar as dependências**:
 
    ```bash
-   npm install
+   bun install
    ```
 
 3. **Configurar as variáveis de ambiente**:
@@ -130,12 +130,12 @@ Visite a aba **Base Neurocientífica** a qualquer momento para revisar os estudo
    GEMINI_API_KEY=sua_chave_gemini_aqui
    ```
 
-   *Nota: Caso a chave não seja configurada, o Synapse continuará operacional utilizando seu sistema interno de fallbacks pedagógicos determinísticos.*
+   *Nota: O Bun carrega o arquivo `.env` automaticamente. Caso a chave não seja configurada, o Synapse continuará operacional utilizando seu sistema interno de fallbacks pedagógicos determinísticos.*
 
 4. **Iniciar em modo de desenvolvimento**:
 
    ```bash
-   npm run dev
+   bun run dev
    ```
 
    A aplicação estará disponível em `http://localhost:3000`.
@@ -143,14 +143,14 @@ Visite a aba **Base Neurocientífica** a qualquer momento para revisar os estudo
 5. **Verificação de tipos e qualidade**:
 
    ```bash
-   npm run lint
+   bun run lint
    ```
 
 6. **Compilação e execução para produção**:
 
    ```bash
-   npm run build
-   npm run start
+   bun run build
+   bun run start
    ```
 
 ---
@@ -159,7 +159,8 @@ Visite a aba **Base Neurocientífica** a qualquer momento para revisar os estudo
 
 Para uma documentação técnica detalhada voltada a desenvolvedores e agentes de IA, consulte `AGENTS.md`
 
-- `server.ts`: Servidor Express unificado com integração à API Gemini e middleware Vite.
+- `server.ts`: Servidor Hono unificado rodando sobre Bun com Web Standards Fetch API, integração à API Gemini e servimento estático em produção.
+- `vite.config.ts`: Configuração do Vite com `@hono/vite-dev-server` para HMR e despacho de rotas `/api/*` em desenvolvimento.
 - `src/App.tsx`: Gerenciador de estado principal, abas e persistência.
 - `src/types.ts`: Definições de tipos e contratos de dados da aplicação.
 - `src/components/`: Componentes de interface do usuário para cada modalidade pedagógica.

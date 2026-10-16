@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import {
   Brain,
   MessageSquareText,
@@ -197,13 +197,11 @@ function AppContent() {
         <UnifiedConceptBar
           currentTopic={currentTopic}
           onTopicChange={setCurrentTopic}
-          activeTabLabel={navItems.find((n) => n.id === activeTab)?.label || ''}
         />
 
         {activeTab === 'socratic' && (
           <SocraticTutor
             currentTopic={currentTopic}
-            onTopicChange={setCurrentTopic}
             onIncrementStats={handleIncrementStats}
             initialPrompt={socraticPromptOverride}
             onClearInitialPrompt={() => setSocraticPromptOverride(null)}
@@ -222,7 +220,6 @@ function AppContent() {
         {activeTab === 'retrieval' && (
           <ActiveRetrievalLab
             currentTopic={currentTopic}
-            onTopicChange={setCurrentTopic}
             onIncrementStats={handleIncrementStats}
           />
         )}
@@ -230,14 +227,11 @@ function AppContent() {
         {activeTab === 'cognitive_map' && (
           <CognitiveMap
             currentTopic={currentTopic}
-            onTopicChange={setCurrentTopic}
             onOpenSocraticWithPrompt={handleOpenSocraticWithPrompt}
           />
         )}
 
-        {activeTab === 'neuroscience' && (
-          <NeuroscienceGuide onSelectAction={(tab) => setActiveTab(tab)} />
-        )}
+        {activeTab === 'neuroscience' && <NeuroscienceGuide />}
       </main>
     </div>
   );

@@ -17,8 +17,6 @@ import { translateCognitivePhase } from '../i18n/translations';
 
 interface SocraticTutorProps {
   currentTopic: string;
-  onTopicChange: (topic: string) => void;
-  onAddRetrievalCard?: (question: string, answer: string, topic: string) => void;
   onIncrementStats: (type: 'socratic' | 'retrieval' | 'feynman') => void;
   initialPrompt?: string | null;
   onClearInitialPrompt?: () => void;

@@ -18,7 +18,6 @@ import { useLanguage } from '../i18n/LanguageContext';
 
 interface ActiveRetrievalLabProps {
   currentTopic: string;
-  onTopicChange?: (newTopic: string) => void;
   onIncrementStats: (type: 'socratic' | 'retrieval' | 'feynman') => void;
 }
 
@@ -51,13 +50,12 @@ export const ActiveRetrievalLab: React.FC<ActiveRetrievalLabProps> = ({
     localStorage.setItem(`synapse_flashcards_${language}`, JSON.stringify(cards));
   }, [cards, language]);
 
-  const activeCards = cards;
-  const currentCard = activeCards[currentIndex] || null;
+  const currentCard = cards[currentIndex] || null;
 
   const handleNextCard = () => {
     setIsFlipped(false);
     setUserDraftAnswer('');
-    setCurrentIndex((prev) => (prev + 1) % activeCards.length);
+    setCurrentIndex((prev) => (prev + 1) % cards.length);
   };
 
   const handleRateCard = (quality: 0 | 1 | 2 | 3) => {
@@ -78,16 +76,16 @@ export const ActiveRetrievalLab: React.FC<ActiveRetrievalLabProps> = ({
       newInterval = Math.max(1, Math.round(newInterval * 1.2));
       newRepetitions += 1;
       newEase = Math.max(1.3, newEase - 0.1);
-      newMastery = Math.min(5, (newMastery + 1) as any);
+      newMastery = Math.min(5, newMastery + 1);
     } else if (quality === 2) {
       newInterval = Math.max(2, Math.round(newInterval * newEase));
       newRepetitions += 1;
-      newMastery = Math.min(5, (newMastery + 1) as any);
+      newMastery = Math.min(5, newMastery + 1);
     } else {
       newInterval = Math.max(3, Math.round(newInterval * newEase * 1.3));
       newRepetitions += 1;
       newEase += 0.15;
-      newMastery = Math.min(5, (newMastery + 2) as any);
+      newMastery = Math.min(5, newMastery + 2);
     }
 
     const updatedCards = cards.map((c) =>
@@ -179,7 +177,7 @@ export const ActiveRetrievalLab: React.FC<ActiveRetrievalLabProps> = ({
               <div className="flex items-center justify-between text-xs text-zinc-400 px-1">
                 <span className="flex items-center gap-2 font-mono">
                   <Layers className="w-4 h-4 text-zinc-400 stroke-[1.75]" />
-                  {t.retrieval.cardCount} <strong className="text-zinc-100 font-semibold">{currentIndex + 1}</strong> {t.retrieval.of} <strong className="text-zinc-100 font-semibold">{activeCards.length}</strong>
+                  {t.retrieval.cardCount} <strong className="text-zinc-100 font-semibold">{currentIndex + 1}</strong> {t.retrieval.of} <strong className="text-zinc-100 font-semibold">{cards.length}</strong>
                 </span>
                 <div className="flex items-center gap-2">
                   <span className="px-2.5 py-1 rounded bg-zinc-900 border border-zinc-800 text-xs font-mono text-zinc-300">
@@ -327,7 +325,7 @@ export const ActiveRetrievalLab: React.FC<ActiveRetrievalLabProps> = ({
                   onClick={() => {
                     setIsFlipped(false);
                     setUserDraftAnswer('');
-                    setCurrentIndex((prev) => (prev - 1 + activeCards.length) % activeCards.length);
+                    setCurrentIndex((prev) => (prev - 1 + cards.length) % cards.length);
                   }}
                   className="hover:text-zinc-200 transition-colors cursor-pointer"
                 >
@@ -423,12 +421,12 @@ export const ActiveRetrievalLab: React.FC<ActiveRetrievalLabProps> = ({
                 {t.retrieval.deckCardsTitle}
               </span>
               <span className="text-xs font-mono text-zinc-400">
-                {activeCards.length} {t.retrieval.cardsUnit}
+                {cards.length} {t.retrieval.cardsUnit}
               </span>
             </div>
 
             <div className="space-y-1.5 max-h-[300px] overflow-y-auto pr-1">
-              {activeCards.map((c, idx) => (
+              {cards.map((c, idx) => (
                 <button
                   key={c.id}
                   onClick={() => {

@@ -193,7 +193,3 @@ export function getNeurosciencePillars(language: 'en' | 'pt' = 'en'): Pedagogica
 export function getInitialPresetFlashcards(language: 'en' | 'pt' = 'en'): Flashcard[] {
   return language === 'pt' ? INITIAL_PRESET_FLASHCARDS_PT : INITIAL_PRESET_FLASHCARDS_EN;
 }
-
-// Default export in English
-export const NEUROSCIENCE_PILLARS = NEUROSCIENCE_PILLARS_EN;
-export const INITIAL_PRESET_FLASHCARDS = INITIAL_PRESET_FLASHCARDS_EN;

@@ -17,11 +17,7 @@ import {
 import { getNeurosciencePillars } from '../data/neurosciencePillars';
 import { useLanguage } from '../i18n/LanguageContext';
 
-interface NeuroscienceGuideProps {
-  onSelectAction?: (mode: 'socratic' | 'feynman' | 'retrieval' | 'cognitive_map') => void;
-}
-
-export const NeuroscienceGuide: React.FC<NeuroscienceGuideProps> = () => {
+export const NeuroscienceGuide: React.FC = () => {
   const { t, language } = useLanguage();
   const pillars = getNeurosciencePillars(language);
 
