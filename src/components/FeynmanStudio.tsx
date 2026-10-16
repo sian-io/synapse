@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import {
   Sparkles,
   AlertTriangle,
@@ -34,11 +34,6 @@ export const FeynmanStudio: React.FC<FeynmanStudioProps> = ({
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [evaluation, setEvaluation] = useState<FeynmanEvaluation | null>(null);
   const [error, setError] = useState<string | null>(null);
-
-  // Set default audience key
-  useEffect(() => {
-    setAudience('child');
-  }, [language]);
 
   const audienceLabelMap: Record<string, string> = {
     child: t.feynman.audienceOptions.child,

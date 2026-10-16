@@ -108,7 +108,7 @@ Visit the **Neuroscience Guide** tab at any time to review the empirical studies
 
 ### Prerequisites
 
-- [Node.js](https://nodejs.org/) version 18 or higher installed.
+- [Bun](https://bun.sh/) version 1.1 or higher installed.
 - Google Gemini API key (optional for basic testing; recommended for full AI responses).
 
 ### Installation Steps
@@ -122,7 +122,7 @@ Visit the **Neuroscience Guide** tab at any time to review the empirical studies
 2. **Install dependencies**:
 
    ```bash
-   npm install
+   bun install
    ```
 
 3. **Configure environment variables**:
@@ -132,12 +132,12 @@ Visit the **Neuroscience Guide** tab at any time to review the empirical studies
    GEMINI_API_KEY=your_gemini_api_key_here
    ```
 
-   *Note: If the key is not set, Synapse remains fully operational using its internal deterministic pedagogical fallbacks.*
+   *Note: Bun loads `.env` automatically. If the key is not set, Synapse remains fully operational using its internal deterministic pedagogical fallbacks.*
 
 4. **Start in development mode**:
 
    ```bash
-   npm run dev
+   bun run dev
    ```
 
    The application will be accessible at `http://localhost:3000`.
@@ -145,14 +145,14 @@ Visit the **Neuroscience Guide** tab at any time to review the empirical studies
 5. **Type check and linting**:
 
    ```bash
-   npm run lint
+   bun run lint
    ```
 
 6. **Build and production run**:
 
    ```bash
-   npm run build
-   npm run start
+   bun run build
+   bun run start
    ```
 
 ---
@@ -161,7 +161,8 @@ Visit the **Neuroscience Guide** tab at any time to review the empirical studies
 
 For detailed technical documentation aimed at developers and AI agents, see `AGENTS.md`.
 
-- `server.ts`: Unified Express server with Gemini API integration and Vite middleware.
+- `server.ts`: Unified Hono server running on Bun with Web Standards Fetch API, Gemini SDK integration, and static asset serving.
+- `vite.config.ts`: Vite configuration with `@hono/vite-dev-server` for single-port HMR and API routing in development.
 - `src/App.tsx`: Main state manager, navigation tabs, and persistence.
 - `src/types.ts`: Application type definitions and data contracts.
 - `src/components/`: UI components for each pedagogical mode.

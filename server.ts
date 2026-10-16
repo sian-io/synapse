@@ -1,30 +1,30 @@
-import express, { Request, Response } from 'express';
-import path from 'path';
-import { fileURLToPath } from 'url';
+import { Hono } from 'hono';
 import { GoogleGenAI, Type } from '@google/genai';
-import dotenv from 'dotenv';
-import { createServer as createViteServer } from 'vite';
+import { translateCognitivePhase } from './src/i18n/translations';
 
-dotenv.config();
+const app = new Hono();
+const PORT = Number(process.env.PORT) || 3000;
+const HOST = process.env.HOST || '0.0.0.0';
 
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
-
-const app = express();
-const PORT = 3000;
-
-app.use(express.json());
+// Global error handler mapping syntax/JSON parse errors to 400
+app.onError((err, c) => {
+  if (err instanceof SyntaxError || err.name === 'SyntaxError' || err.message?.includes('JSON')) {
+    return c.json({ error: 'Malformed JSON payload.' }, 400);
+  }
+  console.error('[Unhandled Server Error]', err);
+  return c.json({ error: 'Internal Server Error' }, 500);
+});
 
 // Initialize Gemini SDK with User-Agent as instructed
 let aiClient: GoogleGenAI | null = null;
 function getGeminiClient(): GoogleGenAI {
+  const apiKey = process.env.GEMINI_API_KEY;
+  if (!apiKey) {
+    throw new Error('GEMINI_API_KEY is not set.');
+  }
   if (!aiClient) {
-    const apiKey = process.env.GEMINI_API_KEY;
-    if (!apiKey) {
-      console.warn('GEMINI_API_KEY is not set. Requests requiring AI will fail.');
-    }
     aiClient = new GoogleGenAI({
-      apiKey: apiKey || '',
+      apiKey,
       httpOptions: {
         headers: {
           'User-Agent': 'aistudio-build',
@@ -41,8 +41,8 @@ async function sleep(ms: number) {
 }
 
 async function generateWithFallback(ai: GoogleGenAI, requestPayload: any) {
-  // gemini-3.8-flash is the primary model as per documentation; fallbacks provide redundancy
-  const models = ['gemini-3.8-flash', 'gemini-flash-latest', 'gemini-3.1-flash-lite'];
+  // gemini-3.5-flash-lite and gemini-3.8-flash provide high responsiveness with fallback redundancy
+  const models = ['gemini-3.5-flash-lite', 'gemini-3.8-flash', 'gemini-flash-latest', 'gemini-3.1-flash-lite'];
   let lastError: any = null;
 
   for (const model of models) {
@@ -79,8 +79,8 @@ async function generateWithFallback(ai: GoogleGenAI, requestPayload: any) {
 }
 
 // Health check
-app.get('/api/health', (req: Request, res: Response) => {
-  res.json({
+app.get('/api/health', (c) => {
+  return c.json({
     status: 'ok',
     hasApiKey: !!process.env.GEMINI_API_KEY,
     timestamp: Date.now(),
@@ -88,8 +88,8 @@ app.get('/api/health', (req: Request, res: Response) => {
 });
 
 // Chat endpoint for Socratic, Feynman, and Active Learning interactions
-app.post('/api/chat', async (req: Request, res: Response) => {
-  const { messages, mode, currentTopic, studentCalibration, language = 'en' } = req.body;
+app.post('/api/chat', async (c) => {
+  const { messages, mode, currentTopic, studentCalibration, language = 'en' } = await c.req.json();
   const isPt = language === 'pt';
 
   try {
@@ -151,40 +151,6 @@ SuggestedNextSteps: [${isPt ? 'Ação 1 | Ação 2' : 'Action 1 | Action 2'}]
       : 'Active retrieval stimulates synaptic protein synthesis, consolidating durable memories.';
     let suggestedActions: string[] = [];
 
-    const normalizeCognitivePhaseServer = (phase: string, targetLanguage: 'pt' | 'en'): string => {
-      const cleaned = phase.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').trim();
-      if (targetLanguage === 'pt') {
-        if (cleaned.includes('retrieval')) return 'Recuperação Ativa';
-        if (cleaned.includes('interrogat')) return 'Interrogação Elaborativa';
-        if (cleaned.includes('illusion')) return 'Diagnóstico de Ilusão';
-        if (cleaned.includes('consolidat')) return 'Consolidação';
-        if (cleaned.includes('engagement')) return 'Engajamento Inicial';
-        if (cleaned.includes('metacognit')) return 'Calibração Metacognitiva';
-        if (cleaned.includes('scaffold')) return 'Andaime Cognitivo';
-        if (cleaned.includes('feynman')) return 'Técnica de Feynman';
-        if (cleaned.includes('difficult')) return 'Dificuldade Desejável';
-        if (cleaned.includes('boundary')) return 'Exploração de Limites';
-        if (cleaned.includes('causal')) return 'Análise Causal';
-        if (cleaned.includes('breakdown')) return 'Mapeamento Conceitual';
-        if (cleaned.includes('inquiry')) return 'Investigação Guiada';
-        return phase;
-      } else {
-        if (cleaned.includes('recupera')) return 'Active Retrieval';
-        if (cleaned.includes('interroga')) return 'Elaborative Interrogation';
-        if (cleaned.includes('ilusa')) return 'Illusion Diagnosis';
-        if (cleaned.includes('consolida')) return 'Consolidation';
-        if (cleaned.includes('engaja')) return 'Initial Engagement';
-        if (cleaned.includes('metacogni')) return 'Metacognitive Calibration';
-        if (cleaned.includes('andaime')) return 'Scaffolding';
-        if (cleaned.includes('feynman')) return 'Feynman Technique';
-        if (cleaned.includes('dificuldade')) return 'Desirable Difficulty';
-        if (cleaned.includes('limite')) return 'Boundary Exploration';
-        if (cleaned.includes('causal')) return 'Causal Analysis';
-        if (cleaned.includes('mapeamento')) return 'Concept Breakdown';
-        return phase;
-      }
-    };
-
     const metaMatch = responseText.match(/```meta\s*([\s\S]*?)\s*```/);
     if (metaMatch) {
       cleanedText = responseText.replace(/```meta\s*[\s\S]*?\s*```/, '').trim();
@@ -194,7 +160,7 @@ SuggestedNextSteps: [${isPt ? 'Ação 1 | Ação 2' : 'Action 1 | Action 2'}]
       const stepsMatch = metaContent.match(/SuggestedNextSteps:\s*(.*)/i);
 
       if (phaseMatch) {
-        cognitivePhase = normalizeCognitivePhaseServer(phaseMatch[1].trim(), isPt ? 'pt' : 'en');
+        cognitivePhase = translateCognitivePhase(phaseMatch[1].trim(), isPt ? 'pt' : 'en');
       }
       if (tipMatch) neuroTip = tipMatch[1].trim();
       if (stepsMatch) {
@@ -217,7 +183,7 @@ SuggestedNextSteps: [${isPt ? 'Ação 1 | Ação 2' : 'Action 1 | Action 2'}]
           'Ask for a challenging counterexample',
         ];
 
-    res.json({
+    return c.json({
       content: cleanedText,
       meta: {
         cognitivePhase,
@@ -231,7 +197,7 @@ SuggestedNextSteps: [${isPt ? 'Ação 1 | Ação 2' : 'Action 1 | Action 2'}]
     const lastUserMsg = (messages || []).slice().reverse().find((m: any) => m.role === 'user')?.content || currentTopic || '';
 
     if (isPt) {
-      res.json({
+      return c.json({
         content: `Você tocou em um ponto fulcral de **"${currentTopic || 'seu estudo'}"**.\n\nPara avançarmos na construção do seu modelo mental sem interrupções:\n\nSe você tivesse que explicar o funcionamento de **"${lastUserMsg.slice(0, 100)}"** para alguém que nunca estudou o assunto, qual seria a **relação fundamental de causa e efeito** que você destacaria primeiro? O que causa o quê?`,
         meta: {
           cognitivePhase: 'Interrogação Elaborativa',
@@ -244,7 +210,7 @@ SuggestedNextSteps: [${isPt ? 'Ação 1 | Ação 2' : 'Action 1 | Action 2'}]
         },
       });
     } else {
-      res.json({
+      return c.json({
         content: `You touched upon a pivotal aspect of **"${currentTopic || 'your study'}"**.\n\nTo advance your mental model without interruption:\n\nIf you had to explain the mechanics of **"${lastUserMsg.slice(0, 100)}"** to someone who has never studied this subject, what **fundamental cause-and-effect relationship** would you highlight first? What causes what?`,
         meta: {
           cognitivePhase: 'Elaborative Interrogation',
@@ -261,12 +227,12 @@ SuggestedNextSteps: [${isPt ? 'Ação 1 | Ação 2' : 'Action 1 | Action 2'}]
 });
 
 // Evaluate Feynman Explanation
-app.post('/api/feynman-evaluate', async (req: Request, res: Response) => {
-  const { topic, explanation, targetAudience = 'a curious 10-year-old child', language = 'en' } = req.body;
+app.post('/api/feynman-evaluate', async (c) => {
+  const { topic, explanation, targetAudience = 'a curious 10-year-old child', language = 'en' } = await c.req.json();
   const isPt = language === 'pt';
 
   if (!topic || !explanation) {
-    return res.status(400).json({ error: isPt ? 'Tópico e explicação são obrigatórios.' : 'Topic and explanation are required.' });
+    return c.json({ error: isPt ? 'Tópico e explicação são obrigatórios.' : 'Topic and explanation are required.' }, 400);
   }
 
   try {
@@ -352,7 +318,7 @@ Analyze critically:
     });
 
     const parsed = JSON.parse(response.text || '{}');
-    res.json(parsed);
+    return c.json(parsed);
   } catch (error: any) {
     console.error('Error in /api/feynman-evaluate:', error);
     // Intelligent heuristic pedagogical fallback for Feynman evaluation
@@ -364,7 +330,7 @@ Analyze critically:
     const potentialJargon = testJargons.filter((j) => (explanation || '').toLowerCase().includes(j));
 
     if (isPt) {
-      res.json({
+      return c.json({
         score: Math.min(88, Math.max(55, Math.round(70 + (wordCount > 30 ? 6 : -10) - potentialJargon.length * 3))),
         clarityAssessment: `Sua explicação sobre "${topic}" tem ${wordCount} palavras e demonstra esforço autêntico de comunicação para ${targetAudience}. Para atingir a clareza total de Feynman, reduza termos conceituais abstratos em ações visuais diretas.`,
         jargonIdentified: potentialJargon.length > 0 ? potentialJargon : ['Termos técnicos genéricos'],
@@ -384,7 +350,7 @@ Analyze critically:
         followUpQuestion: `Se você tivesse que desenhar "${topic}" usando apenas 3 caixas e 2 setas, o que escreveria dentro de cada uma?`,
       });
     } else {
-      res.json({
+      return c.json({
         score: Math.min(88, Math.max(55, Math.round(70 + (wordCount > 30 ? 6 : -10) - potentialJargon.length * 3))),
         clarityAssessment: `Your explanation of "${topic}" contains ${wordCount} words and demonstrates an authentic communication effort for ${targetAudience}. To achieve true Feynman clarity, ground abstract conceptual terms in direct visual actions.`,
         jargonIdentified: potentialJargon.length > 0 ? potentialJargon : ['Generic technical terms'],
@@ -408,12 +374,12 @@ Analyze critically:
 });
 
 // Generate Active Retrieval Deck (Spaced Flashcards)
-app.post('/api/generate-retrieval-deck', async (req: Request, res: Response) => {
-  const { topic, difficulty = 'intermediario', count = 4, language = 'en' } = req.body;
+app.post('/api/generate-retrieval-deck', async (c) => {
+  const { topic, difficulty = 'intermediario', count = 4, language = 'en' } = await c.req.json();
   const isPt = language === 'pt';
 
   if (!topic) {
-    return res.status(400).json({ error: isPt ? 'Tópico é obrigatório.' : 'Topic is required.' });
+    return c.json({ error: isPt ? 'Tópico é obrigatório.' : 'Topic is required.' }, 400);
   }
 
   try {
@@ -486,7 +452,7 @@ STRICT PEDAGOGICAL RULES:
       masteryLevel: 0,
     }));
 
-    res.json({ flashcards });
+    return c.json({ flashcards, cards: flashcards });
   } catch (error: any) {
     console.error('Error in /api/generate-retrieval-deck:', error);
     // Structured active recall fallback deck
@@ -533,7 +499,7 @@ STRICT PEDAGOGICAL RULES:
           masteryLevel: 0,
         },
       ];
-      res.json({ flashcards: fallbackDeck });
+      return c.json({ flashcards: fallbackDeck, cards: fallbackDeck, isPedagogicalFallback: true });
     } else {
       const fallbackDeck = [
         {
@@ -576,18 +542,18 @@ STRICT PEDAGOGICAL RULES:
           masteryLevel: 0,
         },
       ];
-      res.json({ flashcards: fallbackDeck });
+      return c.json({ flashcards: fallbackDeck, cards: fallbackDeck, isPedagogicalFallback: true });
     }
   }
 });
 
 // Generate Concept Breakdown (Cognitive Load Scaffolding)
-app.post('/api/generate-concept-breakdown', async (req: Request, res: Response) => {
-  const { topic, language = 'en' } = req.body;
+app.post('/api/generate-concept-breakdown', async (c) => {
+  const { topic, language = 'en' } = await c.req.json();
   const isPt = language === 'pt';
 
   if (!topic) {
-    return res.status(400).json({ error: isPt ? 'Tópico é obrigatório.' : 'Topic is required.' });
+    return c.json({ error: isPt ? 'Tópico é obrigatório.' : 'Topic is required.' }, 400);
   }
 
   try {
@@ -647,12 +613,12 @@ Structure:
     });
 
     const parsed = JSON.parse(response.text || '{}');
-    res.json(parsed);
+    return c.json(parsed);
   } catch (error: any) {
     console.error('Error in /api/generate-concept-breakdown:', error);
     // High-grade pedagogical concept breakdown schema
     if (isPt) {
-      res.json({
+      return c.json({
         topic,
         overview: `O estudo de "${topic}" exige desconstruir noções intuitivas em elementos causais verificáveis. Ao isolar as variáveis determinantes e eliminar o ruído superficial, reduzimos drasticamente a carga cognitiva extrínseca na memória de trabalho.`,
         prerequisites: [
@@ -676,7 +642,7 @@ Structure:
         isPedagogicalFallback: true,
       });
     } else {
-      res.json({
+      return c.json({
         topic,
         overview: `Studying "${topic}" requires deconstructing intuitive assumptions into verifiable causal elements. By isolating governing variables and stripping away superficial noise, we drastically minimize extraneous cognitive load in working memory.`,
         prerequisites: [
@@ -703,25 +669,17 @@ Structure:
   }
 });
 
-// Vite middleware & Production Serving Setup
-async function startServer() {
-  if (process.env.NODE_ENV !== 'production') {
-    const vite = await createViteServer({
-      server: { middlewareMode: true },
-      appType: 'spa',
-    });
-    app.use(vite.middlewares);
-  } else {
-    const distPath = path.join(process.cwd(), 'dist');
-    app.use(express.static(distPath));
-    app.get('*', (req: Request, res: Response) => {
-      res.sendFile(path.join(distPath, 'index.html'));
-    });
-  }
-
-  app.listen(PORT, '0.0.0.0', () => {
-    console.log(`🧠 Synapse Pedagogical Server running on http://localhost:${PORT}`);
-  });
+// Production Static Serving & SPA Fallback (in dev, @hono/vite-dev-server handles non-/api routes directly via Vite)
+if (typeof Bun !== 'undefined') {
+  const { serveStatic } = await import('hono/bun');
+  app.use('/*', serveStatic({ root: './dist' }));
+  app.get('*', serveStatic({ path: './dist/index.html' }));
 }
 
-startServer();
+export { app };
+
+export default {
+  port: PORT,
+  hostname: HOST,
+  fetch: app.fetch,
+};

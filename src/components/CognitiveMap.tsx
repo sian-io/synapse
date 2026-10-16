@@ -16,7 +16,6 @@ import { useLanguage } from '../i18n/LanguageContext';
 
 interface CognitiveMapProps {
   currentTopic: string;
-  onTopicChange?: (newTopic: string) => void;
   onOpenSocraticWithPrompt?: (prompt: string) => void;
 }
 
