@@ -64,7 +64,6 @@ export interface ConceptBreakdown {
   elaborativeQuestions: string[];
   realWorldAnalogy: string;
   neuroscienceRationale: string;
-  isPedagogicalFallback?: boolean;
 }
 
 export interface CognitiveStats {

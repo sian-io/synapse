@@ -47,7 +47,11 @@ export const SocraticTutor: React.FC<SocraticTutorProps> = ({
     const saved = localStorage.getItem(`synapse_chat_history_${language}`) || localStorage.getItem('synapse_chat_history');
     if (saved) {
       try {
-        return JSON.parse(saved);
+        const parsed = JSON.parse(saved);
+        if (Array.isArray(parsed)) {
+          const cleaned = parsed.filter((m: ChatMessage) => !m.id?.startsWith('err_'));
+          if (cleaned.length > 0) return cleaned;
+        }
       } catch (e) {
         console.error(e);
       }
@@ -64,6 +68,7 @@ export const SocraticTutor: React.FC<SocraticTutorProps> = ({
 
   const [input, setInput] = useState('');
   const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
   const [pedagogicalMode, setPedagogicalMode] = useState<PedagogicalMode>('socratic');
   const [metacognitiveCertainty, setMetacognitiveCertainty] = useState<number>(3);
 
@@ -87,29 +92,16 @@ export const SocraticTutor: React.FC<SocraticTutorProps> = ({
   useEffect(() => {
     localStorage.setItem(`synapse_chat_history_${language}`, JSON.stringify(messages));
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
-  }, [messages, language]);
+  }, [messages, error, language]);
 
-  const handleSendMessage = async (customText?: string) => {
-    const textToSend = customText || input;
-    if (!textToSend.trim() || isLoading || isSendingRef.current) return;
-    isSendingRef.current = true;
-
-    const userMessage: ChatMessage = {
-      id: `user_${Date.now()}`,
-      role: 'user',
-      content: textToSend.trim(),
-      timestamp: Date.now(),
-    };
-
-    const newMessages = [...messages, userMessage];
-    setMessages(newMessages);
-    setInput('');
+  const requestAssistantResponse = async (historyToSend: ChatMessage[]) => {
     setIsLoading(true);
+    setError(null);
 
     try {
       const response = await api.api.chat.$post({
         json: {
-          messages: newMessages.map((m) => ({ role: m.role, content: m.content })),
+          messages: historyToSend.map((m) => ({ role: m.role, content: m.content })),
           mode: pedagogicalMode,
           currentTopic: currentTopic || (language === 'pt' ? 'Aprendizado Ativo' : 'Active Learning'),
           studentCalibration: metacognitiveCertainty,
@@ -118,7 +110,8 @@ export const SocraticTutor: React.FC<SocraticTutorProps> = ({
       });
 
       if (!response.ok) {
-        throw new Error('Server response failure.');
+        const errData = await response.json().catch(() => null);
+        throw new Error(errData?.error || t.socratic.connectionError);
       }
 
       const data = await response.json();
@@ -135,22 +128,42 @@ export const SocraticTutor: React.FC<SocraticTutorProps> = ({
       onIncrementStats('socratic');
     } catch (err: any) {
       console.error(err);
-      const errorMessage: ChatMessage = {
-        id: `err_${Date.now()}`,
-        role: 'assistant',
-        content: `${t.socratic.connectionError} ${err.message}. ${t.socratic.checkConnection}`,
-        timestamp: Date.now(),
-      };
-      setMessages((prev) => [...prev, errorMessage]);
+      setError(err.message || t.socratic.connectionError);
     } finally {
       setIsLoading(false);
       isSendingRef.current = false;
     }
   };
 
+  const handleSendMessage = async (customText?: string) => {
+    const textToSend = customText || input;
+    if (!textToSend.trim() || isLoading || isSendingRef.current) return;
+    isSendingRef.current = true;
+
+    const userMessage: ChatMessage = {
+      id: `user_${Date.now()}`,
+      role: 'user',
+      content: textToSend.trim(),
+      timestamp: Date.now(),
+    };
+
+    const newMessages = [...messages, userMessage];
+    setMessages(newMessages);
+    setInput('');
+
+    await requestAssistantResponse(newMessages);
+  };
+
+  const handleRetry = async () => {
+    if (isLoading || isSendingRef.current || messages.length === 0) return;
+    isSendingRef.current = true;
+    await requestAssistantResponse(messages);
+  };
+
   const handleClearHistory = () => {
     if (window.confirm(t.socratic.resetConfirm)) {
       setMessages([getWelcomeMessage()]);
+      setError(null);
       localStorage.removeItem(`synapse_chat_history_${language}`);
       localStorage.removeItem('synapse_chat_history');
     }
@@ -245,6 +258,23 @@ export const SocraticTutor: React.FC<SocraticTutorProps> = ({
               </div>
             );
           })}
+
+          {error && !isLoading && (
+            <div className="p-4 rounded-xl bg-zinc-950 border border-zinc-800 text-xs sm:text-sm text-zinc-300 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
+              <div className="flex items-center gap-2.5">
+                <ShieldAlert className="w-4 h-4 text-zinc-400 shrink-0" />
+                <span>{error}</span>
+              </div>
+              <button
+                type="button"
+                onClick={handleRetry}
+                className="px-3.5 py-1.5 bg-zinc-900 hover:bg-zinc-800 border border-zinc-700 rounded-lg text-zinc-200 text-xs font-medium transition-colors flex items-center gap-1.5 shrink-0 cursor-pointer"
+              >
+                <RotateCcw className="w-3.5 h-3.5" />
+                <span>{t.socratic.retry}</span>
+              </button>
+            </div>
+          )}
 
           {isLoading && (
             <div className="flex items-start gap-3">

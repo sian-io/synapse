@@ -132,26 +132,6 @@ export const CognitiveMap: React.FC<CognitiveMapProps> = ({
       {/* Breakdown Display */}
       {breakdown && (
         <div className="space-y-6 animate-fade-in">
-          {breakdown.isPedagogicalFallback && (
-            <div className="p-3.5 rounded-xl bg-zinc-900/60 border border-zinc-800 flex items-center justify-between gap-3 text-xs text-zinc-300">
-              <div className="flex items-center gap-2">
-                <Sparkles className="w-4 h-4 text-zinc-400 shrink-0" />
-                <span>
-                  {t.cognitiveMap.synthesizedNotice}
-                </span>
-              </div>
-              <button
-                type="button"
-                onClick={() => handleDeconstruct()}
-                disabled={isLoading}
-                className="px-2.5 py-1 bg-zinc-800 hover:bg-zinc-700 border border-zinc-700 rounded-md text-zinc-200 font-medium transition-colors flex items-center gap-1.5 shrink-0 cursor-pointer disabled:opacity-50"
-              >
-                <RotateCw className={`w-3 h-3 ${isLoading ? 'animate-spin' : ''}`} />
-                {t.cognitiveMap.updateAI}
-              </button>
-            </div>
-          )}
-
           {/* Core Overview & Mechanism - Full Width Banner */}
           <div className="p-6 sm:p-8 rounded-2xl bg-zinc-900/40 border border-zinc-800/80 space-y-4 shadow-sm">
             <div className="flex items-center justify-between">

@@ -162,10 +162,10 @@ SuggestedNextSteps: [${isPt ? 'Ação 1 | Ação 2' : 'Action 1 | Action 2'}]
       },
     });
 
-    const defaultFallbackText = isPt
-      ? 'Não foi possível gerar uma resposta no momento.'
-      : 'Could not generate a response at this time.';
-    const responseText = response.text || defaultFallbackText;
+    const responseText = response.text?.trim();
+    if (!responseText) {
+      throw new Error('Empty response from inference API.');
+    }
 
     // Extract meta block if present
     let cleanedText = responseText;
@@ -220,42 +220,14 @@ SuggestedNextSteps: [${isPt ? 'Ação 1 | Ação 2' : 'Action 1 | Action 2'}]
     );
   } catch (error: any) {
     console.error('Error in /api/chat:', error);
-    // Provide adaptive Socratic fallback if upstream AI experiences temporary high demand
-    const lastUserMsg = (messages || []).slice().reverse().find((m: any) => m.role === 'user')?.content || currentTopic || '';
-
-    if (isPt) {
-      return c.json(
-        {
-          content: `Você tocou em um ponto fulcral de **"${currentTopic || 'seu estudo'}"**.\n\nPara avançarmos na construção do seu modelo mental sem interrupções:\n\nSe você tivesse que explicar o funcionamento de **"${lastUserMsg.slice(0, 100)}"** para alguém que nunca estudou o assunto, qual seria a **relação fundamental de causa e efeito** que você destacaria primeiro? O que causa o quê?`,
-          meta: {
-            cognitivePhase: 'Interrogação Elaborativa',
-            desirableDifficultyNote: 'Forçar o cérebro a isolar a variável causal essencial ativa o córtex pré-frontal e estimula a formação de traços sinápticos duradouros (LTP).',
-            suggestedActions: [
-              'Identificar a relação causa-efeito',
-              'Pensar em uma analogia física simples',
-              'Apontar uma situação em que isso falha',
-            ],
-          },
-        },
-        200
-      );
-    } else {
-      return c.json(
-        {
-          content: `You touched upon a pivotal aspect of **"${currentTopic || 'your study'}"**.\n\nTo advance your mental model without interruption:\n\nIf you had to explain the mechanics of **"${lastUserMsg.slice(0, 100)}"** to someone who has never studied this subject, what **fundamental cause-and-effect relationship** would you highlight first? What causes what?`,
-          meta: {
-            cognitivePhase: 'Elaborative Interrogation',
-            desirableDifficultyNote: 'Forcing the brain to isolate the essential causal variable activates the prefrontal cortex and triggers permanent synaptic potentiation (LTP).',
-            suggestedActions: [
-              'Identify the cause-and-effect link',
-              'Think of a simple physical analogy',
-              'Point out a boundary condition where this fails',
-            ],
-          },
-        },
-        200
-      );
-    }
+    return c.json(
+      {
+        error: isPt
+          ? 'Não foi possível alcançar a API de inferência para gerar a resposta.'
+          : 'Could not reach the inference API to generate a response.',
+      },
+      503
+    );
   }
   })
   // Evaluate Feynman Explanation
@@ -357,65 +329,23 @@ Analyze critically:
           },
         });
 
-        const parsed: FeynmanEvaluation = JSON.parse(response.text || '{}');
+        const responseText = response.text?.trim();
+        if (!responseText) {
+          throw new Error('Empty response from inference API.');
+        }
+
+        const parsed: FeynmanEvaluation = JSON.parse(responseText);
         return c.json(parsed, 200);
       } catch (error: any) {
         console.error('Error in /api/feynman-evaluate:', error);
-        // Intelligent heuristic pedagogical fallback for Feynman evaluation
-        const words = (explanation || '').trim().split(/\s+/);
-        const wordCount = words.length;
-        const ptJargons = ['sistema', 'energia', 'processo', 'estrutura', 'função', 'estado', 'teoria', 'mecanismo', 'variável'];
-        const enJargons = ['system', 'energy', 'process', 'structure', 'function', 'state', 'theory', 'mechanism', 'variable'];
-        const testJargons = isPt ? ptJargons : enJargons;
-        const potentialJargon = testJargons.filter((j) => (explanation || '').toLowerCase().includes(j));
-
-        if (isPt) {
-          return c.json(
-            {
-              score: Math.min(88, Math.max(55, Math.round(70 + (wordCount > 30 ? 6 : -10) - potentialJargon.length * 3))),
-              clarityAssessment: `Sua explicação sobre "${topic}" tem ${wordCount} palavras e demonstra esforço autêntico de comunicação para ${targetAudience}. Para atingir a clareza total de Feynman, reduza termos conceituais abstratos em ações visuais diretas.`,
-              jargonIdentified: potentialJargon.length > 0 ? potentialJargon : ['Termos técnicos genéricos'],
-              conceptualGaps: [
-                'A engrenagem do "como" ainda depende de premissas não explicadas',
-                'Falta especificar o que acontece nas etapas intermediárias de transição',
-                'Poderia explicitar o que impede o processo de ocorrer no sentido oposto',
-              ],
-              strengths: [
-                'Linguagem direta orientada à compreensão',
-                'Foco na ideia nuclear do fenômeno',
-                'Construção de uma narrativa com início e fim',
-              ],
-              analogiesEvaluation: 'A explicação usa argumentos lógicos válidos, mas ganharia muito mais força com uma analogia tátil ou mecânica.',
-              suggestedAnalogy: `Pense em "${topic}" como uma receita culinária ou um circuito de água: a pressão e o fluxo em uma extremidade determinam exatamente o que transborda na outra.`,
-              simplifiedAlternative: `"${topic}" é a regra que diz como as partes de um sistema trocam informações ou energia para alcançar um novo equilíbrio sem mágica.`,
-              followUpQuestion: `Se você tivesse que desenhar "${topic}" usando apenas 3 caixas e 2 setas, o que escreveria dentro de cada uma?`,
-            } satisfies FeynmanEvaluation,
-            200
-          );
-        } else {
-          return c.json(
-            {
-              score: Math.min(88, Math.max(55, Math.round(70 + (wordCount > 30 ? 6 : -10) - potentialJargon.length * 3))),
-              clarityAssessment: `Your explanation of "${topic}" contains ${wordCount} words and demonstrates an authentic communication effort for ${targetAudience}. To achieve true Feynman clarity, ground abstract conceptual terms in direct visual actions.`,
-              jargonIdentified: potentialJargon.length > 0 ? potentialJargon : ['Generic technical terms'],
-              conceptualGaps: [
-                'The underlying mechanics of "how" still rely on unstated assumptions',
-                'Intermediate transition steps need further specification',
-                'Could explicitly state what prevents the process from operating in reverse',
-              ],
-              strengths: [
-                'Direct language focused on comprehension',
-                'Clear emphasis on the nuclear phenomenon',
-                'Cohesive narrative structure with beginning and end',
-              ],
-              analogiesEvaluation: 'The explanation employs valid logical reasoning, but would gain substantial power through a tactile or mechanical analogy.',
-              suggestedAnalogy: `Think of "${topic}" like a water circuit or kitchen recipe: the pressure and flow at one end strictly dictate what emerges at the other.`,
-              simplifiedAlternative: `"${topic}" is the fundamental rule dictating how components exchange signals or energy to reach equilibrium without magic.`,
-              followUpQuestion: `If you had to draw "${topic}" using only 3 boxes and 2 arrows, what would you write inside each one?`,
-            } satisfies FeynmanEvaluation,
-            200
-          );
-        }
+        return c.json(
+          {
+            error: isPt
+              ? 'Não foi possível alcançar a API de inferência para avaliar a explicação.'
+              : 'Could not reach the inference API to evaluate the explanation.',
+          },
+          503
+        );
       }
     }
   )
@@ -489,7 +419,12 @@ STRICT PEDAGOGICAL RULES:
           },
         });
 
-        const parsed = JSON.parse(response.text || '{}');
+        const responseText = response.text?.trim();
+        if (!responseText) {
+          throw new Error('Empty response from inference API.');
+        }
+
+        const parsed = JSON.parse(responseText);
         const rawCards = Array.isArray(parsed) ? parsed : (parsed.cards || parsed.flashcards || []);
         const now = Date.now();
         const flashcards: Flashcard[] = rawCards.map((c: any, index: number) => ({
@@ -509,95 +444,14 @@ STRICT PEDAGOGICAL RULES:
         return c.json({ flashcards, cards: flashcards }, 200);
       } catch (error: any) {
         console.error('Error in /api/generate-retrieval-deck:', error);
-        // Structured active recall fallback deck
-        const now = Date.now();
-        if (isPt) {
-          const fallbackDeck: Flashcard[] = [
-            {
-              id: `fc_${now}_0`,
-              topic,
-              question: `Qual é o mecanismo causal primário que define "${topic}" e o diferencia de outros conceitos correlatos?`,
-              answer: `O mecanismo nuclear de ${topic} reside na relação direta entre suas variáveis determinantes e a transição de estado gerada no sistema.`,
-              keyConcept: 'Mecanismo Nuclear',
-              neuroTip: 'Ancorar o mecanismo causal em vez do nome protege contra a ilusão de fluência.',
-              intervalDays: 1,
-              repetitions: 0,
-              easeFactor: 2.5,
-              nextReviewDate: now,
-              masteryLevel: 0,
-            },
-            {
-              id: `fc_${now}_1`,
-              topic,
-              question: `Se a premissa central de "${topic}" fosse alterada ou invertida, qual seria a primeira consequência prática observada?`,
-              answer: `A inversão da premissa romperia o equilíbrio do sistema, gerando comportamento não-linear ou dissipação descontrolada.`,
-              keyConcept: 'Perturbação & Limites',
-              neuroTip: 'Testar os limites extremos de um conceito fortalece a flexibilidade cognitiva e a recuperação sob estresse.',
-              intervalDays: 1,
-              repetitions: 0,
-              easeFactor: 2.5,
-              nextReviewDate: now,
-              masteryLevel: 0,
-            },
-            {
-              id: `fc_${now}_2`,
-              topic,
-              question: `Qual é o equívoco mais frequente cometido por quem estuda "${topic}" de forma superficial?`,
-              answer: `Confundir correlação de eventos com causa mecânica real, ou assumir que o sistema opera sem custos energéticos ou de atrito.`,
-              keyConcept: 'Identificação de Falhas',
-              neuroTip: 'Reconhecer contra-exemplos aciona o córtex pré-frontal e impede o aprendizado enviesado.',
-              intervalDays: 1,
-              repetitions: 0,
-              easeFactor: 2.5,
-              nextReviewDate: now,
-              masteryLevel: 0,
-            },
-          ];
-          return c.json({ flashcards: fallbackDeck, cards: fallbackDeck, isPedagogicalFallback: true }, 200);
-        } else {
-          const fallbackDeck: Flashcard[] = [
-            {
-              id: `fc_${now}_0`,
-              topic,
-              question: `What is the primary causal mechanism defining "${topic}" that sets it apart from related concepts?`,
-              answer: `The core mechanism of ${topic} lies in the direct relationship between its governing variables and the resulting state transitions in the system.`,
-              keyConcept: 'Core Mechanism',
-              neuroTip: 'Anchoring the causal mechanism rather than the label protects against the illusion of fluency.',
-              intervalDays: 1,
-              repetitions: 0,
-              easeFactor: 2.5,
-              nextReviewDate: now,
-              masteryLevel: 0,
-            },
-            {
-              id: `fc_${now}_1`,
-              topic,
-              question: `If the central premise of "${topic}" were altered or inverted, what would be the immediate practical consequence?`,
-              answer: `Inverting the premise breaks the equilibrium, inducing non-linear divergence or uncontrolled dissipation within the system.`,
-              keyConcept: 'Perturbation & Limits',
-              neuroTip: 'Testing the boundary limits of a concept reinforces cognitive flexibility and retrieval under stress.',
-              intervalDays: 1,
-              repetitions: 0,
-              easeFactor: 2.5,
-              nextReviewDate: now,
-              masteryLevel: 0,
-            },
-            {
-              id: `fc_${now}_2`,
-              topic,
-              question: `What is the most frequent misconception held by learners studying "${topic}" superficially?`,
-              answer: `Confusing chronological correlation with actual mechanical causation, or assuming the system functions without frictional or thermodynamic costs.`,
-              keyConcept: 'Misconception Audit',
-              neuroTip: 'Identifying counterexamples engages the prefrontal cortex and prevents confirmation bias in learning.',
-              intervalDays: 1,
-              repetitions: 0,
-              easeFactor: 2.5,
-              nextReviewDate: now,
-              masteryLevel: 0,
-            },
-          ];
-          return c.json({ flashcards: fallbackDeck, cards: fallbackDeck, isPedagogicalFallback: true }, 200);
-        }
+        return c.json(
+          {
+            error: isPt
+              ? 'Não foi possível alcançar a API de inferência para gerar o baralho.'
+              : 'Could not reach the inference API to generate the deck.',
+          },
+          503
+        );
       }
     }
   )
@@ -672,66 +526,23 @@ Structure:
           },
         });
 
-        const parsed: ConceptBreakdown = JSON.parse(response.text || '{}');
+        const responseText = response.text?.trim();
+        if (!responseText) {
+          throw new Error('Empty response from inference API.');
+        }
+
+        const parsed: ConceptBreakdown = JSON.parse(responseText);
         return c.json(parsed, 200);
       } catch (error: any) {
         console.error('Error in /api/generate-concept-breakdown:', error);
-        // High-grade pedagogical concept breakdown schema
-        if (isPt) {
-          return c.json(
-            {
-              topic,
-              overview: `O estudo de "${topic}" exige desconstruir noções intuitivas em elementos causais verificáveis. Ao isolar as variáveis determinantes e eliminar o ruído superficial, reduzimos drasticamente a carga cognitiva extrínseca na memória de trabalho.`,
-              prerequisites: [
-                `Definições operacionais e variáveis de entrada que delimitam "${topic}"`,
-                'Compreensão de sistemas dinâmicos de causa e efeito',
-                'Condições de contorno e limites de validade do modelo',
-              ],
-              coreMechanism: `O mecanismo nuclear de "${topic}" opera através de uma sequência de transformações onde variações de estado provocam respostas determinísticas e mensuráveis no sistema.`,
-              commonMisconceptions: [
-                `Confundir correlação temporal ou coincidência aparente com o mecanismo motor real de ${topic}.`,
-                `Supor que memorizar jargões ou fórmulas substitui a capacidade de prever o comportamento do sistema.`,
-                `Tratar ${topic} como um evento isolado, desconsiderando as leis de conservação subjacentes.`,
-              ],
-              elaborativeQuestions: [
-                `Qual seria a primeira consequência mensurável se a premissa central de ${topic} fosse subitamente anulada?`,
-                `Como você explicaria a engrenagem fundamental de ${topic} utilizando apenas objetos comuns de uma mesa de trabalho?`,
-                `Sob quais circunstâncias extremas o comportamento previsto por ${topic} deixaria de ser verdadeiro?`,
-              ],
-              realWorldAnalogy: `Pense em "${topic}" como um sistema de engrenagens ou uma cascata hidráulica: cada componente depende do impulso transferido pelo anterior para produzir o resultado sem perdas desnecessárias.`,
-              neuroscienceRationale: `Conceitos abstratos como "${topic}" sobrecarregam o córtex pré-frontal porque exigem a retenção simultânea de múltiplos nós semânticos antes que o hipocampo consiga consolidá-los em um esquema de longo prazo.`,
-              isPedagogicalFallback: true,
-            } satisfies ConceptBreakdown,
-            200
-          );
-        } else {
-          return c.json(
-            {
-              topic,
-              overview: `Studying "${topic}" requires deconstructing intuitive assumptions into verifiable causal elements. By isolating governing variables and stripping away superficial noise, we drastically minimize extraneous cognitive load in working memory.`,
-              prerequisites: [
-                `Operational definitions and input variables defining "${topic}"`,
-                'Understanding of dynamic cause-and-effect systems',
-                'Boundary conditions and validity limits of the model',
-              ],
-              coreMechanism: `The nuclear mechanism of "${topic}" operates through a sequence of transformations where state fluctuations generate deterministic, measurable responses in the system.`,
-              commonMisconceptions: [
-                `Confusing temporal correlation with the actual driving mechanism of ${topic}.`,
-                `Assuming that memorizing formulas or labels replaces the ability to predict system behavior.`,
-                `Treating ${topic} as an isolated event while ignoring underlying conservation laws.`,
-              ],
-              elaborativeQuestions: [
-                `What would be the first measurable consequence if the central premise of ${topic} were suddenly negated?`,
-                `How would you explain the core mechanism of ${topic} using only common desk objects?`,
-                `Under what extreme circumstances would the behavior predicted by ${topic} cease to hold true?`,
-              ],
-              realWorldAnalogy: `Think of "${topic}" like a mechanical gear train or a hydraulic cascade: each component relies on force transferred from the predecessor to yield the output without needless dissipation.`,
-              neuroscienceRationale: `Abstract concepts like "${topic}" overload the prefrontal cortex because they demand the simultaneous maintenance of multiple semantic nodes before the hippocampus consolidates them into a long-term schema.`,
-              isPedagogicalFallback: true,
-            } satisfies ConceptBreakdown,
-            200
-          );
-        }
+        return c.json(
+          {
+            error: isPt
+              ? 'Não foi possível alcançar a API de inferência para gerar o mapeamento conceitual.'
+              : 'Could not reach the inference API to generate the concept breakdown.',
+          },
+          503
+        );
       }
     }
   );
