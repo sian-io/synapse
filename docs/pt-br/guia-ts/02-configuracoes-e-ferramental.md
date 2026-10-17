@@ -53,109 +53,76 @@ O arquivo atua em três frentes principais:
    - Definir `"type": "module"` informa ao Node.js que todos os arquivos `.js`/`.ts` do projeto devem seguir o padrão moderno de módulos.
 
 2. **Divisão de Dependências (`dependencies` vs `devDependencies`)**:
-   - `dependencies` (ex: `express`, `@google/genai`, `react`): Bibliotecas que o código precisa para funcionar enquanto a aplicação está rodando em produção.
-   - `devDependencies` (ex: `typescript`, `esbuild`, `tsx`, `@types/node`): Ferramentas que só são úteis para quem está programando ou compilando o projeto. Em Python, seria o equivalente às dependências do grupo `[tool.poetry.group.dev]` (como `pytest`, `mypy`, `black`).
+   - `dependencies` (ex: `hono`, `@google/genai`, `react`): Bibliotecas que o código precisa para funcionar enquanto a aplicação está rodando em produção (incluindo o servidor Hono e o cliente `hono/client` do Hono RPC).
+   - `devDependencies` (ex: `typescript`, `vite`, `@hono/vite-dev-server`, `@types/bun`): Ferramentas que só são úteis para quem está programando ou compilando o projeto. Em Python, seria o equivalente às dependências do grupo `[tool.poetry.group.dev]` (como `pytest`, `mypy`, `ruff`).
 
 3. **Central de Automação (`scripts`)**:
    - Mapeia comandos curtos para pipelines de execução:
-     - `npm run dev`: Executa `tsx server.ts` (sobe o servidor de desenvolvimento em tempo real).
-     - `npm run build`: Orquestra uma cadeia dupla: primeiro chama o `vite build` (para empacotar os componentes React em arquivos estáticos otimizados) e depois o `esbuild` (para compilar o `server.ts` em um único arquivo CommonJS autocontido para produção em `dist/server.cjs`).
-     - `npm run lint`: Executa `tsc --noEmit` para auditar a tipagem estática sem gerar arquivos.
+     - `bun run dev`: Executa `bun --bun vite` (sobe o servidor Vite com `@hono/vite-dev-server` despachando `/api/*` ao Hono).
+     - `bun run build`: Executa `vite build` para empacotar os componentes React em arquivos estáticos otimizados em `dist/`.
+     - `bun run start`: Executa `bun server.ts` nativamente em produção, servindo a API Hono e os arquivos estáticos de `dist/`.
+     - `bun run lint`: Executa `tsc --noEmit` para auditar a tipagem estática (incluindo os contratos Hono RPC entre `server.ts` e `src/api.ts`) sem gerar arquivos.
 
 ---
 
-## 3. `package-lock.json` e `bun.lock` — O Determinismo e a Coexistência dos Lockfiles
+## 3. `bun.lock` — O Determinismo do Lockfile
 
 ### Qual é a sua necessidade?
-No `package.json`, as versões das dependências geralmente usam caracteres como `^` ou `~` (por exemplo: `"express": "^4.21.2"`). O símbolo `^` significa: *"instale a versão 4.21.2 ou qualquer versão compatível mais recente que for lançada"*.
+No `package.json`, as versões das dependências geralmente usam caracteres como `^` ou `~` (por exemplo: `"hono": "^4.7.4"`). O símbolo `^` significa: *"instale a versão 4.7.4 ou qualquer versão compatível mais recente que for lançada"*.
 
 Isso gera um problema crítico de causalidade conhecido como **efeito "na minha máquina funciona"**:
-- O Desenvolvedor A instala hoje e recebe a versão 4.21.2.
-- O Desenvolvedor B baixa o projeto três meses depois; uma versão 4.21.9 foi lançada com uma mudança interna que quebra o código.
-- O servidor de produção baixa o pacote e para de funcionar.
+- O Desenvolvedor A instala hoje e recebe a versão 4.7.4.
+- O Desenvolvedor B baixa o projeto três meses depois; uma versão mais nova foi lançada com uma mudança interna que quebra o código.
 
-**A solução**: O arquivo de lock registra a árvore exata de dependências instaladas, descendo recursivamente até as dependências das dependências, associando cada pacote a um hash criptográfico (`integrity: sha512-...`) para garantir que o código baixado não foi adulterado. 
-
-No Python, o lockfile é o análogo exato de um `poetry.lock`, `Pipfile.lock` ou `uv.lock`.
-
-### Por que existem AMBOS (`package-lock.json` e `bun.lock`) neste projeto?
-
-No Synapse, você notará a presença simultânea de:
-- `package-lock.json` (gerado e lido pelo gerenciador oficial **npm**)
-- `bun.lock` (gerado e lido pelo runtime/gerenciador alternativo **Bun**)
-
-#### O que causou essa coexistência?
-O **Bun** é um runtime moderno para JavaScript/TypeScript escrito em Zig que substitui tanto o Node quanto o npm, sendo conhecido por sua velocidade extrema. Muitas plataformas modernas de desenvolvimento em nuvem e templates de IA (como o Google AI Studio) utilizam o Bun por padrão durante o *scaffold* inicial do projeto (gerando o `bun.lock`).
-
-Quando outro desenvolvedor clona esse repositório e roda o comando tradicional `npm install`, o utilitário `npm` ignora o `bun.lock` e cria o seu próprio lockfile: o `package-lock.json`.
-
-#### Como se comportar perante a isso?
-- Se você executar `npm install <pacote>`, o `package-lock.json` será atualizado, mas o `bun.lock` ficará desatualizado.
-- Se você executar `bun add <pacote>`, ocorrerá o inverso.
-- **Boa prática**: Em equipes de produção, escolhe-se uma única ferramenta oficial (geralmente npm ou Bun) e adiciona-se o lockfile secundário ao `.gitignore` para evitar discrepâncias entre desenvolvedores.
+**A solução**: O arquivo `bun.lock` registra a árvore exata de dependências instaladas pelo **Bun**, descendo recursivamente até as dependências transitivas e associando cada pacote a um hash criptográfico para garantir instalações idênticas. No Python, o lockfile é o análogo exato de um `uv.lock` ou `poetry.lock`.
 
 ---
 
 ## 4. `tsconfig.json` — As Regras do Verificador de Tipos
 
 ### Qual é a sua necessidade?
-Como o compilador do TypeScript (`tsc`) precisa analisar o código antes de qualquer execução, ele precisa de instruções claras:
-- Quais recursos modernos de JavaScript devemos permitir?
-- O código roda no Node.js (onde existem arquivos e rede via sistema operacional) ou no navegador (onde existem elementos DOM como `window` e `document`)?
-- Como resolver caminhos de imports complexos?
-
-O [`tsconfig.json`](file:///C:/Projetos/synapse/tsconfig.json) é o cérebro que configura o Language Server do VS Code e o verificador estático.
+Como o compilador do TypeScript (`tsc`) precisa analisar o código antes de qualquer execução, ele precisa de instruções claras sobre o ambiente e o sistema de módulos. O [`tsconfig.json`](file:///home/gui/Projects/synapse/tsconfig.json) configura o Language Server da IDE e o verificador estático.
 
 ### Decisões Cruciais e Funcionamento:
 
 1. **A Diretiva Vital: `"noEmit": true`**:
-   - Por que dizer ao TypeScript para **não emitir** arquivos JavaScript?
-   - Essa é uma das decisões arquiteturais mais importantes do desenvolvimento moderno em TypeScript. 
-   - No passado, o `tsc` era responsável por checar os tipos E gerar os arquivos `.js`. Porém, o `tsc` é relativamente lento nessa geração.
-   - Hoje em dia, adota-se a **divisão de trabalho**:
-     - O **TypeScript** faz apenas o que ele faz melhor: auditar a coerência lógica dos tipos (`noEmit: true`).
-     - Ferramentas ultra-otimizadas como **Vite** e **esbuild** cuidam da transformação e empacotamento dos arquivos.
+   - O **TypeScript** faz apenas o que ele faz melhor: auditar a coerência lógica dos tipos (`noEmit: true`), inclusive validando se as chamadas do cliente Hono RPC (`src/api.ts`) correspondem às rotas exportadas por `server.ts` (`AppType`).
+   - O **Bun** (no servidor) e o **Vite** (no frontend) cuidam da transpilação e execução.
 
-2. **Compatibilidade de Ambiente (`target` e `lib`)**:
-   - `"target": "ES2022"`: Define a versão do JavaScript moderno com a qual o código é compatível.
-   - `"lib": ["ES2022", "DOM", "DOM.Iterable"]`: Diz ao compilador que este projeto tem acesso às APIs globais do navegador (como `document.getElementById`, manipulação de eventos e `fetch`).
+2. **Compatibilidade de Ambiente (`target`, `lib` e `moduleResolution: "bundler"`)**:
+   - `"target": "ES2022"` e `"lib": ["ES2022", "DOM", "DOM.Iterable"]`: Definem suporte ao JavaScript moderno e às APIs globais da Web (`fetch`, `Request`, `Response`, DOM).
+   - `"moduleResolution": "bundler"`: Permite resolver subcaminhos modernos exportados por pacotes como `hono/client` e `hono/validator`.
 
-3. **Aliases de Caminho (`paths`)**:
-   - `"paths": { "@/*": ["./*"] }`: Permite que em vez de escrever importações confusas como `import App from '../../../src/App'`, possamos escrever de forma limpa `import App from '@/src/App'`.
-
-4. **Tratamento de JSX (`jsx: "react-jsx"` e `allowJs: true`)**:
-   - Informa ao TypeScript como interpretar tags HTML escritas dentro de arquivos `.tsx` sem exigir a importação manual de `React` no topo de cada arquivo (transformação moderna do React 17+).
+3. **Tratamento de JSX (`jsx: "react-jsx"`)**:
+   - Informa ao TypeScript como interpretar tags HTML escritas dentro de arquivos `.tsx` sem exigir a importação manual de `React` no topo de cada arquivo.
 
 ---
 
 ## 5. `vite.config.ts` — O Motor do Servidor de Desenvolvimento e Empacotamento
 
 ### Qual é a sua necessidade?
-Se você apontar um navegador diretamente para um arquivo como `App.tsx`, o navegador rejeitará o arquivo com um erro de sintaxe, pois navegadores não compreendem a sintaxe do TypeScript nem do React JSX. Além disso, uma aplicação moderna possui centenas de módulos que, se requisitados um a um pela rede, deixariam o carregamento intoleravelmente lento.
-
-O **Vite** (palavra francesa para "rápido") é o substituto moderno de ferramentas antigas como o Webpack. Ele atua como um servidor de desenvolvimento ultrarrápido e empacotador de produção.
+Navegadores não compreendem arquivos `.tsx` diretamente. O **Vite** atua como servidor de desenvolvimento com HMR e empacotador de produção.
 
 ### Como ele funciona no Synapse?
 
 1. **Hot Module Replacement (HMR) Instantâneo**:
-   - Enquanto você programa, o Vite monitora as alterações no código. Em vez de recarregar a página inteira a cada salvamento, ele substitui apenas o componente alterado em memória no navegador, mantendo o estado da aplicação intacto.
+   - Enquanto você programa, o Vite substitui apenas o componente alterado em memória no navegador, mantendo o estado da aplicação intacto.
 
 2. **Cadeia de Plugins Integrados**:
-   - `@vitejs/plugin-react`: Intercepta os arquivos `.tsx` e transforma a sintaxe do React em funções JavaScript nativas (`jsxDEV()`).
-   - `@tailwindcss/vite`: Compila as classes de utilitário do Tailwind CSS v4 diretamente no pipeline do Vite, entregando CSS minificado e atômico.
-
-3. **Intermediação de Assets (`aistudioMediaPlugin`)**:
-   - No [`vite.config.ts`](file:///C:/Projetos/synapse/vite.config.ts), você encontrará uma função customizada chamada `aistudioMediaPlugin`.
-   - **Funcionamento**: Ela cria um middleware que intercepta requisições HTTP para a rota `/assets/aistudio/*`, localiza o arquivo correspondente no disco, infere seu MIME type (`image/png`, `video/mp4`, etc.) e o transmite em fluxo para a resposta HTTP, garantindo que recursos multimídia funcionem de forma transparente durante o desenvolvimento.
-
-4. **Integração com o Servidor Express**:
-   - Em vez de rodar o Vite e o Express em portas separadas (o que exigiria configurar proxies ou lidar com erros de CORS), o arquivo [`server.ts`](file:///C:/Projetos/synapse/server.ts) importa o Vite como um middleware:
+   - `@vitejs/plugin-react`: Transforma a sintaxe JSX/TSX do React.
+   - `@tailwindcss/vite`: Compila as classes do Tailwind CSS v4 diretamente no pipeline do Vite.
+   - `@hono/vite-dev-server`: Conecta o servidor de desenvolvimento do Vite diretamente à aplicação Hono em [`server.ts`](file:///home/gui/Projects/synapse/server.ts) na mesma porta (`3000`):
      ```typescript
-     const vite = await createViteServer({ server: { middlewareMode: true }, appType: 'spa' });
-     app.use(vite.middlewares);
+     devServer({
+       entry: 'server.ts',
+       exclude: [
+         ...defaultOptions.exclude,
+         /^\/(?!api\/).*/,
+       ],
+     })
      ```
-   - Isso significa que o Express (porta 3000) responde tanto pelas rotas de API (`/api/*`) quanto pela entrega dos componentes React processados pelo Vite.
+   - Qualquer requisição para `/api/*` é despachada via Web Standards Fetch API para o Hono, enquanto as demais rotas são servidas pelo Vite para a SPA React.
 
 ---
 
-No próximo documento ([03 — Recursos da Linguagem no Synapse](./03-recursos-da-linguagem-no-synapse.md)), entraremos no código-fonte para analisar como os recursos de tipagem do TypeScript são aplicados na prática.
+No próximo documento ([03 — Recursos da Linguagem no Synapse](./03-recursos-da-linguagem-no-synapse.md)), entraremos no código-fonte para analisar como os recursos de tipagem do TypeScript e o Hono RPC são aplicados na prática.

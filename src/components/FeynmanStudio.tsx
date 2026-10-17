@@ -12,6 +12,7 @@ import {
   Award,
   FileText
 } from 'lucide-react';
+import { api } from '../api';
 import { FeynmanEvaluation } from '../types';
 import { useLanguage } from '../i18n/LanguageContext';
 
@@ -50,15 +51,13 @@ export const FeynmanStudio: React.FC<FeynmanStudioProps> = ({
     setError(null);
 
     try {
-      const response = await fetch('/api/feynman-evaluate', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
+      const response = await api.api['feynman-evaluate'].$post({
+        json: {
           topic: activeConcept,
           explanation,
           targetAudience: audienceLabelMap[audience] || audience,
           language,
-        }),
+        },
       });
 
       if (!response.ok) {
@@ -66,7 +65,7 @@ export const FeynmanStudio: React.FC<FeynmanStudioProps> = ({
         throw new Error(errData?.error || t.feynman.errorFallback);
       }
 
-      const data: FeynmanEvaluation = await response.json();
+      const data = await response.json();
       setEvaluation(data);
       onIncrementStats('feynman');
     } catch (err: any) {

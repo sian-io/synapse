@@ -15,7 +15,8 @@ O commit troca a camada de servidor, o runtime e a forma como o ambiente de dese
 
 | Antes | Depois | O que muda na prática |
 | :--- | :--- | :--- |
-| Express 4 + `@types/express` | **Hono** | Rotas usam `Request`/`Response` da Web em vez de `req`/`res` do Node. |
+| Express 4 + `@types/express` | **Hono + Hono RPC** | Rotas encadeadas usam `Request`/`Response` da Web e exportam `AppType` para o cliente `hc<AppType>('/')`. |
+| `fetch('/api/...', ...)` manual | **`hc<AppType>('/')` (`src/api.ts`)** | Chamadas RPC tipadas de ponta a ponta entre servidor e React sem dependências extras. |
 | Node.js como runtime | **Bun** | `server.ts` roda direto, sem compilar. |
 | `tsx` (dev) | Bun | Bun executa TypeScript nativamente. |
 | `esbuild` gerando `dist/server.cjs` | Nada | Produção roda `bun server.ts` direto. |
@@ -52,15 +53,15 @@ flowchart TD
     A["bun run dev → bun --bun vite"] --> B["Vite dev server :3000"]
     B -->|"/api/*"| C["@hono/vite-dev-server"]
     C -->|"Fetch API"| D["app.fetch do Hono (server.ts)"]
-    B -->|"demais rotas"| E["SPA React 19 com HMR"]
+    B -->|"demais rotas"| E["SPA React 19 com HMR + Hono RPC (src/api.ts)"]
     F["bun run build"] --> G["vite build → dist/"]
     H["bun run start"] --> I["bun server.ts"]
     I --> J["export default { port, hostname, fetch }"]
-    J --> K["Rotas /api/*"]
+    J --> K["Rotas /api/* (export type AppType)"]
     J --> L["serveStatic de hono/bun → dist/ + fallback index.html"]
 ```
 
-Agora o `server.ts` só exporta uma aplicação Hono. Quem decide como ela é servida é o ambiente:
+Agora o `server.ts` só exporta uma aplicação Hono e o tipo `AppType` das rotas encadeadas. Quem decide como ela é servida é o ambiente:
 - **Dev**: o Vite carrega o `server.ts` e manda as requisições `/api/*` para ele.
 - **Prod**: o Bun lê o `export default { port, hostname, fetch }` e sobe o servidor HTTP.
 
@@ -68,20 +69,21 @@ Agora o `server.ts` só exporta uma aplicação Hono. Quem decide como ela é se
 
 ## 3. Mudanças por arquivo
 
-### 3.1 `server.ts`
+### 3.1 `server.ts` & `src/api.ts`
 
-#### a) Express → Hono
+#### a) Express → Hono + Hono RPC
 
-| Express | Hono |
+| Express | Hono + Hono RPC |
 | :--- | :--- |
-| `const app = express()` | `const app = new Hono()` |
-| `app.use(express.json())` | Removido; cada rota lê o corpo com `await c.req.json()` |
+| `const app = express()` | `const app = new Hono()` com rotas encadeadas em `const routes = app.get(...).post(...)` |
+| `app.use(express.json())` | `jsonBody<T>()` com `validator('json', ...)` de `hono/validator` |
 | `(req: Request, res: Response) => {...}` | `async (c) => {...}` |
-| `req.body` | `await c.req.json()` |
-| `res.json(obj)` | `return c.json(obj)` |
+| `req.body` | `c.req.valid('json')` tipado estaticamente |
+| `res.json(obj)` | `return c.json(obj, 200)` |
 | `res.status(400).json(obj)` | `return c.json(obj, 400)` |
+| `fetch('/api/...', { method: 'POST', ... })` | `api.api['...'].$post({ json: ... })` via `hc<AppType>('/')` em `src/api.ts` |
 
-As cinco rotas (`/api/health`, `/api/chat`, `/api/feynman-evaluate`, `/api/generate-retrieval-deck`, `/api/generate-concept-breakdown`) foram convertidas uma a uma. Prompts, schemas JSON e fallbacks foram mantidos idênticos.
+As cinco rotas (`/api/health`, `/api/chat`, `/api/feynman-evaluate`, `/api/generate-retrieval-deck`, `/api/generate-concept-breakdown`) são encadeadas para que `export type AppType = typeof routes` exponha o esquema completo de entrada e saída ao cliente `hc<AppType>('/')`. Prompts, schemas JSON e fallbacks foram mantidos idênticos.
 
 #### b) Inicialização do servidor
 

@@ -12,6 +12,7 @@ import {
   AlertCircle,
   Bookmark
 } from 'lucide-react';
+import { api } from '../api';
 import { Flashcard } from '../types';
 import { getInitialPresetFlashcards } from '../data/neurosciencePillars';
 import { useLanguage } from '../i18n/LanguageContext';
@@ -116,15 +117,13 @@ export const ActiveRetrievalLab: React.FC<ActiveRetrievalLabProps> = ({
     setError(null);
 
     try {
-      const response = await fetch('/api/generate-retrieval-deck', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
+      const response = await api.api['generate-retrieval-deck'].$post({
+        json: {
           topic: activeConcept,
           difficulty: deckDifficulty,
           count: 4,
           language,
-        }),
+        },
       });
 
       if (!response.ok) {

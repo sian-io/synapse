@@ -108,31 +108,31 @@ No desenvolvimento em Python, o fluxo de trabalho típico é salvar o arquivo `.
 No TypeScript, existem dois momentos bem delimitados:
 
 ### Momento 1: Tempo de Compilação (*Compile-time*)
-Ocorre enquanto você digita no VS Code ou quando roda `npm run lint` (`tsc --noEmit`). O analisador do TypeScript lê todas as dependências, analisa se os argumentos passados para uma função batem com seus parâmetros e aponta erros visuais. Se você tentar acessar `user.nome` quando o objeto só possui `user.name`, o erro é alertado instantaneamente.
+Ocorre enquanto você digita no VS Code ou quando roda `bun run lint` (`tsc --noEmit`). O analisador do TypeScript lê todas as dependências, analisa se os argumentos passados para uma função (ou para o cliente **Hono RPC** em `src/api.ts`) batem com seus parâmetros e aponta erros visuais. Se você tentar acessar `user.nome` quando o objeto só possui `user.name`, o erro é alertado instantaneamente.
 
 ### Momento 2: Tempo de Execução (*Runtime*)
-Ocorre quando o Node.js está rodando o servidor Express ou o navegador está renderizando os componentes React. Nesse momento, o TypeScript já fez seu trabalho e não está mais presente; apenas o motor JavaScript está trabalhando.
+Ocorre quando o **Bun** está rodando o servidor **Hono** (`server.ts`) ou o navegador está renderizando os componentes React. Nesse momento, o TypeScript já fez seu trabalho e não está mais presente; apenas o motor JavaScript está trabalhando.
 
 ---
 
 ## 5. Como o Código Roda Sem Compilação Manual no Synapse?
 
-Se o Node.js não entende TypeScript, como o comando `npm run dev` consegue rodar o arquivo [`server.ts`](file:///C:/Projetos/synapse/server.ts) diretamente, sem que tenhamos que criar uma pasta intermediária cheia de arquivos `.js`?
+Como os comandos `bun run dev` e `bun run start` conseguem rodar o arquivo [`server.ts`](file:///home/gui/Projects/synapse/server.ts) diretamente, sem que tenhamos que criar uma pasta intermediária cheia de arquivos `.js` para o backend?
 
-A resposta está em ferramentas modernas de execução instantânea:
+A resposta está no runtime moderno **Bun** e no servidor **Vite**:
 
-### No Backend: O utilitário `tsx`
-No [`package.json`](file:///C:/Projetos/synapse/package.json), o script de desenvolvimento está configurado como:
+### No Backend: Execução Nativa pelo Bun
+No [`package.json`](file:///home/gui/Projects/synapse/package.json), os scripts estão configurados como:
 ```json
-"dev": "tsx server.ts"
+"dev": "bun --bun vite",
+"start": "bun server.ts"
 ```
-O **`tsx`** (*TypeScript Execute*) é um wrapper para o Node.js. Quando você executa `tsx server.ts`:
-1. Ele intercepta o carregamento do arquivo antes do Node.js tentar executá-lo.
-2. Utiliza o motor ultrarrápido **esbuild** (escrito em Go) para fazer o *Type Erasure* na memória RAM em milissegundos.
-3. Entrega o JavaScript resultante diretamente para a engine V8 do Node.js executar.
-4. **Causa e efeito**: Você tem a sensação de estar executando um script interpretado como em Python (`python server.py`), com feedback imediato e sem demora perceptível.
+O **Bun** possui um transpilador nativo ultra-rápido escrito em Zig:
+1. Quando você executa `bun server.ts` (ou quando o Vite carrega `server.ts` via `@hono/vite-dev-server`), o Bun faz o *Type Erasure* diretamente em memória RAM em microssegundos.
+2. Entrega o JavaScript resultante para o motor **JavaScriptCore** executar imediatamente, sem precisar de pacotes extras como `tsx` ou `esbuild` para o servidor.
+3. **Causa e efeito**: Você executa arquivos `.ts` diretamente como em Python (`python server.py`), com feedback imediato.
 
-### No Frontend: O servidor Vite
-No navegador, o arquivo [`src/main.tsx`](file:///C:/Projetos/synapse/src/main.tsx) e os componentes React são entregues através do **Vite**. O Vite também utiliza o `esbuild` para transformar código TypeScript e JSX em módulos JavaScript padrão (*ES Modules*) em tempo real, entregando-os sob demanda para o navegador.
+### No Frontend: O servidor Vite + Hono RPC
+No navegador, o arquivo [`src/main.tsx`](file:///home/gui/Projects/synapse/src/main.tsx), o cliente [`src/api.ts`](file:///home/gui/Projects/synapse/src/api.ts) (`hc<AppType>('/')`) e os componentes React são entregues através do **Vite**. O `import type { AppType } from '../server'` em `src/api.ts` é completamente apagado na compilação (*Type Erasure*), garantindo que o código do servidor nunca vá parar no bundle do navegador, enquanto mantém 100% da segurança de tipos nas chamadas HTTP.
 
 No próximo documento ([02 — Configurações e Tooling](./02-configuracoes-e-ferramental.md)), veremos detalhadamente como esses arquivos de configuração orquestram todo esse ecossistema.

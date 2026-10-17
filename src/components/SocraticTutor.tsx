@@ -11,6 +11,7 @@ import {
   Info
 } from 'lucide-react';
 import Markdown from 'react-markdown';
+import { api } from '../api';
 import { ChatMessage, PedagogicalMode } from '../types';
 import { useLanguage } from '../i18n/LanguageContext';
 import { translateCognitivePhase } from '../i18n/translations';
@@ -106,16 +107,14 @@ export const SocraticTutor: React.FC<SocraticTutorProps> = ({
     setIsLoading(true);
 
     try {
-      const response = await fetch('/api/chat', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
+      const response = await api.api.chat.$post({
+        json: {
           messages: newMessages.map((m) => ({ role: m.role, content: m.content })),
           mode: pedagogicalMode,
           currentTopic: currentTopic || (language === 'pt' ? 'Aprendizado Ativo' : 'Active Learning'),
           studentCalibration: metacognitiveCertainty,
           language,
-        }),
+        },
       });
 
       if (!response.ok) {

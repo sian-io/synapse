@@ -151,17 +151,15 @@ const [activeTab, setActiveTab] = useState<PedagogicalMode>('socratic');
 ```
 O `<PedagogicalMode>` passa o tipo como parâmetro para o hook `useState`. O TypeScript agora sabe que a variável `activeTab` só pode assumir um dos cinco modos válidos, e que a função `setActiveTab` rejeitará qualquer outra string.
 
-### Exemplo 2: Dicionários tipados com `Record<K, V>`
-No arquivo [`vite.config.ts`](file:///C:/Projetos/synapse/vite.config.ts), para mapear extensões de arquivo para seus tipos MIME:
+### Exemplo 2: Cliente Hono RPC Tipado com `hc<AppType>`
+No arquivo [`src/api.ts`](file:///home/gui/Projects/synapse/src/api.ts), o cliente HTTP é instanciado passando o tipo `AppType` exportado pelo servidor como parâmetro genérico:
 ```typescript
-const mimeMap: Record<string, string> = {
-  '.jpg': 'image/jpeg',
-  '.png': 'image/png',
-  '.pdf': 'application/pdf',
-};
+import { hc } from 'hono/client';
+import type { AppType } from '../server';
+
+export const api = hc<AppType>('/');
 ```
-`Record<string, string>` diz ao compilador que este objeto é um mapa onde todas as chaves são `string` e todos os valores associados também são `string`. 
-No Python, o equivalente direto é `dict[str, str]`.
+Graças ao `typeof routes` exportado em `server.ts` (`export type AppType = typeof routes`), o TypeScript infere automaticamente todas as rotas (`/api/chat`, `/api/feynman-evaluate`, etc.), os payloads esperados em `{ json: ... }` e o formato exato de `await response.json()` em cada status HTTP (`200` vs `400`).
 
 ---
 
@@ -171,39 +169,36 @@ No JavaScript dinâmico e no Python, é muito comum inspecionar o tipo de uma va
 
 O TypeScript entende o fluxo do código através dessas condicionais e refina (*narrows*) o tipo da variável dentro do bloco `if`.
 
-Veja este trecho real de tratamento de erros no [`server.ts`](file:///C:/Projetos/synapse/server.ts):
+Com o **Hono RPC**, a propriedade `response.ok` funciona como uma união discriminada pelo status HTTP (`200` tem `ok: true`, `400` tem `ok: false`):
 ```typescript
-} catch (err: any) {
-  lastError = err;
-  const errMsg = err?.message || String(err);
-  const isTransient =
-    errMsg.includes('503') ||
-    errMsg.includes('UNAVAILABLE') ||
-    errMsg.includes('429');
+const response = await api.api['feynman-evaluate'].$post({
+  json: { topic: activeConcept, explanation, targetAudience, language },
+});
+
+if (!response.ok) {
+  // Aqui o TypeScript sabe que o status é 400 e errData é { error: string }
+  const errData = await response.json().catch(() => null);
+  throw new Error(errData?.error || t.feynman.errorFallback);
+}
+
+// Aqui o TypeScript estreita automaticamente o retorno para FeynmanEvaluation
+const data = await response.json();
 ```
-O operador `err?.message` utiliza o recurso de **Optional Chaining**: se `err` for um objeto com a propriedade `message`, ela será lida; se for `null` ou `undefined`, o código não explode com uma exceção em runtime, mas avalia para `undefined`, permitindo que o `|| String(err)` forneça um valor padrão seguro.
 
 ---
 
 ## 6. O Ecossistema de Tipos Externos (`@types/*`)
 
-Se você abrir a seção `devDependencies` no [`package.json`](file:///C:/Projetos/synapse/package.json), verá pacotes com nomes peculiares:
+Se você abrir a seção `devDependencies` no [`package.json`](file:///home/gui/Projects/synapse/package.json), verá o pacote:
 ```json
-"@types/express": "^4.17.21",
-"@types/node": "^22.14.0"
+"@types/bun": "^1.2.4"
 ```
 
-### Qual é a necessidade desses pacotes?
-Bibliotecas clássicas como o **Express** e o próprio núcleo do **Node.js** foram criadas muitos anos antes do TypeScript existir, ou continuam sendo escritas em JavaScript puro.
+### Qual é a necessidade desse pacote?
+Enquanto bibliotecas modernas escritas diretamente em TypeScript (como o **Hono** e o `@google/genai`) já trazem seus próprios arquivos de definição (`.d.ts`) embutidos, as APIs nativas do runtime (como o objeto global `Bun` utilizado em `server.ts`) precisam ser declaradas para o compilador.
 
-Se você importasse o Express diretamente em um arquivo TypeScript:
-```typescript
-import express from 'express';
-```
-O compilador do TypeScript ficaria cego: ele não saberia quais métodos o objeto `app` possui, quais parâmetros `req` e `res` recebem, nem quais tipos são retornados.
-
-Para resolver isso, a comunidade criou um repositório comunitário central chamado **DefinitelyTyped**. Os pacotes sob o escopo `@types/` contêm apenas arquivos de declaração (`.d.ts`):
-- Eles não contêm lógica nem código executável.
-- Contêm apenas as assinaturas de tipo e documentação para que o TypeScript saiba como a biblioteca JavaScript funciona e ofereça autocompletar e validação estática no seu editor.
+O pacote `@types/bun` fornece apenas arquivos de declaração (`.d.ts`):
+- Não contém lógica nem código executável em runtime.
+- Contém apenas as assinaturas de tipo para que o TypeScript reconheça APIs globais do Bun, `process.env` e Web Standards no seu editor.
 
 No próximo documento ([04 — Arquitetura e Fluxo do Synapse](./04-arquitetura-e-fluxo-do-synapse.md)), veremos como todas essas peças se combinam para criar a arquitetura completa do servidor e do cliente da aplicação.

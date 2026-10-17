@@ -13,9 +13,9 @@ Synapse operates on a unified full-stack TypeScript architecture powered by **Bu
 |                               Bun Runtime                               |
 |                                                                         |
 |  +-------------------------------------------------------------------+  |
-|  |                      Hono Server (server.ts)                      |  |
+|  |            Hono Server (server.ts -> export type AppType)         |  |
 |  |                                                                   |  |
-|  |   [Port 3000 - Web Standards Fetch API]                           |  |
+|  |   [Port 3000 - Web Standards Fetch API & Hono RPC]                |  |
 |  |   ├── /api/health                                                 |  |
 |  |   ├── /api/chat                    ──> Gemini SDK / Fallback      |  |
 |  |   ├── /api/feynman-evaluate        ──> Gemini SDK (JSON Schema)   |  |
@@ -25,11 +25,12 @@ Synapse operates on a unified full-stack TypeScript architecture powered by **Bu
 |  |   @hono/vite-dev-server (dev) / Hono Bun serveStatic Dist (prod)  |  |
 |  +---------------------------------+---------------------------------+  |
 +------------------------------------|------------------------------------+
-                                     │ Serves SPA
+                                     │ Serves SPA & End-to-End RPC Types
                                      v
 +-------------------------------------------------------------------------+
 |                        Browser Client (React 19)                        |
 |                                                                         |
+|  src/api.ts: hc<AppType>('/') (Typed Hono RPC Client)                   |
 |  App.tsx                                                                |
 |  ├── UnifiedConceptBar (Shared Topic State & Synchronization)           |
 |  ├── SocraticTutor (Conversational Engine & Metacognitive Certainty)   |
@@ -42,11 +43,12 @@ Synapse operates on a unified full-stack TypeScript architecture powered by **Bu
 +-------------------------------------------------------------------------+
 ```
 
-### 1.1 Frontend/Backend Unification via `@hono/vite-dev-server` & Bun
+### 1.1 Frontend/Backend Unification via `@hono/vite-dev-server`, Hono RPC & Bun
 
 - In development (`bun run dev`), Vite starts the dev server on port `3000` and uses `@hono/vite-dev-server` to dispatch `/api/*` requests directly to the Hono application (`server.ts`) via standard Web `Request`/`Response` objects while serving the React 19 SPA with HMR.
 - In production (`bun run start`, which executes `bun server.ts`), Bun natively runs `server.ts` without any secondary backend bundling step (`esbuild` is eliminated) and serves compiled static assets from `dist/` via `hono/bun`'s `serveStatic`.
-- **Design Rationale**: Eliminates Node.js HTTP coupling, `express`, `tsx`, `esbuild`, and manual `createViteServer` middleware injection, unifying execution around native TypeScript and open Web Standards.
+- **End-to-End Type Safety via Hono RPC**: Routes in `server.ts` are chained and typed with `hono/validator` (`validator('json', ...)`), exporting `export type AppType = typeof routes`. The frontend (`src/api.ts`) instantiates `hc<AppType>('/')` from `hono/client`, giving all React components compile-time verified request payloads, status code narrowing (`res.ok`), and response types with zero extra dependencies or code generation.
+- **Design Rationale**: Eliminates Node.js HTTP coupling, `express`, `tsx`, `esbuild`, manual `createViteServer` middleware injection, and untyped `fetch` calls, unifying execution around native TypeScript and open Web Standards.
 
 ---
 
@@ -55,13 +57,14 @@ Synapse operates on a unified full-stack TypeScript architecture powered by **Bu
 ### 2.1 Backend & Runtime
 
 - **Bun**: All-in-one JavaScript/TypeScript runtime and package manager (`bun.lock`). Executes `server.ts` natively in both development and production, and automatically loads `.env` variables without requiring `dotenv`.
-- **Hono**: Ultrafast, lightweight Web framework built entirely on Web Standards (`Request`, `Response`, `Fetch`). Replaces Express and `@types/express`.
+- **Hono & Hono RPC (`hono`, `hono/validator`, `hono/client`)**: Ultrafast, lightweight Web framework built entirely on Web Standards (`Request`, `Response`, `Fetch`), providing built-in end-to-end RPC type inference (`hc<AppType>`) without external schema libraries.
 - **`@hono/vite-dev-server`**: Bridges Vite's development server with the Hono application via the Fetch API, preserving single-port HMR without Connect/Express middleware coupling.
 - **Google GenAI Official SDK `@google/genai`**: Version 2.4.0+. Connects directly to the latest Gemini models, with native support for structured output (`responseSchema`, `responseMimeType: 'application/json'`) and HTTP header customization.
 
 ### 2.2 Frontend
 
 - **React 19 `package.json`**: Modern UI library delivering high rendering efficiency and stable state hooks (`useState`, `useEffect`, `useRef`).
+- **Hono Client (`hono/client`)**: Consumes `AppType` from `server.ts` in `src/api.ts` (`export const api = hc<AppType>('/')`) for type-safe RPC calls (`api.api.chat.$post`, `api.api['feynman-evaluate'].$post`, etc.).
 - **Tailwind CSS v4 `package.json`**: Configured via `@tailwindcss/vite` in `vite.config.ts`, delivering responsive styling with native CSS variable support.
 - **Lucide React `package.json`**: Lightweight vector icon suite providing visual signals for pedagogical states and metadata.
 - **`react-markdown` `package.json`**: Markdown parser rendering structured outputs from the Socratic tutor.
@@ -196,5 +199,5 @@ The root component `App.tsx` keeps primary state synchronized via `localStorage`
 ### 7.1 Rules for AI Agents
 
 1. **Preserve Pedagogical Stance**: The agent must never be instructed to answer conceptual questions directly in an expository manner. Any prompt modifications must uphold the policy of guiding students to deduce answers themselves.
-2. **Adhere to Type Contracts**: All TypeScript interfaces in `src/types.ts` must strictly mirror the schemas defined in `server.ts`.
+2. **Adhere to Type Contracts & Hono RPC**: All TypeScript interfaces in `src/types.ts` must strictly mirror the schemas defined in `server.ts`. Keep API routes chained on `const routes = app...` in `server.ts` with `jsonBody<...>()` and explicit status codes (`200`, `400`) so `export type AppType = typeof routes` and `src/api.ts` (`hc<AppType>('/')`) remain end-to-end type-safe.
 3. **Maintain Heuristic Fallbacks**: When introducing or modifying endpoints, always provide deterministic offline fallbacks to ensure application resilience.

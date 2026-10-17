@@ -161,9 +161,10 @@ Visit the **Neuroscience Guide** tab at any time to review the empirical studies
 
 For detailed technical documentation aimed at developers and AI agents, see `AGENTS.md`.
 
-- `server.ts`: Unified Hono server running on Bun with Web Standards Fetch API, Gemini SDK integration, and static asset serving.
+- `server.ts`: Unified Hono server running on Bun with Web Standards Fetch API, chained Hono RPC routes (`export type AppType`), Gemini SDK integration, and static asset serving.
 - `vite.config.ts`: Vite configuration with `@hono/vite-dev-server` for single-port HMR and API routing in development.
+- `src/api.ts`: End-to-end typed Hono RPC client (`hc<AppType>('/')`).
 - `src/App.tsx`: Main state manager, navigation tabs, and persistence.
-- `src/types.ts`: Application type definitions and data contracts.
+- `src/types.ts`: Application type definitions and data contracts shared between server and client.
 - `src/components/`: UI components for each pedagogical mode.
 - `src/data/neurosciencePillars.ts`: Scientific foundation content and demonstration flashcards.

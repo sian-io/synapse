@@ -12,10 +12,10 @@ Este documento foi projetado como um guia de consulta ágil para quem pensa e pr
 | **Congelamento de Versões** | `poetry.lock`, `uv.lock`, `Pipfile.lock` | `package-lock.json` ou `bun.lock` | Garante instalações determinísticas com hashes criptográficos. |
 | **Ambiente Virtual Isolado** | `.venv/` (ativado com `source .venv/bin/activate`) | `node_modules/` (local ao projeto) | No Node.js **não se ativa ambiente**. Os comandos usam os pacotes da pasta local automaticamente. |
 | **Verificador Estático de Tipos** | `mypy .` ou `pyright` | `tsc --noEmit` | Analisa a coerência de tipos estática sem gerar código executável. |
-| **Executor em Tempo Real** | `python script.py` | `tsx script.ts` | O `tsx` transpila o TypeScript em memória via esbuild e executa no Node. |
-| **Framework Web de Servidor** | `FastAPI` ou `Flask` | `Express` | Roteamento HTTP, middlewares e manipuladores de requisição/resposta. |
+| **Executor em Tempo Real** | `python script.py` | `bun script.ts` | O Bun transpila o TypeScript nativamente em memória e executa direto. |
+| **Framework Web & RPC** | `FastAPI` ou `Flask` | `Hono` + `Hono RPC` (`hc<AppType>`) | Roteamento Web Standards (`Request`/`Response`) e cliente RPC tipado de ponta a ponta. |
 | **Modelo de Dados Estruturado** | `TypedDict` ou `@dataclass` | `interface` ou `type` | No Python permanece em runtime; no TS é apagado pelo compilador. |
-| **Validação Estrita de JSON** | Modelos `pydantic.BaseModel` | `interface` + validação (ex: Zod ou JSON Schema) | O TypeScript sozinho não faz validação em tempo de execução. |
+| **Validação Estrita de JSON** | Modelos `pydantic.BaseModel` | `interface` + `hono/validator` / JSON Schema | O TypeScript estático combina-se ao `validator('json')` do Hono e ao `responseSchema` do Gemini. |
 | **Ausência de Valor** | `None` | `null` ou `undefined` | O JS/TS possui dois conceitos para representar valores ausentes. |
 | **Lista Homogênea** | `list[str]` | `string[]` ou `Array<string>` | Sintaxe idêntica de coleções dinâmicas indexadas. |
 | **Dicionário Tipado** | `dict[str, int]` | `Record<string, number>` | Mapeamento estruturado de chaves para valores. |
@@ -105,10 +105,10 @@ fazerBarulho(pessoa);
 ### 4. Onde Ficam os Pacotes? (Sem Necessidade de Ativar Virtualenv)
 No Python, você precisa explicitamente criar um ambiente (`python -m venv .venv`) e ativá-lo no terminal (`source .venv/bin/activate`). Se esquecer de ativar, o `pip` tentará instalar na pasta global do sistema operacional.
 
-No Node.js:
+No Bun / Node.js:
 - Não existe conceito de "ativar ambiente".
-- Toda execução de `npm install` baixa os arquivos diretamente para a subpasta local [`node_modules/`](file:///C:/Projetos/synapse/node_modules) do seu projeto.
-- Quando você executa `npm run dev` ou qualquer script, o Node busca as dependências automaticamente subindo a árvore de diretórios a partir do seu arquivo.
+- Toda execução de `bun install` baixa os arquivos diretamente para a subpasta local [`node_modules/`](file:///home/gui/Projects/synapse/node_modules) do seu projeto.
+- Quando você executa `bun run dev` ou qualquer script, o runtime busca as dependências automaticamente subindo a árvore de diretórios a partir do seu arquivo.
 
 ---
 
@@ -132,8 +132,8 @@ const promessa = buscar(); // A operação já está em andamento no Event Loop!
 ## 3. Resumo Prático para o Dia a Dia no Synapse
 
 1. **Para checar erros de tipo antes de rodar**:
-   Execute `npm run lint` no terminal. Se o comando terminar em silêncio, seu código está 100% aderente aos tipos.
+   Execute `bun run lint` no terminal. Se o comando terminar em silêncio, seu código (incluindo os contratos Hono RPC) está 100% aderente aos tipos.
 2. **Para rodar o projeto localmente com recarga automática**:
-   Execute `npm run dev` e abra `http://localhost:3000`.
+   Execute `bun run dev` e abra `http://localhost:3000`.
 3. **Para testar o empacotamento completo de produção**:
-   Execute `npm run build` e certifique-se de que a pasta `dist/` seja gerada sem falhas.
+   Execute `bun run build` e `bun run start`.

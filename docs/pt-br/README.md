@@ -159,9 +159,10 @@ Visite a aba **Base Neurocientífica** a qualquer momento para revisar os estudo
 
 Para uma documentação técnica detalhada voltada a desenvolvedores e agentes de IA, consulte `AGENTS.md`
 
-- `server.ts`: Servidor Hono unificado rodando sobre Bun com Web Standards Fetch API, integração à API Gemini e servimento estático em produção.
+- `server.ts`: Servidor Hono unificado rodando sobre Bun com Web Standards Fetch API, rotas encadeadas com Hono RPC (`export type AppType`), integração à API Gemini e servimento estático em produção.
 - `vite.config.ts`: Configuração do Vite com `@hono/vite-dev-server` para HMR e despacho de rotas `/api/*` em desenvolvimento.
+- `src/api.ts`: Cliente Hono RPC tipado de ponta a ponta (`hc<AppType>('/')`).
 - `src/App.tsx`: Gerenciador de estado principal, abas e persistência.
-- `src/types.ts`: Definições de tipos e contratos de dados da aplicação.
+- `src/types.ts`: Definições de tipos e contratos de dados compartilhados entre servidor e cliente.
 - `src/components/`: Componentes de interface do usuário para cada modalidade pedagógica.
 - `src/data/neurosciencePillars.ts`: Conteúdos de base científica e cartões de demonstração.

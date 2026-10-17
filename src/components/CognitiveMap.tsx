@@ -11,6 +11,7 @@ import {
   ShieldCheck,
   RotateCw
 } from 'lucide-react';
+import { api } from '../api';
 import { ConceptBreakdown } from '../types';
 import { useLanguage } from '../i18n/LanguageContext';
 
@@ -37,13 +38,11 @@ export const CognitiveMap: React.FC<CognitiveMapProps> = ({
     setError(null);
 
     try {
-      const response = await fetch('/api/generate-concept-breakdown', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
+      const response = await api.api['generate-concept-breakdown'].$post({
+        json: {
           topic: activeConcept,
           language,
-        }),
+        },
       });
 
       if (!response.ok) {
@@ -51,7 +50,7 @@ export const CognitiveMap: React.FC<CognitiveMapProps> = ({
         throw new Error(errData?.error || t.cognitiveMap.errorFallback);
       }
 
-      const data: ConceptBreakdown = await response.json();
+      const data = await response.json();
       setBreakdown(data);
     } catch (err: any) {
       console.error(err);
