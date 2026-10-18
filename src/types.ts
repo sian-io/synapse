@@ -74,3 +74,20 @@ export interface CognitiveStats {
   averageCalibration: number; // 0-100%
   totalActiveMinutes: number;
 }
+
+export type APIStandard = 'openai' | 'anthropic' | 'google' | 'ollama';
+export type OpenAIApiType = 'completions' | 'responses';
+
+export interface AIProviderConfig {
+  apiStandard: APIStandard;
+  openaiApiType?: OpenAIApiType;
+  maxTokens?: number;
+  apiKey?: string;
+  baseUrl: string;
+  model: string;
+}
+
+
+
+
+

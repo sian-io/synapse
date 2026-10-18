@@ -1,9 +1,8 @@
-
-import { Hono } from 'hono';
+import { Hono, Context } from 'hono';
 import { validator } from 'hono/validator';
-import { GoogleGenAI, Type } from '@google/genai';
 import { translateCognitivePhase } from './src/i18n/translations';
 import type {
+  AIProviderConfig,
   ChatMessage,
   ConceptBreakdown,
   FeynmanEvaluation,
@@ -23,71 +22,244 @@ app.onError((err, c) => {
   if (err instanceof SyntaxError || err.name === 'SyntaxError' || err.message?.includes('JSON')) {
     return c.json({ error: 'Malformed JSON payload.' }, 400);
   }
-  console.error('[Unhandled Server Error]', err);
+  console.error('[Unhandled Server Error]', err.message);
   return c.json({ error: 'Internal Server Error' }, 500);
 });
 
-// Initialize Gemini SDK with User-Agent as instructed
-let aiClient: GoogleGenAI | null = null;
-function getGeminiClient(): GoogleGenAI {
-  const apiKey = process.env.GEMINI_API_KEY;
-  if (!apiKey) {
-    throw new Error('GEMINI_API_KEY is not set.');
-  }
-  if (!aiClient) {
-    aiClient = new GoogleGenAI({
-      apiKey,
-      httpOptions: {
-        headers: {
-          'User-Agent': 'aistudio-build',
-        },
-      },
-    });
-  }
-  return aiClient;
-}
-
-// Resilient fallback runner across approved Gemini models
-async function sleep(ms: number) {
-  return new Promise((resolve) => setTimeout(resolve, ms));
-}
-
-async function generateWithFallback(ai: GoogleGenAI, requestPayload: any) {
-  // gemini-3.5-flash-lite and gemini-3.8-flash provide high responsiveness with fallback redundancy
-  const models = ['gemini-3.5-flash-lite', 'gemini-3.8-flash', 'gemini-flash-latest', 'gemini-3.1-flash-lite'];
-  let lastError: any = null;
-
-  for (const model of models) {
-    for (let attempt = 0; attempt < 2; attempt++) {
+function resolveAIConfig(c: Context, bodyConfig?: AIProviderConfig, isPt = false): AIProviderConfig {
+  let cfg = bodyConfig;
+  if (!cfg) {
+    const rawHeader = c.req.header('x-ai-config');
+    if (rawHeader) {
       try {
-        const response = await ai.models.generateContent({
-          ...requestPayload,
-          model,
-        });
-        return response;
-      } catch (err: any) {
-        lastError = err;
-        const errMsg = err?.message || String(err);
-        const isTransient =
-          errMsg.includes('503') ||
-          errMsg.includes('UNAVAILABLE') ||
-          errMsg.includes('high demand') ||
-          errMsg.includes('429') ||
-          errMsg.includes('RESOURCE_EXHAUSTED');
-
-        console.warn(`[Gemini Fallback] Model ${model} (attempt ${attempt + 1}) encountered issue:`, errMsg);
-
-        if (isTransient && attempt === 0) {
-          // Brief backoff with jitter to allow transient capacity spikes to clear
-          await sleep(750 + Math.random() * 500);
-          continue;
-        }
-        break; // Move to next model
+        cfg = JSON.parse(rawHeader);
+      } catch {
+        // ignore invalid header JSON
       }
     }
   }
 
-  throw lastError;
+  if (!cfg || !cfg.apiStandard || !cfg.baseUrl?.trim() || !cfg.model?.trim()) {
+    throw new Error(
+      isPt
+        ? 'Configure sua API nas Configurações de IA (ícone de engrenagem no topo).'
+        : 'Configure your API in AI Settings (gear icon at the top).'
+    );
+  }
+
+  return cfg;
+}
+
+function cleanJsonText(text: string): string {
+  return text.replace(/^```(?:json)?\s*/i, '').replace(/\s*```$/i, '').trim();
+}
+
+async function runInference(
+  cfg: AIProviderConfig,
+  options: {
+    systemInstruction?: string;
+    messages: { role: 'user' | 'assistant' | 'system'; content: string }[];
+    jsonMode?: boolean;
+  }
+): Promise<string> {
+  const baseUrl = cfg.baseUrl.trim().replace(/\/+$/, '');
+  const model = cfg.model.trim();
+  const apiKey = cfg.apiKey?.trim() || '';
+  const systemPrompt = [
+    options.systemInstruction || '',
+    options.jsonMode ? 'You MUST respond ONLY with a valid JSON object.' : '',
+  ]
+    .filter(Boolean)
+    .join('\n\n');
+
+  if (cfg.apiStandard === 'anthropic') {
+    const url = baseUrl.endsWith('/messages')
+      ? baseUrl
+      : baseUrl.endsWith('/v1')
+        ? `${baseUrl}/messages`
+        : `${baseUrl}/v1/messages`;
+
+    const maxTokens = Number.isInteger(cfg.maxTokens) && (cfg.maxTokens as number) >= 1 ? cfg.maxTokens : 2048;
+
+    const res = await fetch(url, {
+      method: 'POST',
+      headers: {
+        'content-type': 'application/json',
+        'x-api-key': apiKey,
+        'anthropic-version': '2023-06-01',
+      },
+      body: JSON.stringify({
+        model,
+        max_tokens: maxTokens,
+        ...(systemPrompt ? { system: systemPrompt } : {}),
+        messages: options.messages.map((m) => ({
+          role: m.role === 'assistant' ? 'assistant' : 'user',
+          content: m.content,
+        })),
+      }),
+    });
+
+    if (!res.ok) {
+      const errBody = await res.text().catch(() => '');
+      throw new Error(`Anthropic API error (${res.status}): ${errBody.slice(0, 200)}`);
+    }
+
+    const data: any = await res.json();
+    const text = data?.content?.[0]?.text?.trim();
+    if (!text) throw new Error('Empty response from Anthropic API.');
+    return options.jsonMode ? cleanJsonText(text) : text;
+  }
+
+  if (cfg.apiStandard === 'google') {
+    const modelPath = model.startsWith('models/') ? model : `models/${model}`;
+    const url = baseUrl.includes(':generateContent')
+      ? baseUrl
+      : baseUrl.match(/\/v1(?:beta)?$/)
+        ? `${baseUrl}/${modelPath}:generateContent`
+        : `${baseUrl}/v1beta/${modelPath}:generateContent`;
+
+    const headers: Record<string, string> = { 'content-type': 'application/json' };
+    if (apiKey) headers['x-goog-api-key'] = apiKey;
+
+    const res = await fetch(url, {
+      method: 'POST',
+      headers,
+      body: JSON.stringify({
+        ...(systemPrompt ? { systemInstruction: { parts: [{ text: systemPrompt }] } } : {}),
+        contents: options.messages.map((m) => ({
+          role: m.role === 'assistant' ? 'model' : 'user',
+          parts: [{ text: m.content }],
+        })),
+        ...(options.jsonMode ? { generationConfig: { responseMimeType: 'application/json' } } : {}),
+      }),
+    });
+
+    if (!res.ok) {
+      const errBody = await res.text().catch(() => '');
+      throw new Error(`Google API error (${res.status}): ${errBody.slice(0, 200)}`);
+    }
+
+    const data: any = await res.json();
+    const text = data?.candidates?.[0]?.content?.parts?.[0]?.text?.trim();
+    if (!text) throw new Error('Empty response from Google API.');
+    return options.jsonMode ? cleanJsonText(text) : text;
+  }
+
+  if (cfg.apiStandard === 'ollama') {
+    const url = baseUrl.endsWith('/api/chat')
+      ? baseUrl
+      : baseUrl.endsWith('/api')
+        ? `${baseUrl}/chat`
+        : `${baseUrl.replace(/\/v1$/, '')}/api/chat`;
+
+    const headers: Record<string, string> = { 'content-type': 'application/json' };
+    if (apiKey) headers['authorization'] = `Bearer ${apiKey}`;
+
+    const chatMessages = [
+      ...(systemPrompt ? [{ role: 'system', content: systemPrompt }] : []),
+      ...options.messages.map((m) => ({
+        role: m.role === 'assistant' ? 'assistant' : 'user',
+        content: m.content,
+      })),
+    ];
+
+    const res = await fetch(url, {
+      method: 'POST',
+      headers,
+      body: JSON.stringify({
+        model,
+        messages: chatMessages,
+        stream: false,
+        ...(options.jsonMode ? { format: 'json' } : {}),
+      }),
+    });
+
+    if (!res.ok) {
+      const errBody = await res.text().catch(() => '');
+      throw new Error(`Ollama API error (${res.status}): ${errBody.slice(0, 200)}`);
+    }
+
+    const data: any = await res.json();
+    const text = (data?.message?.content ?? data?.choices?.[0]?.message?.content)?.trim();
+    if (!text) throw new Error('Empty response from Ollama API.');
+    return options.jsonMode ? cleanJsonText(text) : text;
+  }
+
+  // OpenAI standard (Chat Completions or Responses API)
+  const headers: Record<string, string> = { 'content-type': 'application/json' };
+  if (apiKey) headers['authorization'] = `Bearer ${apiKey}`;
+
+  if (cfg.openaiApiType === 'responses') {
+    const url = baseUrl.endsWith('/responses')
+      ? baseUrl
+      : baseUrl.endsWith('/v1')
+        ? `${baseUrl}/responses`
+        : `${baseUrl}/v1/responses`;
+
+    const res = await fetch(url, {
+      method: 'POST',
+      headers,
+      body: JSON.stringify({
+        model,
+        ...(systemPrompt ? { instructions: systemPrompt } : {}),
+        input: options.messages.map((m) => ({
+          role: m.role === 'assistant' ? 'assistant' : 'user',
+          content: m.content,
+        })),
+        ...(options.jsonMode ? { text: { format: { type: 'json_object' } } } : {}),
+      }),
+    });
+
+    if (!res.ok) {
+      const errBody = await res.text().catch(() => '');
+      throw new Error(`OpenAI Responses API error (${res.status}): ${errBody.slice(0, 200)}`);
+    }
+
+    const data: any = await res.json();
+    const text = (
+      data?.output_text ??
+      data?.output
+        ?.flatMap((item: any) => item?.content || [])
+        ?.find((c: any) => typeof c?.text === 'string')?.text ??
+      data?.choices?.[0]?.message?.content
+    )?.trim();
+    if (!text) throw new Error('Empty response from OpenAI Responses API.');
+    return options.jsonMode ? cleanJsonText(text) : text;
+  }
+
+  const url = baseUrl.endsWith('/chat/completions')
+    ? baseUrl
+    : baseUrl.endsWith('/v1')
+      ? `${baseUrl}/chat/completions`
+      : `${baseUrl}/v1/chat/completions`;
+
+  const chatMessages = [
+    ...(systemPrompt ? [{ role: 'system', content: systemPrompt }] : []),
+    ...options.messages.map((m) => ({
+      role: m.role === 'assistant' ? 'assistant' : 'user',
+      content: m.content,
+    })),
+  ];
+
+  const res = await fetch(url, {
+    method: 'POST',
+    headers,
+    body: JSON.stringify({
+      model,
+      messages: chatMessages,
+      ...(options.jsonMode ? { response_format: { type: 'json_object' } } : {}),
+    }),
+  });
+
+  if (!res.ok) {
+    const errBody = await res.text().catch(() => '');
+    throw new Error(`OpenAI API error (${res.status}): ${errBody.slice(0, 200)}`);
+  }
+
+  const data: any = await res.json();
+  const text = data?.choices?.[0]?.message?.content?.trim();
+  if (!text) throw new Error('Empty response from OpenAI API.');
+  return options.jsonMode ? cleanJsonText(text) : text;
 }
 
 const routes = app
@@ -96,7 +268,7 @@ const routes = app
     return c.json(
       {
         status: 'ok',
-        hasApiKey: !!process.env.GEMINI_API_KEY,
+        mode: 'byok-stateless-proxy',
         timestamp: Date.now(),
       },
       200
@@ -111,15 +283,16 @@ const routes = app
       currentTopic?: string;
       studentCalibration?: number;
       language?: 'en' | 'pt';
+      aiConfig?: AIProviderConfig;
     }>(),
     async (c) => {
-      const { messages, mode, currentTopic, studentCalibration, language = 'en' } = c.req.valid('json');
+      const { messages, mode, currentTopic, studentCalibration, language = 'en', aiConfig } = c.req.valid('json');
       const isPt = language === 'pt';
 
-  try {
-    const ai = getGeminiClient();
+      try {
+        const cfg = resolveAIConfig(c, aiConfig, isPt);
 
-    const systemInstruction = `
+        const systemInstruction = `
 You are **Synapse**, an Elite Pedagogical AI Agent grounded strictly in **Cognitive Neuroscience** and **Active Learning Methodologies** proven by learning sciences:
 1. **Retrieval Practice & Testing Effect (Roediger & Karpicke, 2006)**: Do not give ready-made answers! Force the student to retrieve information from long-term memory (LTP - Long-Term Potentiation).
 2. **Socratic Method & Elaborative Interrogation**: Guide the student through insightful questions ("Why does this occur?", "What is the causal link between X and Y?").
@@ -148,88 +321,76 @@ SuggestedNextSteps: [${isPt ? 'Ação 1 | Ação 2' : 'Action 1 | Action 2'}]
 \`\`\`
 `.trim();
 
-    // Map conversation history
-    const conversationHistory = (messages || []).map((m: any) => ({
-      role: m.role === 'assistant' ? 'model' : 'user',
-      parts: [{ text: m.content }],
-    }));
+        const responseText = await runInference(cfg, {
+          systemInstruction,
+          messages: messages || [],
+        });
 
-    const response = await generateWithFallback(ai, {
-      contents: conversationHistory,
-      config: {
-        systemInstruction,
-        temperature: 0.7,
-      },
-    });
+        // Extract meta block if present
+        let cleanedText = responseText;
+        let cognitivePhase = isPt ? 'Recuperação Ativa' : 'Active Retrieval';
+        let neuroTip = isPt
+          ? 'A recuperação ativa estimula a síntese de proteínas sinápticas, consolidando memórias duradouras.'
+          : 'Active retrieval stimulates synaptic protein synthesis, consolidating durable memories.';
+        let suggestedActions: string[] = [];
 
-    const responseText = response.text?.trim();
-    if (!responseText) {
-      throw new Error('Empty response from inference API.');
-    }
+        const metaMatch = responseText.match(/```meta\s*([\s\S]*?)\s*```/);
+        if (metaMatch) {
+          cleanedText = responseText.replace(/```meta\s*[\s\S]*?\s*```/, '').trim();
+          const metaContent = metaMatch[1];
+          const phaseMatch = metaContent.match(/CognitivePhase:\s*(.*)/i);
+          const tipMatch = metaContent.match(/NeuroTip:\s*(.*)/i);
+          const stepsMatch = metaContent.match(/SuggestedNextSteps:\s*(.*)/i);
 
-    // Extract meta block if present
-    let cleanedText = responseText;
-    let cognitivePhase = isPt ? 'Recuperação Ativa' : 'Active Retrieval';
-    let neuroTip = isPt
-      ? 'A recuperação ativa estimula a síntese de proteínas sinápticas, consolidando memórias duradouras.'
-      : 'Active retrieval stimulates synaptic protein synthesis, consolidating durable memories.';
-    let suggestedActions: string[] = [];
+          if (phaseMatch) {
+            cognitivePhase = translateCognitivePhase(phaseMatch[1].trim(), isPt ? 'pt' : 'en');
+          }
+          if (tipMatch) neuroTip = tipMatch[1].trim();
+          if (stepsMatch) {
+            suggestedActions = stepsMatch[1].split('|').map((s) => s.trim()).filter(Boolean);
+          }
+        }
 
-    const metaMatch = responseText.match(/```meta\s*([\s\S]*?)\s*```/);
-    if (metaMatch) {
-      cleanedText = responseText.replace(/```meta\s*[\s\S]*?\s*```/, '').trim();
-      const metaContent = metaMatch[1];
-      const phaseMatch = metaContent.match(/CognitivePhase:\s*(.*)/i);
-      const tipMatch = metaContent.match(/NeuroTip:\s*(.*)/i);
-      const stepsMatch = metaContent.match(/SuggestedNextSteps:\s*(.*)/i);
+        cleanedText = cleanedText.replace(/(?:[\r\n]+\s*(?:[-*_]\s*){3,})+$/, '').trim();
 
-      if (phaseMatch) {
-        cognitivePhase = translateCognitivePhase(phaseMatch[1].trim(), isPt ? 'pt' : 'en');
+        const defaultActions = isPt
+          ? [
+              'Tentar explicar com uma analogia simples',
+              'Identificar a premissa mais frágil do raciocínio',
+              'Pedir um contra-exemplo desafiador',
+            ]
+          : [
+              'Try explaining with a simple analogy',
+              'Identify the weakest premise of this reasoning',
+              'Ask for a challenging counterexample',
+            ];
+
+        return c.json(
+          {
+            content: cleanedText,
+            meta: {
+              cognitivePhase,
+              desirableDifficultyNote: neuroTip,
+              suggestedActions: suggestedActions.length > 0 ? suggestedActions : defaultActions,
+            },
+          },
+          200
+        );
+      } catch (error: any) {
+        console.error('Error in /api/chat:', error.message);
+        return c.json(
+          {
+            error:
+              error.message ||
+              (isPt
+                ? 'Não foi possível alcançar a API de inferência para gerar a resposta.'
+                : 'Could not reach the inference API to generate a response.'),
+          },
+          503
+        );
       }
-      if (tipMatch) neuroTip = tipMatch[1].trim();
-      if (stepsMatch) {
-        suggestedActions = stepsMatch[1].split('|').map((s) => s.trim()).filter(Boolean);
-      }
     }
-
-    // Strip trailing markdown horizontal rules (e.g. ---, ***, ___) left over before the meta block
-    cleanedText = cleanedText.replace(/(?:[\r\n]+\s*(?:[-*_]\s*){3,})+$/, '').trim();
-
-    const defaultActions = isPt
-      ? [
-          'Tentar explicar com uma analogia simples',
-          'Identificar a premissa mais frágil do raciocínio',
-          'Pedir um contra-exemplo desafiador',
-        ]
-      : [
-          'Try explaining with a simple analogy',
-          'Identify the weakest premise of this reasoning',
-          'Ask for a challenging counterexample',
-        ];
-
-    return c.json(
-      {
-        content: cleanedText,
-        meta: {
-          cognitivePhase,
-          desirableDifficultyNote: neuroTip,
-          suggestedActions: suggestedActions.length > 0 ? suggestedActions : defaultActions,
-        },
-      },
-      200
-    );
-  } catch (error: any) {
-    console.error('Error in /api/chat:', error);
-    return c.json(
-      {
-        error: isPt
-          ? 'Não foi possível alcançar a API de inferência para gerar a resposta.'
-          : 'Could not reach the inference API to generate a response.',
-      },
-      503
-    );
-  }
-  })
+  )
   // Evaluate Feynman Explanation
   .post(
     '/api/feynman-evaluate',
@@ -238,9 +399,10 @@ SuggestedNextSteps: [${isPt ? 'Ação 1 | Ação 2' : 'Action 1 | Action 2'}]
       explanation: string;
       targetAudience?: string;
       language?: 'en' | 'pt';
+      aiConfig?: AIProviderConfig;
     }>(),
     async (c) => {
-      const { topic, explanation, targetAudience = 'a curious 10-year-old child', language = 'en' } = c.req.valid('json');
+      const { topic, explanation, targetAudience = 'a curious 10-year-old child', language = 'en', aiConfig } = c.req.valid('json');
       const isPt = language === 'pt';
 
       if (!topic || !explanation) {
@@ -248,7 +410,7 @@ SuggestedNextSteps: [${isPt ? 'Ação 1 | Ação 2' : 'Action 1 | Action 2'}]
       }
 
       try {
-        const ai = getGeminiClient();
+        const cfg = resolveAIConfig(c, aiConfig, isPt);
 
         const prompt = `
 Evaluate the following student explanation using the **Feynman Technique** and neurocognitive principles of deep comprehension:
@@ -265,84 +427,26 @@ Analyze critically:
 4. Quality and accuracy of analogies used.
 5. A hyper-simplified, elegant alternative explanation.
 6. A surgical Socratic question for the student to repair their primary gap.
+
+Return JSON with keys: score (0-100 integer), clarityAssessment (string), jargonIdentified (string[]), conceptualGaps (string[]), strengths (string[]), analogiesEvaluation (string), suggestedAnalogy (string), simplifiedAlternative (string), followUpQuestion (string).
 `.trim();
 
-        const response = await generateWithFallback(ai, {
-          contents: prompt,
-          config: {
-            responseMimeType: 'application/json',
-            responseSchema: {
-              type: Type.OBJECT,
-              properties: {
-                score: {
-                  type: Type.INTEGER,
-                  description: 'Score from 0 to 100 based on clarity, lack of jargon, and accuracy.',
-                },
-                clarityAssessment: {
-                  type: Type.STRING,
-                  description: 'General diagnosis of the demonstrated explanatory clarity.',
-                },
-                jargonIdentified: {
-                  type: Type.ARRAY,
-                  items: { type: Type.STRING },
-                  description: 'Technical terms or obscure vocabulary used without explanation.',
-                },
-                conceptualGaps: {
-                  type: Type.ARRAY,
-                  items: { type: Type.STRING },
-                  description: 'Logical or mechanical steps omitted from the explanation.',
-                },
-                strengths: {
-                  type: Type.ARRAY,
-                  items: { type: Type.STRING },
-                  description: 'Highlights, correct intuitions, and achievements of the explanation.',
-                },
-                analogiesEvaluation: {
-                  type: Type.STRING,
-                  description: 'Commentary on analogies used or lack thereof.',
-                },
-                suggestedAnalogy: {
-                  type: Type.STRING,
-                  description: 'A vivid, everyday analogy tailored for this concept.',
-                },
-                simplifiedAlternative: {
-                  type: Type.STRING,
-                  description: 'How Richard Feynman would explain this concept in 2 or 3 crystal-clear sentences.',
-                },
-                followUpQuestion: {
-                  type: Type.STRING,
-                  description: 'Socratic question targeting the weakest point of the explanation.',
-                },
-              },
-              required: [
-                'score',
-                'clarityAssessment',
-                'jargonIdentified',
-                'conceptualGaps',
-                'strengths',
-                'analogiesEvaluation',
-                'suggestedAnalogy',
-                'simplifiedAlternative',
-                'followUpQuestion',
-              ],
-            },
-          },
+        const responseText = await runInference(cfg, {
+          messages: [{ role: 'user', content: prompt }],
+          jsonMode: true,
         });
-
-        const responseText = response.text?.trim();
-        if (!responseText) {
-          throw new Error('Empty response from inference API.');
-        }
 
         const parsed: FeynmanEvaluation = JSON.parse(responseText);
         return c.json(parsed, 200);
       } catch (error: any) {
-        console.error('Error in /api/feynman-evaluate:', error);
+        console.error('Error in /api/feynman-evaluate:', error.message);
         return c.json(
           {
-            error: isPt
-              ? 'Não foi possível alcançar a API de inferência para avaliar a explicação.'
-              : 'Could not reach the inference API to evaluate the explanation.',
+            error:
+              error.message ||
+              (isPt
+                ? 'Não foi possível alcançar a API de inferência para avaliar a explicação.'
+                : 'Could not reach the inference API to evaluate the explanation.'),
           },
           503
         );
@@ -357,9 +461,10 @@ Analyze critically:
       difficulty?: string;
       count?: number;
       language?: 'en' | 'pt';
+      aiConfig?: AIProviderConfig;
     }>(),
     async (c) => {
-      const { topic, difficulty = 'intermediario', count = 4, language = 'en' } = c.req.valid('json');
+      const { topic, difficulty = 'intermediario', count = 4, language = 'en', aiConfig } = c.req.valid('json');
       const isPt = language === 'pt';
 
       if (!topic) {
@@ -367,7 +472,7 @@ Analyze critically:
       }
 
       try {
-        const ai = getGeminiClient();
+        const cfg = resolveAIConfig(c, aiConfig, isPt);
 
         const prompt = `
 Create a set of ${count} **Active Retrieval Practice (Active Recall)** and **Elaborative Interrogation** cards for the topic: "${topic}".
@@ -379,50 +484,14 @@ STRICT PEDAGOGICAL RULES:
 - Create mechanism questions ("What would happen if component X failed?", "Why does X produce Y instead of Z?", "What is the essential distinction between A and B?").
 - Provide explanatory answers that consolidate the correct mental model.
 - Include a mnemonic "neuroTip" or conceptual anchor for each question.
+
+Return JSON with key "cards", an array of objects each with keys: question (string), answer (string), keyConcept (string), neuroTip (string).
 `.trim();
 
-        const response = await generateWithFallback(ai, {
-          contents: prompt,
-          config: {
-            responseMimeType: 'application/json',
-            responseSchema: {
-              type: Type.OBJECT,
-              properties: {
-                cards: {
-                  type: Type.ARRAY,
-                  items: {
-                    type: Type.OBJECT,
-                    properties: {
-                      question: {
-                        type: Type.STRING,
-                        description: 'The challenging active retrieval question.',
-                      },
-                      answer: {
-                        type: Type.STRING,
-                        description: 'The complete answer with mental model and mechanism.',
-                      },
-                      keyConcept: {
-                        type: Type.STRING,
-                        description: 'The nuclear concept being tested.',
-                      },
-                      neuroTip: {
-                        type: Type.STRING,
-                        description: 'Neurocognitive tip or mental anchoring model.',
-                      },
-                    },
-                    required: ['question', 'answer', 'keyConcept', 'neuroTip'],
-                  },
-                },
-              },
-              required: ['cards'],
-            },
-          },
+        const responseText = await runInference(cfg, {
+          messages: [{ role: 'user', content: prompt }],
+          jsonMode: true,
         });
-
-        const responseText = response.text?.trim();
-        if (!responseText) {
-          throw new Error('Empty response from inference API.');
-        }
 
         const parsed = JSON.parse(responseText);
         const rawCards = Array.isArray(parsed) ? parsed : (parsed.cards || parsed.flashcards || []);
@@ -443,12 +512,14 @@ STRICT PEDAGOGICAL RULES:
 
         return c.json({ flashcards, cards: flashcards }, 200);
       } catch (error: any) {
-        console.error('Error in /api/generate-retrieval-deck:', error);
+        console.error('Error in /api/generate-retrieval-deck:', error.message);
         return c.json(
           {
-            error: isPt
-              ? 'Não foi possível alcançar a API de inferência para gerar o baralho.'
-              : 'Could not reach the inference API to generate the deck.',
+            error:
+              error.message ||
+              (isPt
+                ? 'Não foi possível alcançar a API de inferência para gerar o baralho.'
+                : 'Could not reach the inference API to generate the deck.'),
           },
           503
         );
@@ -461,9 +532,10 @@ STRICT PEDAGOGICAL RULES:
     jsonBody<{
       topic: string;
       language?: 'en' | 'pt';
+      aiConfig?: AIProviderConfig;
     }>(),
     async (c) => {
-      const { topic, language = 'en' } = c.req.valid('json');
+      const { topic, language = 'en', aiConfig } = c.req.valid('json');
       const isPt = language === 'pt';
 
       if (!topic) {
@@ -471,7 +543,7 @@ STRICT PEDAGOGICAL RULES:
       }
 
       try {
-        const ai = getGeminiClient();
+        const cfg = resolveAIConfig(c, aiConfig, isPt);
 
         const prompt = `
 Perform a high-efficiency pedagogical breakdown based on **Sweller's Cognitive Load Theory** and **Paivio's Dual-Coding Theory** for the topic: "${topic}".
@@ -485,61 +557,26 @@ Structure:
 5. 3 deep elaborative questions ("Why...?", "How...?", "What is the consequence of...?").
 6. A concrete physical/everyday world analogy.
 7. The neuroscientific rationale for why this topic is typically difficult and how the brain should process it.
+
+Return JSON with keys: topic (string), overview (string), prerequisites (string[]), coreMechanism (string), commonMisconceptions (string[]), elaborativeQuestions (string[]), realWorldAnalogy (string), neuroscienceRationale (string).
 `.trim();
 
-        const response = await generateWithFallback(ai, {
-          contents: prompt,
-          config: {
-            responseMimeType: 'application/json',
-            responseSchema: {
-              type: Type.OBJECT,
-              properties: {
-                topic: { type: Type.STRING },
-                overview: { type: Type.STRING },
-                prerequisites: {
-                  type: Type.ARRAY,
-                  items: { type: Type.STRING },
-                },
-                coreMechanism: { type: Type.STRING },
-                commonMisconceptions: {
-                  type: Type.ARRAY,
-                  items: { type: Type.STRING },
-                },
-                elaborativeQuestions: {
-                  type: Type.ARRAY,
-                  items: { type: Type.STRING },
-                },
-                realWorldAnalogy: { type: Type.STRING },
-                neuroscienceRationale: { type: Type.STRING },
-              },
-              required: [
-                'topic',
-                'overview',
-                'prerequisites',
-                'coreMechanism',
-                'commonMisconceptions',
-                'elaborativeQuestions',
-                'realWorldAnalogy',
-                'neuroscienceRationale',
-              ],
-            },
-          },
+        const responseText = await runInference(cfg, {
+          messages: [{ role: 'user', content: prompt }],
+          jsonMode: true,
         });
-
-        const responseText = response.text?.trim();
-        if (!responseText) {
-          throw new Error('Empty response from inference API.');
-        }
 
         const parsed: ConceptBreakdown = JSON.parse(responseText);
         return c.json(parsed, 200);
       } catch (error: any) {
-        console.error('Error in /api/generate-concept-breakdown:', error);
+        console.error('Error in /api/generate-concept-breakdown:', error.message);
         return c.json(
           {
-            error: isPt
-              ? 'Não foi possível alcançar a API de inferência para gerar o mapeamento conceitual.'
-              : 'Could not reach the inference API to generate the concept breakdown.',
+            error:
+              error.message ||
+              (isPt
+                ? 'Não foi possível alcançar a API de inferência para gerar o mapeamento conceitual.'
+                : 'Could not reach the inference API to generate the concept breakdown.'),
           },
           503
         );

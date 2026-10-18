@@ -8,6 +8,8 @@ import {
   BookOpen,
   Flame,
   Globe,
+  Settings,
+  AlertTriangle,
 } from 'lucide-react';
 import { SocraticTutor } from './components/SocraticTutor';
 import { FeynmanStudio } from './components/FeynmanStudio';
@@ -17,11 +19,14 @@ import { NeuroscienceGuide } from './components/NeuroscienceGuide';
 import { UnifiedConceptBar } from './components/UnifiedConceptBar';
 import { CognitiveStats } from './types';
 import { LanguageProvider, useLanguage } from './i18n/LanguageContext';
+import { AIConfigProvider, useAIConfig } from './context/AIConfigContext';
 
 type ActiveTab = 'socratic' | 'feynman' | 'retrieval' | 'cognitive_map' | 'neuroscience';
 
 function AppContent() {
   const { t, language, setLanguage } = useLanguage();
+  const { isConfigured, openModal } = useAIConfig();
+  const isPt = language === 'pt';
   const [activeTab, setActiveTab] = useState<ActiveTab>('neuroscience');
   const [currentTopic, setCurrentTopic] = useState<string>(() => {
     return localStorage.getItem('synapse_current_topic') || t.conceptBar.defaultTopic;
@@ -187,12 +192,46 @@ function AppContent() {
               <span className="hidden sm:inline"><strong className="text-zinc-100 font-semibold">{stats.retrievalAttempts + stats.socraticQuestionsAnswered}</strong> {t.app.stats.recallsLTP}</span>
               <span className="sm:hidden"><strong className="text-zinc-100 font-semibold">{stats.retrievalAttempts + stats.socraticQuestionsAnswered}</strong> {t.app.stats.recallsLTPShort}</span>
             </div>
+
+            {/* AI Settings Button */}
+            <button
+              type="button"
+              onClick={openModal}
+              className={`p-2 rounded-lg border text-xs font-medium transition-colors cursor-pointer flex items-center gap-1.5 ${
+                isConfigured
+                  ? 'bg-zinc-900/90 border-zinc-800 text-zinc-300 hover:text-zinc-100 hover:border-zinc-700'
+                  : 'bg-amber-950/60 border-amber-700/70 text-amber-300 hover:bg-amber-900/60'
+              }`}
+              title={isPt ? 'Configurações de IA (BYOK)' : 'AI Configuration (BYOK)'}
+            >
+              <Settings className="w-4 h-4 stroke-[1.75]" />
+            </button>
           </div>
         </div>
       </header>
 
       {/* Main Content Viewport */}
       <main className="flex-1 max-w-[1600px] w-full mx-auto px-4 sm:px-8 xl:px-12 py-6 space-y-6">
+        {!isConfigured && (
+          <div className="p-4 rounded-2xl bg-amber-950/40 border border-amber-800/70 text-amber-200 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 text-xs sm:text-sm">
+            <div className="flex items-center gap-2.5">
+              <AlertTriangle className="w-4 h-4 text-amber-400 shrink-0" />
+              <span>
+                {isPt
+                  ? 'Configure sua API de IA (BYOK) para habilitar o Tutor Socrático, Feynman, Flashcards e Mapa Cognitivo.'
+                  : 'Configure your AI API (BYOK) to enable Socratic Tutor, Feynman Studio, Flashcards, and Cognitive Map.'}
+              </span>
+            </div>
+            <button
+              type="button"
+              onClick={openModal}
+              className="px-3.5 py-1.5 rounded-xl bg-amber-200 hover:bg-amber-100 text-zinc-950 font-semibold text-xs transition-colors shrink-0 cursor-pointer"
+            >
+              {isPt ? 'Configurar API' : 'Configure API'}
+            </button>
+          </div>
+        )}
+
         {/* Unified Concept Definition Bar - Persistent Across All Pages */}
         <UnifiedConceptBar
           currentTopic={currentTopic}
@@ -240,7 +279,10 @@ function AppContent() {
 export default function App() {
   return (
     <LanguageProvider>
-      <AppContent />
+      <AIConfigProvider>
+        <AppContent />
+      </AIConfigProvider>
     </LanguageProvider>
   );
 }
+
