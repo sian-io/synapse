@@ -107,7 +107,7 @@ No Python, você precisa explicitamente criar um ambiente (`python -m venv .venv
 
 No Bun / Node.js:
 - Não existe conceito de "ativar ambiente".
-- Toda execução de `bun install` baixa os arquivos diretamente para a subpasta local [`node_modules/`](file:///home/gui/Projects/synapse/node_modules) do seu projeto.
+- Toda execução de `bun install` baixa os arquivos diretamente para a subpasta local `node_modules/` do seu projeto.
 - Quando você executa `bun run dev` ou qualquer script, o runtime busca as dependências automaticamente subindo a árvore de diretórios a partir do seu arquivo.
 
 ---

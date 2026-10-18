@@ -97,7 +97,7 @@ const dado = JSON.parse('{"score": "invalido"}') as RespostaGemini;
 ```
 
 > [!IMPORTANT]
-> **Lição Fundamental**: O TypeScript garante consistência entre as partes do código que você mesmo escreve. Para dados que cruzam a fronteira da aplicação (requisições HTTP, respostas de IA, leitura de arquivos), o desenvolvedor deve criar validações explícitas de dados ou usar esquemas estruturados na API (como o Synapse faz ao exigir esquemas JSON da API Gemini em [`server.ts`](file:///C:/Projetos/synapse/server.ts)).
+> **Lição Fundamental**: O TypeScript garante consistência entre as partes do código que você mesmo escreve. Para dados que cruzam a fronteira da aplicação (requisições HTTP, respostas de IA, leitura de arquivos), o desenvolvedor deve criar validações explícitas de dados ou usar esquemas estruturados na API (como o Synapse faz ao exigir contratos JSON estritos em `server.ts`).
 
 ---
 
@@ -117,12 +117,12 @@ Ocorre quando o **Bun** está rodando o servidor **Hono** (`server.ts`) ou o nav
 
 ## 5. Como o Código Roda Sem Compilação Manual no Synapse?
 
-Como os comandos `bun run dev` e `bun run start` conseguem rodar o arquivo [`server.ts`](file:///home/gui/Projects/synapse/server.ts) diretamente, sem que tenhamos que criar uma pasta intermediária cheia de arquivos `.js` para o backend?
+Como os comandos `bun run dev` e `bun run start` conseguem rodar o arquivo `server.ts` diretamente, sem que tenhamos que criar uma pasta intermediária cheia de arquivos `.js` para o backend?
 
 A resposta está no runtime moderno **Bun** e no servidor **Vite**:
 
 ### No Backend: Execução Nativa pelo Bun
-No [`package.json`](file:///home/gui/Projects/synapse/package.json), os scripts estão configurados como:
+No `package.json`, os scripts estão configurados como:
 ```json
 "dev": "bun --bun vite",
 "start": "bun server.ts"
@@ -133,6 +133,6 @@ O **Bun** possui um transpilador nativo ultra-rápido escrito em Zig:
 3. **Causa e efeito**: Você executa arquivos `.ts` diretamente como em Python (`python server.py`), com feedback imediato.
 
 ### No Frontend: O servidor Vite + Hono RPC
-No navegador, o arquivo [`src/main.tsx`](file:///home/gui/Projects/synapse/src/main.tsx), o cliente [`src/api.ts`](file:///home/gui/Projects/synapse/src/api.ts) (`hc<AppType>('/')`) e os componentes React são entregues através do **Vite**. O `import type { AppType } from '../server'` em `src/api.ts` é completamente apagado na compilação (*Type Erasure*), garantindo que o código do servidor nunca vá parar no bundle do navegador, enquanto mantém 100% da segurança de tipos nas chamadas HTTP.
+No navegador, o arquivo `src/main.tsx`, o cliente `src/api.ts` (`hc<AppType>('/')`) e os componentes React são entregues através do **Vite**. O `import type { AppType } from '../server'` em `src/api.ts` é completamente apagado na compilação (*Type Erasure*), garantindo que o código do servidor nunca vá parar no bundle do navegador, enquanto mantém 100% da segurança de tipos nas chamadas HTTP.
 
 No próximo documento ([02 — Configurações e Tooling](./02-configuracoes-e-ferramental.md)), veremos detalhadamente como esses arquivos de configuração orquestram todo esse ecossistema.

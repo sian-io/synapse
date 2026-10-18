@@ -3,11 +3,11 @@
 Em um projeto simples de Python, muitas vezes basta um arquivo `requirements.txt` (ou um `pyproject.toml`) e um comando `python main.py` para colocar tudo em funcionamento. 
 
 Ao abrir um projeto em TypeScript como o **Synapse**, no entanto, você encontra cinco arquivos de configuração e bloqueio na raiz:
-- [`package.json`](file:///C:/Projetos/synapse/package.json)
-- [`package-lock.json`](file:///C:/Projetos/synapse/package-lock.json)
-- [`bun.lock`](file:///C:/Projetos/synapse/bun.lock)
-- [`tsconfig.json`](file:///C:/Projetos/synapse/tsconfig.json)
-- [`vite.config.ts`](file:///C:/Projetos/synapse/vite.config.ts)
+- `package.json`
+- `package-lock.json`
+- `bun.lock`
+- `tsconfig.json`
+- `vite.config.ts`
 
 Neste documento dedicado, não faremos uma leitura maçante de cada linha de código. Em vez disso, vamos evidenciar a **necessidade** (por que cada um existe e qual dor resolve) e o **funcionamento** (como eles operam juntos no pipeline de execução do projeto).
 
@@ -53,7 +53,7 @@ O arquivo atua em três frentes principais:
    - Definir `"type": "module"` informa ao Node.js que todos os arquivos `.js`/`.ts` do projeto devem seguir o padrão moderno de módulos.
 
 2. **Divisão de Dependências (`dependencies` vs `devDependencies`)**:
-   - `dependencies` (ex: `hono`, `@google/genai`, `react`): Bibliotecas que o código precisa para funcionar enquanto a aplicação está rodando em produção (incluindo o servidor Hono e o cliente `hono/client` do Hono RPC).
+   - `dependencies` (ex: `hono`, `react`, `lucide-react`, `react-markdown`): Bibliotecas que o código precisa para funcionar enquanto a aplicação está rodando em produção (incluindo o servidor Hono e o cliente `hono/client` do Hono RPC).
    - `devDependencies` (ex: `typescript`, `vite`, `@hono/vite-dev-server`, `@types/bun`): Ferramentas que só são úteis para quem está programando ou compilando o projeto. Em Python, seria o equivalente às dependências do grupo `[tool.poetry.group.dev]` (como `pytest`, `mypy`, `ruff`).
 
 3. **Central de Automação (`scripts`)**:
@@ -81,7 +81,7 @@ Isso gera um problema crítico de causalidade conhecido como **efeito "na minha 
 ## 4. `tsconfig.json` — As Regras do Verificador de Tipos
 
 ### Qual é a sua necessidade?
-Como o compilador do TypeScript (`tsc`) precisa analisar o código antes de qualquer execução, ele precisa de instruções claras sobre o ambiente e o sistema de módulos. O [`tsconfig.json`](file:///home/gui/Projects/synapse/tsconfig.json) configura o Language Server da IDE e o verificador estático.
+Como o compilador do TypeScript (`tsc`) precisa analisar o código antes de qualquer execução, ele precisa de instruções claras sobre o ambiente e o sistema de módulos. O `tsconfig.json` configura o Language Server da IDE e o verificador estático.
 
 ### Decisões Cruciais e Funcionamento:
 
@@ -111,7 +111,7 @@ Navegadores não compreendem arquivos `.tsx` diretamente. O **Vite** atua como s
 2. **Cadeia de Plugins Integrados**:
    - `@vitejs/plugin-react`: Transforma a sintaxe JSX/TSX do React.
    - `@tailwindcss/vite`: Compila as classes do Tailwind CSS v4 diretamente no pipeline do Vite.
-   - `@hono/vite-dev-server`: Conecta o servidor de desenvolvimento do Vite diretamente à aplicação Hono em [`server.ts`](file:///home/gui/Projects/synapse/server.ts) na mesma porta (`3000`):
+   - `@hono/vite-dev-server`: Conecta o servidor de desenvolvimento do Vite diretamente à aplicação Hono em `server.ts` na mesma porta (`3000`):
      ```typescript
      devServer({
        entry: 'server.ts',

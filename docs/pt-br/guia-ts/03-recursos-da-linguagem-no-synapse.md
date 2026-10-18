@@ -8,7 +8,7 @@ Neste documento, vamos analisar os recursos do TypeScript que estruturam o códi
 
 ## 1. Modelagem de Estruturas: `interface` vs `type`
 
-Abra o arquivo [`src/types.ts`](file:///C:/Projetos/synapse/src/types.ts). Você notará dois operadores fundamentais: `type` e `interface`.
+Abra o arquivo `src/types.ts`. Você notará dois operadores fundamentais: `type` e `interface`.
 
 ### O que é uma `interface`?
 Uma `interface` define o formato exato que um objeto JavaScript deve ter em sua estrutura:
@@ -55,7 +55,7 @@ class Flashcard(TypedDict):
 
 ## 2. Tipos de União (*Union Types*) e *String Literals*
 
-Ainda em [`src/types.ts`](file:///C:/Projetos/synapse/src/types.ts), veja a definição do modo pedagógico:
+Ainda em `src/types.ts`, veja a definição do modo pedagógico:
 
 ```typescript
 export type PedagogicalMode = 
@@ -106,7 +106,7 @@ lastReviewed: int | None = None
 
 ### O Operador de Afirmação Não-Nula (*Non-null Assertion Operator* `!`)
 
-Veja a inicialização do React em [`src/main.tsx`](file:///C:/Projetos/synapse/src/main.tsx):
+Veja a inicialização do React em `src/main.tsx`:
 
 ```typescript
 createRoot(document.getElementById('root')!).render(
@@ -145,14 +145,14 @@ Generics permitem escrever código que opera de forma idêntica sobre diferentes
 Pense neles como **parâmetros de função, mas que recebem tipos em vez de valores**.
 
 ### Exemplo 1: O hook `useState` do React
-No arquivo [`src/App.tsx`](file:///C:/Projetos/synapse/src/App.tsx), você verá:
+No arquivo `src/App.tsx`, você verá:
 ```typescript
 const [activeTab, setActiveTab] = useState<PedagogicalMode>('socratic');
 ```
 O `<PedagogicalMode>` passa o tipo como parâmetro para o hook `useState`. O TypeScript agora sabe que a variável `activeTab` só pode assumir um dos cinco modos válidos, e que a função `setActiveTab` rejeitará qualquer outra string.
 
 ### Exemplo 2: Cliente Hono RPC Tipado com `hc<AppType>`
-No arquivo [`src/api.ts`](file:///home/gui/Projects/synapse/src/api.ts), o cliente HTTP é instanciado passando o tipo `AppType` exportado pelo servidor como parâmetro genérico:
+No arquivo `src/api.ts`, o cliente HTTP é instanciado passando o tipo `AppType` exportado pelo servidor como parâmetro genérico:
 ```typescript
 import { hc } from 'hono/client';
 import type { AppType } from '../server';
@@ -189,13 +189,13 @@ const data = await response.json();
 
 ## 6. O Ecossistema de Tipos Externos (`@types/*`)
 
-Se você abrir a seção `devDependencies` no [`package.json`](file:///home/gui/Projects/synapse/package.json), verá o pacote:
+Se você abrir a seção `devDependencies` no `package.json`, verá o pacote:
 ```json
 "@types/bun": "^1.2.4"
 ```
 
 ### Qual é a necessidade desse pacote?
-Enquanto bibliotecas modernas escritas diretamente em TypeScript (como o **Hono** e o `@google/genai`) já trazem seus próprios arquivos de definição (`.d.ts`) embutidos, as APIs nativas do runtime (como o objeto global `Bun` utilizado em `server.ts`) precisam ser declaradas para o compilador.
+Enquanto bibliotecas modernas escritas diretamente em TypeScript (como o **Hono** e o `lucide-react`) já trazem seus próprios arquivos de definição (`.d.ts`) embutidos, as APIs nativas do runtime (como o objeto global `Bun` utilizado em `server.ts`) precisam ser declaradas para o compilador.
 
 O pacote `@types/bun` fornece apenas arquivos de declaração (`.d.ts`):
 - Não contém lógica nem código executável em runtime.

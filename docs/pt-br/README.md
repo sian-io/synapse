@@ -107,14 +107,15 @@ Visite a aba **Base Neurocientífica** a qualquer momento para revisar os estudo
 ### Pré-requisitos
 
 - [Bun](https://bun.sh/) versão 1.1 ou superior instalado.
-- Chave de API da Google Gemini (opcional para testes básicos, recomendada para respostas completas de IA).
+- Chave de API ou modelo local de qualquer provedor LLM compatível: OpenAI, Anthropic, Google Gemini ou Ollama (Bring Your Own Key - BYOK).
 
 ### Passo a Passo de Instalação
 
-1. **Clonar ou acessar o diretório do projeto**:
+1. **Clonar e acessar o diretório do projeto**:
 
    ```bash
-   cd /home/gui/Projects/synapse_v1
+   git clone https://github.com/sian-io/synapse.git
+   cd synapse
    ```
 
 2. **Instalar as dependências**:
@@ -123,16 +124,7 @@ Visite a aba **Base Neurocientífica** a qualquer momento para revisar os estudo
    bun install
    ```
 
-3. **Configurar as variáveis de ambiente**:
-   Crie ou edite o arquivo `.env` na raiz do projeto e insira sua chave da API Gemini:
-
-   ```env
-   GEMINI_API_KEY=sua_chave_gemini_aqui
-   ```
-
-   *Nota: O Bun carrega o arquivo `.env` automaticamente. Caso a chave não seja configurada, o Synapse continuará operacional utilizando seu sistema interno de fallbacks pedagógicos determinísticos.*
-
-4. **Iniciar em modo de desenvolvimento**:
+3. **Iniciar em modo de desenvolvimento**:
 
    ```bash
    bun run dev
@@ -140,18 +132,21 @@ Visite a aba **Base Neurocientífica** a qualquer momento para revisar os estudo
 
    A aplicação estará disponível em `http://localhost:3000`.
 
-5. **Verificação de tipos e qualidade**:
+4. **Verificação de tipos e qualidade**:
 
    ```bash
    bun run lint
    ```
 
-6. **Compilação e execução para produção**:
+5. **Compilação e execução para produção**:
 
    ```bash
    bun run build
    bun run start
    ```
+
+6. **Configurar seu provedor de IA (BYOK)**:
+   No cabeçalho da aplicação, clique no ícone de **Configurações** (engrenagem) para selecionar seu provedor de IA (OpenAI, Anthropic, Google Gemini ou Ollama), a URL base, o nome do modelo e sua chave de API (opcional para Ollama). Suas credenciais são armazenadas exclusivamente no `localStorage` do seu navegador e enviadas por requisição via proxy stateless, sem gravação em disco no servidor.
 
 ---
 
@@ -159,9 +154,10 @@ Visite a aba **Base Neurocientífica** a qualquer momento para revisar os estudo
 
 Para uma documentação técnica detalhada voltada a desenvolvedores e agentes de IA, consulte `AGENTS.md`
 
-- `server.ts`: Servidor Hono unificado rodando sobre Bun com Web Standards Fetch API, rotas encadeadas com Hono RPC (`export type AppType`), integração à API Gemini e servimento estático em produção.
+- `server.ts`: Servidor Hono unificado rodando sobre Bun com Web Standards Fetch API, rotas encadeadas com Hono RPC (`export type AppType`), proxy stateless de inferência multi-provedor (BYOK) e servimento estático em produção.
 - `vite.config.ts`: Configuração do Vite com `@hono/vite-dev-server` para HMR e despacho de rotas `/api/*` em desenvolvimento.
-- `src/api.ts`: Cliente Hono RPC tipado de ponta a ponta (`hc<AppType>('/')`).
+- `src/api.ts`: Cliente Hono RPC tipado de ponta a ponta (`hc<AppType>('/')`) com injeção dinâmica do header `x-ai-config`.
+- `src/context/AIConfigContext.tsx`: Contexto React para gerenciamento das credenciais BYOK, validação, rascunho e persistência no `localStorage`.
 - `src/App.tsx`: Gerenciador de estado principal, abas e persistência.
 - `src/types.ts`: Definições de tipos e contratos de dados compartilhados entre servidor e cliente.
 - `src/components/`: Componentes de interface do usuário para cada modalidade pedagógica.

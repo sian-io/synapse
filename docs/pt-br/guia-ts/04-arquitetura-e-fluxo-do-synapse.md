@@ -10,18 +10,18 @@ O Synapse combina um backend em **Hono** (com **Hono RPC**) e um frontend em **R
 
 Em muitas aplicações web convencionais, o frontend e o backend rodam em servidores separados durante o desenvolvimento e usam chamadas `fetch` sem garantia de tipos entre cliente e servidor.
 
-O Synapse adota uma arquitetura unificada e tipada de ponta a ponta entre [`server.ts`](file:///home/gui/Projects/synapse/server.ts) e [`src/api.ts`](file:///home/gui/Projects/synapse/src/api.ts):
+O Synapse adota uma arquitetura unificada e tipada de ponta a ponta entre `server.ts` e `src/api.ts`:
 
 ```
 +-------------------------------------------------------------------------+
 |                        Bun Runtime (Porta 3000)                         |
 |                                                                         |
 |  Hono Server (server.ts -> export type AppType)                         |
-|  ├── /api/health                                                        |
-|  ├── /api/chat                    ───> Google Gemini SDK / Fallback     |
-|  ├── /api/feynman-evaluate        ───> Google Gemini SDK (JSON Schema)  |
-|  ├── /api/generate-retrieval-deck ───> Google Gemini SDK (JSON Schema)  |
-|  └── /api/generate-concept-breakdown ─> Google Gemini SDK (JSON Schema) |
+|  ├── /api/health                   ───> Status & Modo Proxy BYOK        |
+|  ├── /api/chat                    ───> Proxy Multi-Provedor             |
+|  ├── /api/feynman-evaluate        ───> Proxy Multi-Provedor (JSON)      |
+|  ├── /api/generate-retrieval-deck ───> Proxy Multi-Provedor (JSON)      |
+|  └── /api/generate-concept-breakdown ─> Proxy Multi-Provedor (JSON)     |
 |                                                                         |
 |  [Roteamento Híbrido]                                                   |
 |  ├── Em Desenvolvimento: @hono/vite-dev-server despacha /api/* ao Hono  |
@@ -32,8 +32,9 @@ O Synapse adota uma arquitetura unificada e tipada de ponta a ponta entre [`serv
                                      ▼ (SPA + Contratos Hono RPC)
 +-------------------------------------------------------------------------+
 |                         Navegador do Usuário                            |
-|  src/api.ts: export const api = hc<AppType>('/')                        |
+|  src/api.ts: export const api = hc<AppType>('/') (header x-ai-config)   |
 |  Aplicação React 19 (App.tsx)                                           |
+|  ├── Contexto de Configuração de IA (AIConfigContext / BYOK)            |
 |  ├── Sincronização de Tópico Global (UnifiedConceptBar)                 |
 |  ├── Laboratório Socrático (SocraticTutor)                              |
 |  ├── Estúdio Feynman (FeynmanStudio)                                    |
@@ -43,11 +44,11 @@ O Synapse adota uma arquitetura unificada e tipada de ponta a ponta entre [`serv
 ```
 
 ### Como o Hono RPC conecta Backend e Frontend?
-No [`server.ts`](file:///home/gui/Projects/synapse/server.ts), todas as rotas são encadeadas em `const routes = app.get(...).post(...)` usando `validator('json', ...)` do pacote `hono/validator` e exportam o tipo da árvore de rotas:
+No `server.ts`, todas as rotas são encadeadas em `const routes = app.get(...).post(...)` usando `validator('json', ...)` do pacote `hono/validator` e exportam o tipo da árvore de rotas:
 ```typescript
 export type AppType = typeof routes;
 ```
-No frontend, o arquivo [`src/api.ts`](file:///home/gui/Projects/synapse/src/api.ts) cria o cliente RPC com `hc` (`hono/client`):
+No frontend, o arquivo `src/api.ts` cria o cliente RPC com `hc` (`hono/client`):
 ```typescript
 import { hc } from 'hono/client';
 import type { AppType } from '../server';
@@ -61,50 +62,25 @@ export const api = hc<AppType>('/');
 
 ---
 
-## 2. O Pipeline de Inteligência Artificial e Resiliência
+## 2. O Pipeline de Inteligência Artificial e Arquitetura BYOK
 
-O Synapse se conecta aos modelos de inteligência artificial generativa do Google utilizando o pacote oficial `@google/genai`.
+O Synapse opera com uma arquitetura **BYOK (Bring Your Own Key)** e proxy stateless, sem dependências de SDKs pesados. No `server.ts`, a função `runInference` utiliza o `fetch` nativo dos Web Standards para integrar com quatro padrões de mercado: **OpenAI** (Chat Completions e Responses API), **Anthropic** (Messages API), **Google Gemini** (REST API) e **Ollama** (modelos locais).
 
 ### 1. Respostas Estruturadas via JSON Schema
 Para ferramentas como o **Estúdio Feynman** e a **Geração de Flashcards**, respostas em texto livre são inadequadas porque o frontend precisa renderizar notas numéricas, listas de termos identificados e perguntas específicas.
 
-No [`server.ts`](file:///home/gui/Projects/synapse/server.ts), os endpoints utilizam o recurso de **Structured Outputs** da API Gemini:
-```typescript
-const response = await generateWithFallback(ai, {
-  contents: prompt,
-  config: {
-    responseMimeType: 'application/json',
-    responseSchema: {
-      type: Type.OBJECT,
-      properties: {
-        score: { type: Type.INTEGER },
-        clarityAssessment: { type: Type.STRING },
-        jargonIdentified: { type: Type.ARRAY, items: { type: Type.STRING } },
-        conceptualGaps: { type: Type.ARRAY, items: { type: Type.STRING } },
-        // ...
-      },
-      required: ['score', 'clarityAssessment', 'jargonIdentified'],
-    },
-  },
-});
-```
-Isso força a rede neural a responder com uma garantia sintática estrita que mapeia diretamente para a interface TypeScript [`FeynmanEvaluation`](file:///home/gui/Projects/synapse/src/types.ts).
+Os endpoints utilizam a flag `jsonMode: true` na função `runInference`, que adapta a chamada de acordo com o provedor escolhido (por exemplo, `response_format: { type: 'json_object' }` na OpenAI, `responseMimeType: 'application/json'` no Google Gemini ou `format: 'json'` no Ollama). Antes do `JSON.parse`, a função auxiliar `cleanJsonText` sanitiza o conteúdo removendo eventuais blocos de código markdown (````json ... ````).
 
-### 2. A Cascata de Modelos com Jitter e Backoff
-APIs em nuvem podem sofrer flutuações temporárias de capacidade (erros `503`, `UNAVAILABLE` ou `429`). Para que a experiência de estudo do aluno nunca seja interrompida, a função `generateWithFallback` implementa uma cascata de redundância:
+Isso garante que a resposta respeite os contratos TypeScript, mapeando diretamente para interfaces como `FeynmanEvaluation` (`src/types.ts`).
 
-```typescript
-const models = ['gemini-3.5-flash-lite', 'gemini-3.8-flash', 'gemini-flash-latest', 'gemini-3.1-flash-lite'];
-```
-- Tenta cada modelo até duas vezes.
-- Em caso de indisponibilidade transitória, aplica uma pausa calculada com variação aleatória (*jitter*):
-  ```typescript
-  await sleep(750 + Math.random() * 500);
-  ```
-- Se o erro persistir, avança automaticamente para o próximo modelo da lista.
+### 2. Resolução Dinâmica de Credenciais (BYOK)
+O servidor não armazena nenhuma chave em disco ou variáveis de ambiente de produção:
+1. O cliente `src/api.ts` lê as credenciais do `localStorage` e as anexa automaticamente no cabeçalho HTTP `x-ai-config` em cada requisição Hono RPC.
+2. A função `resolveAIConfig(c, bodyConfig, isPt)` no servidor extrai o cabeçalho ou o corpo da requisição e valida a presença de `apiStandard`, `baseUrl` e `model`.
+3. Caso a configuração esteja ausente ou incompleta, o servidor responde com erro amigável orientando o usuário a configurar a API pelo ícone de engrenagem.
 
-### 3. Fallbacks Pedagógicos Locais (Modo Offline)
-Se a variável de ambiente `GEMINI_API_KEY` não estiver definida ou a internet cair completamente, os endpoints do Synapse não quebram com um erro 500 genérico. Cada endpoint possui uma rotina determinística heurística de fallback que analisa a entrada do usuário e retorna respostas pedagógicas estruturadas com a flag `isPedagogicalFallback: true`.
+### 3. Tratamento Transparente de Erros
+Em vez de mascarar problemas com respostas simuladas (*mock fallbacks*), o Synapse repassa erros reais da API de inferência (como limites de cota 429, credenciais inválidas 401 ou indisponibilidade 503) em formato legível e localizado para a interface, permitindo que o usuário identifique prontamente qualquer inconsistência em suas credenciais.
 
 ---
 
@@ -113,14 +89,15 @@ Se a variável de ambiente `GEMINI_API_KEY` não estiver definida ou a internet 
 No frontend, a aplicação é estruturada em torno de princípios cognitivos que exigem que o contexto de aprendizagem seja compartilhado entre ferramentas distintas.
 
 ### 1. Estado Centralizado e Sincronização via `localStorage`
-No arquivo raiz [`src/App.tsx`](file:///home/gui/Projects/synapse/src/App.tsx), os estados principais são persistidos no navegador:
+No arquivo raiz `src/App.tsx`, os estados principais são persistidos no navegador:
+- `synapse_ai_config`: Configuração e credenciais ativas do provedor de IA (BYOK).
 - `synapse_current_topic`: O tema de estudo atual (ex: *"Termodinâmica"*, *"Redes Neurais"*).
 - `synapse_stats`: Estatísticas cognitivas (taxa de retenção, explicações de Feynman realizadas, calibração média).
 - `synapse_chat_history`: Histórico de mensagens do tutor socrático.
 - `synapse_flashcards`: Baralho de repetição espaçada.
 
 ### 2. Comunicação Cruzada entre Ferramentas
-A barra superior [`UnifiedConceptBar.tsx`](file:///home/gui/Projects/synapse/src/components/UnifiedConceptBar.tsx) mantém o tópico atual sempre visível e sincronizado. 
+A barra superior `UnifiedConceptBar.tsx` (`src/components/UnifiedConceptBar.tsx`) mantém o tópico atual sempre visível e sincronizado. 
 
 Quando o usuário está no **Estúdio Feynman** ou no **Mapa Cognitivo** e identifica uma lacuna em seu entendimento, a interface disponibiliza botões de ação imediata que chamam a função `handleOpenSocraticWithPrompt()` em `App.tsx`:
 1. Preenche uma pergunta investigativa pré-formatada.
@@ -128,7 +105,7 @@ Quando o usuário está no **Estúdio Feynman** ou no **Mapa Cognitivo** e ident
 3. Inicia imediatamente uma sessão socrática para investigar aquela lacuna específica.
 
 ### 3. O Algoritmo de Repetição Espaçada SM-2
-No componente [`ActiveRetrievalLab.tsx`](file:///home/gui/Projects/synapse/src/components/ActiveRetrievalLab.tsx), o método `handleRateCard` implementa uma adaptação direta do clássico algoritmo **SM-2** (desenvolvido por Piotr Woźniak):
+No componente `ActiveRetrievalLab.tsx` (`src/components/ActiveRetrievalLab.tsx`), o método `handleRateCard` implementa uma adaptação direta do clássico algoritmo **SM-2** (desenvolvido por Piotr Woźniak):
 
 ```typescript
 // Avaliação da lembrança pelo estudante:
@@ -161,7 +138,7 @@ nextReviewDate = Date.now() + newInterval * 86400000; // 86400000 ms = 24 horas
 
 ## 4. O Ciclo de Vida dos Comandos de Build e Execução
 
-Para consolidar a cadeia de eventos, veja o que acontece em cada comando configurado no [`package.json`](file:///home/gui/Projects/synapse/package.json):
+Para consolidar a cadeia de eventos, veja o que acontece em cada comando configurado no `package.json`:
 
 ### `bun run dev`
 1. O comando executa `bun --bun vite`.

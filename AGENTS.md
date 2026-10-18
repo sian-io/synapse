@@ -16,11 +16,11 @@ Synapse operates on a unified full-stack TypeScript architecture powered by **Bu
 |  |            Hono Server (server.ts -> export type AppType)         |  |
 |  |                                                                   |  |
 |  |   [Port 3000 - Web Standards Fetch API & Hono RPC]                |  |
-|  |   ├── /api/health                                                 |  |
-|  |   ├── /api/chat                    ──> Gemini SDK / Fallback      |  |
-|  |   ├── /api/feynman-evaluate        ──> Gemini SDK (JSON Schema)   |  |
-|  |   ├── /api/generate-retrieval-deck ──> Gemini SDK (JSON Schema)   |  |
-|  |   └── /api/generate-concept-breakdown ──> Gemini SDK (JSON Schema)|  |
+|  |   ├── /api/health                   ──> Status & BYOK Proxy Mode  |  |
+|  |   ├── /api/chat                     ──> Multi-Provider Proxy      |  |
+|  |   ├── /api/feynman-evaluate         ──> Multi-Provider Proxy      |  |
+|  |   ├── /api/generate-retrieval-deck  ──> Multi-Provider Proxy      |  |
+|  |   └── /api/generate-concept-breakdown ──> Multi-Provider Proxy    |  |
 |  |                                                                   |  |
 |  |   @hono/vite-dev-server (dev) / Hono Bun serveStatic Dist (prod)  |  |
 |  +---------------------------------+---------------------------------+  |
@@ -30,8 +30,9 @@ Synapse operates on a unified full-stack TypeScript architecture powered by **Bu
 +-------------------------------------------------------------------------+
 |                        Browser Client (React 19)                        |
 |                                                                         |
-|  src/api.ts: hc<AppType>('/') (Typed Hono RPC Client)                   |
+|  src/api.ts: hc<AppType>('/') (Typed Hono RPC Client with x-ai-config)  |
 |  App.tsx                                                                |
+|  ├── AIConfigContext (BYOK Management, Storage & Validation)            |
 |  ├── UnifiedConceptBar (Shared Topic State & Synchronization)           |
 |  ├── SocraticTutor (Conversational Engine & Metacognitive Certainty)   |
 |  ├── FeynmanStudio (Explanation Audit & Jargon Extraction)             |
@@ -39,7 +40,7 @@ Synapse operates on a unified full-stack TypeScript architecture powered by **Bu
 |  ├── CognitiveMap (Sweller / Paivio Structural Deconstruction)         |
 |  └── NeuroscienceGuide (Theoretical Foundations)                        |
 |                                                                         |
-|  Client Storage: localStorage (synapse_chat_history, flashcards, stats) |
+|  Client Storage: localStorage (synapse_ai_config, chat, cards, stats)   |
 +-------------------------------------------------------------------------+
 ```
 
@@ -47,7 +48,7 @@ Synapse operates on a unified full-stack TypeScript architecture powered by **Bu
 
 - In development (`bun run dev`), Vite starts the dev server on port `3000` and uses `@hono/vite-dev-server` to dispatch `/api/*` requests directly to the Hono application (`server.ts`) via standard Web `Request`/`Response` objects while serving the React 19 SPA with HMR.
 - In production (`bun run start`, which executes `bun server.ts`), Bun natively runs `server.ts` without any secondary backend bundling step (`esbuild` is eliminated) and serves compiled static assets from `dist/` via `hono/bun`'s `serveStatic`.
-- **End-to-End Type Safety via Hono RPC**: Routes in `server.ts` are chained and typed with `hono/validator` (`validator('json', ...)`), exporting `export type AppType = typeof routes`. The frontend (`src/api.ts`) instantiates `hc<AppType>('/')` from `hono/client`, giving all React components compile-time verified request payloads, status code narrowing (`res.ok`), and response types with zero extra dependencies or code generation.
+- **End-to-End Type Safety via Hono RPC**: Routes in `server.ts` are chained and typed with `hono/validator` (`validator('json', ...)`), exporting `export type AppType = typeof routes`. The frontend (`src/api.ts`) instantiates `hc<AppType>('/')` from `hono/client` with a dynamic headers hook that injects the user's `x-ai-config` from `localStorage` on every request. This gives all React components compile-time verified request payloads, status code narrowing (`res.ok`), and response types with zero extra dependencies or code generation.
 - **Design Rationale**: Eliminates Node.js HTTP coupling, `express`, `tsx`, `esbuild`, manual `createViteServer` middleware injection, and untyped `fetch` calls, unifying execution around native TypeScript and open Web Standards.
 
 ---
@@ -59,11 +60,12 @@ Synapse operates on a unified full-stack TypeScript architecture powered by **Bu
 - **Bun**: All-in-one JavaScript/TypeScript runtime and package manager (`bun.lock`). Executes `server.ts` natively in both development and production, and automatically loads `.env` variables without requiring `dotenv`.
 - **Hono & Hono RPC (`hono`, `hono/validator`, `hono/client`)**: Ultrafast, lightweight Web framework built entirely on Web Standards (`Request`, `Response`, `Fetch`), providing built-in end-to-end RPC type inference (`hc<AppType>`) without external schema libraries.
 - **`@hono/vite-dev-server`**: Bridges Vite's development server with the Hono application via the Fetch API, preserving single-port HMR without Connect/Express middleware coupling.
-- **Google GenAI Official SDK `@google/genai`**: Version 2.4.0+. Connects directly to the latest Gemini models, with native support for structured output (`responseSchema`, `responseMimeType: 'application/json'`) and HTTP header customization.
+- **Native Multi-Provider Inference (`fetch`)**: Zero external AI SDK dependencies. The server implements `runInference` in `server.ts` using native Web `fetch`, communicating directly with OpenAI (Chat Completions and Responses API), Anthropic Messages API, Google Gemini REST API, and local Ollama instances.
 
 ### 2.2 Frontend
 
 - **React 19 `package.json`**: Modern UI library delivering high rendering efficiency and stable state hooks (`useState`, `useEffect`, `useRef`).
+- **AI Configuration Context (`src/context/AIConfigContext.tsx`)**: Manages the BYOK lifecycle, credential drafts, validation (`isAIConfigValid`), password visibility toggles, and persistence to `localStorage` under `synapse_ai_config`.
 - **Hono Client (`hono/client`)**: Consumes `AppType` from `server.ts` in `src/api.ts` (`export const api = hc<AppType>('/')`) for type-safe RPC calls (`api.api.chat.$post`, `api.api['feynman-evaluate'].$post`, etc.).
 - **Tailwind CSS v4 `package.json`**: Configured via `@tailwindcss/vite` in `vite.config.ts`, delivering responsive styling with native CSS variable support.
 - **Lucide React `package.json`**: Lightweight vector icon suite providing visual signals for pedagogical states and metadata.
@@ -71,29 +73,55 @@ Synapse operates on a unified full-stack TypeScript architecture powered by **Bu
 
 ---
 
-## 3. Resilience Strategy and Fallbacks
+## 3. Bring Your Own Key (BYOK) Architecture & Multi-Provider Inference
 
-The platform is designed to maintain uninterrupted pedagogical continuity even in cases of API quota exhaustion, network failures, or missing environment variables.
+Synapse uses a **Bring Your Own Key (BYOK)** stateless proxy architecture. The backend server does not store, log, or persist provider credentials to disk or databases; API keys reside exclusively in the client's browser `localStorage` and are transmitted per request.
 
-### 3.1 Gemini Model Cascade
+### 3.1 Configuration Resolution & Header Injection
 
-The backend implements redundancy across approved models:
+On each client request, the typed Hono RPC client (`src/api.ts`) automatically extracts the saved configuration from `localStorage` under `synapse_ai_config` and attaches it via the `x-ai-config` HTTP header:
 
 ```typescript
-const models = ['gemini-3.5-flash-lite', 'gemini-3.8-flash', 'gemini-flash-latest', 'gemini-3.1-flash-lite'];
+export const api = hc<AppType>('/', {
+  headers: () => {
+    const raw = typeof localStorage !== 'undefined' ? localStorage.getItem(AI_CONFIG_STORAGE_KEY) : null;
+    return raw ? { 'x-ai-config': raw } : ({} as Record<string, string>);
+  },
+});
 ```
 
-- Each model is attempted up to twice.
-- Transient errors (`503`, `UNAVAILABLE`, `429`, or `RESOURCE_EXHAUSTED`) trigger a jittered backoff (`750ms + Math.random() * 500ms`) before retrying or advancing to the next candidate model.
+On the server, `resolveAIConfig(c, bodyConfig, isPt)` extracts the configuration from either the request body (`aiConfig`) or the `x-ai-config` header. If missing or invalid (missing `apiStandard`, `baseUrl`, or `model`), it throws an error prompting the user to configure their API credentials via the UI gear button.
 
-### 3.2 Local Pedagogical Fallbacks
+### 3.2 Supported Providers & Standards
 
-If all upstream calls fail or `GEMINI_API_KEY` is not set, each endpoint executes a deterministic heuristic routine:
+The inference function `runInference` in `server.ts` standardizes requests across four major API protocols using Web Standards `fetch`:
 
-- `/api/chat`: Analyzes the student's latest message and returns a Socratic question centered on cause-and-effect mechanisms, keeping the `meta` block intact.
-- `/api/feynman-evaluate`: Performs lexical inspection on the explanation, flags abstract terms as potential jargon, computes a score proportional to length, and generates a closing Socratic question.
-- `/api/generate-retrieval-deck`: Returns a structured default set of challenging cards covering causal mechanics, boundary perturbations, and frequent misconceptions.
-- `/api/generate-concept-breakdown`: Assembles prerequisites, core mechanism, misconceptions, and structural analogies with `isPedagogicalFallback: true`.
+1. **OpenAI (`openai`)**:
+   - Supports Chat Completions (`/chat/completions` or `/v1/chat/completions`) and the Responses API (`/responses` or `/v1/responses`), selectable via `openaiApiType: 'completions' | 'responses'`.
+   - Passes `response_format: { type: 'json_object' }` (or `text: { format: { type: 'json_object' } }`) when `jsonMode: true`.
+   - Authenticates via `Authorization: Bearer <apiKey>`.
+
+2. **Anthropic (`anthropic`)**:
+   - Calls the Messages API (`/messages` or `/v1/messages`).
+   - Supports configurable `maxTokens` (defaults to `2048`).
+   - Sets headers `x-api-key: <apiKey>` and `anthropic-version: 2023-06-01`.
+   - Maps the system prompt to the top-level `system` property and conversation messages to `{ role: 'user' | 'assistant', content }`.
+
+3. **Google Gemini (`google`)**:
+   - Calls the direct REST endpoint (`/v1beta/models/{model}:generateContent`).
+   - Passes API key via `x-goog-api-key` header.
+   - Maps system instructions to `systemInstruction.parts` and conversational history to `contents` (`role: 'user' | 'model'`).
+   - Passes `generationConfig: { responseMimeType: 'application/json' }` when `jsonMode: true`.
+
+4. **Ollama (`ollama`)**:
+   - Connects to local or self-hosted Ollama instances (`/api/chat` or `/chat`).
+   - No API key required (passes optional `Authorization: Bearer` if specified).
+   - Maps system prompt into the messages array and sets `stream: false` and `format: 'json'` when `jsonMode: true`.
+
+### 3.3 Structured JSON Processing & Error Handling
+
+- **`cleanJsonText`**: Strips markdown code fences (````json ... ````) before executing `JSON.parse` to avoid parsing failures across varied LLM providers.
+- **Transparent Error Propagation**: Upstream inference errors (such as 401 Unauthorized, 429 Quota Exceeded, or 503 Provider Unavailable) are caught and surfaced as HTTP 503/400 with descriptive localized messages in the student's selected language (`en` or `pt`). Silent mock responses that disguise inference failures are removed to ensure transparency.
 
 ---
 
@@ -112,11 +140,11 @@ If all upstream calls fail or `GEMINI_API_KEY` is not set, each endpoint execute
   ```
   ```
 
-  The server parses this block via regular expressions in `server.ts` and returns clean text in `content` and structured data in `meta`.
+  The server parses this block via regular expressions in `server.ts`, maps cognitive phase names via `translateCognitivePhase` for consistency in English or Portuguese, and returns clean text in `content` and structured data in `meta`.
 
 ### 4.2 Feynman Evaluation: `POST /api/feynman-evaluate`
 
-- Uses **Structured Outputs** from the Gemini API with `responseMimeType: 'application/json'` and a strict schema defined via enum `Type`.
+- Uses `runInference` with `jsonMode: true` and prompt engineering mandating a strict JSON structure.
 - Output Contract (`FeynmanEvaluation`):
   - `score` (integer 0-100)
   - `clarityAssessment` (string)
@@ -130,16 +158,16 @@ If all upstream calls fail or `GEMINI_API_KEY` is not set, each endpoint execute
 
 ### 4.3 Deck Generation: `POST /api/generate-retrieval-deck`
 
-- Structured JSON schema producing a `cards` array containing:
+- Executes `runInference` with `jsonMode: true` producing a `cards` array containing:
   - `question` (causal mechanism question, not trivia)
   - `answer` (complete mental model)
   - `keyConcept` (tested core concept)
   - `neuroTip` (mnemonic anchor)
-- The backend normalizes generated cards to the `Flashcard` contract, initializing spaced repetition parameters (`intervalDays: 1`, `repetitions: 0`, `easeFactor: 2.5`, `masteryLevel: 0`).
+- The backend normalizes generated cards to the `Flashcard` contract, initializing spaced repetition parameters (`intervalDays: 1`, `repetitions: 0`, `easeFactor: 2.5`, `masteryLevel: 0`), and returns `{ flashcards, cards }`.
 
 ### 4.4 Conceptual Breakdown: `POST /api/generate-concept-breakdown`
 
-- JSON schema returning `ConceptBreakdown`:
+- Executes `runInference` with `jsonMode: true` returning `ConceptBreakdown`:
   - `topic`, `overview`, `prerequisites`, `coreMechanism`, `commonMisconceptions`, `elaborativeQuestions`, `realWorldAnalogy`, `neuroscienceRationale`.
 
 ---
@@ -182,6 +210,7 @@ The next review timestamp is calculated by adding `newInterval * 86400000` milli
 
 The root component `App.tsx` keeps primary state synchronized via `localStorage`:
 
+- `synapse_ai_config`: Active AI provider credentials and model configuration (API standard, base URL, model name, API key, endpoint type, max tokens).
 - `synapse_current_topic`: Active concept entered by the user.
 - `synapse_stats`: `CognitiveStats` object tracking retrieval attempts, Feynman explanations, Socratic questions answered, retention streak days, and total active minutes.
 - `synapse_chat_history`: Message history for the Socratic tutor.
@@ -200,4 +229,4 @@ The root component `App.tsx` keeps primary state synchronized via `localStorage`
 
 1. **Preserve Pedagogical Stance**: The agent must never be instructed to answer conceptual questions directly in an expository manner. Any prompt modifications must uphold the policy of guiding students to deduce answers themselves.
 2. **Adhere to Type Contracts & Hono RPC**: All TypeScript interfaces in `src/types.ts` must strictly mirror the schemas defined in `server.ts`. Keep API routes chained on `const routes = app...` in `server.ts` with `jsonBody<...>()` and explicit status codes (`200`, `400`) so `export type AppType = typeof routes` and `src/api.ts` (`hc<AppType>('/')`) remain end-to-end type-safe.
-3. **Maintain Heuristic Fallbacks**: When introducing or modifying endpoints, always provide deterministic offline fallbacks to ensure application resilience.
+3. **Maintain Stateless BYOK Architecture**: All LLM interactions must flow through `resolveAIConfig` and `runInference`. Do not persist user API keys on the server or reintroduce silent mock answers that disguise inference failures.

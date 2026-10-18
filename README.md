@@ -109,14 +109,15 @@ Visit the **Neuroscience Guide** tab at any time to review the empirical studies
 ### Prerequisites
 
 - [Bun](https://bun.sh/) version 1.1 or higher installed.
-- Google Gemini API key (optional for basic testing; recommended for full AI responses).
+- An API key or local model from any supported LLM provider: OpenAI, Anthropic, Google Gemini, or Ollama (Bring Your Own Key - BYOK).
 
 ### Installation Steps
 
-1. **Clone or navigate to the project directory**:
+1. **Clone and navigate to the project directory**:
 
    ```bash
-   cd /home/gui/Projects/synapse
+   git clone https://github.com/sian-io/synapse.git
+   cd synapse
    ```
 
 2. **Install dependencies**:
@@ -125,16 +126,7 @@ Visit the **Neuroscience Guide** tab at any time to review the empirical studies
    bun install
    ```
 
-3. **Configure environment variables**:
-   Create or edit the `.env` file in the project root and add your Gemini API key:
-
-   ```env
-   GEMINI_API_KEY=your_gemini_api_key_here
-   ```
-
-   *Note: Bun loads `.env` automatically. If the key is not set, Synapse remains fully operational using its internal deterministic pedagogical fallbacks.*
-
-4. **Start in development mode**:
+3. **Start in development mode**:
 
    ```bash
    bun run dev
@@ -142,18 +134,21 @@ Visit the **Neuroscience Guide** tab at any time to review the empirical studies
 
    The application will be accessible at `http://localhost:3000`.
 
-5. **Type check and linting**:
+4. **Type check and linting**:
 
    ```bash
    bun run lint
    ```
 
-6. **Build and production run**:
+5. **Build and production run**:
 
    ```bash
    bun run build
    bun run start
    ```
+
+6. **Configure your AI provider**:
+   In the application header, click the **Settings** (gear) icon to configure your AI provider (OpenAI, Anthropic, Google Gemini, or Ollama), base URL, model name, and optional API key. Your credentials are saved exclusively in your browser's `localStorage` and sent per request via stateless proxy without being stored on disk.
 
 ---
 
@@ -161,9 +156,10 @@ Visit the **Neuroscience Guide** tab at any time to review the empirical studies
 
 For detailed technical documentation aimed at developers and AI agents, see `AGENTS.md`.
 
-- `server.ts`: Unified Hono server running on Bun with Web Standards Fetch API, chained Hono RPC routes (`export type AppType`), Gemini SDK integration, and static asset serving.
+- `server.ts`: Unified Hono server running on Bun with Web Standards Fetch API, chained Hono RPC routes (`export type AppType`), stateless BYOK multi-provider inference proxy, and static asset serving.
 - `vite.config.ts`: Vite configuration with `@hono/vite-dev-server` for single-port HMR and API routing in development.
-- `src/api.ts`: End-to-end typed Hono RPC client (`hc<AppType>('/')`).
+- `src/api.ts`: End-to-end typed Hono RPC client (`hc<AppType>('/')`) with dynamic `x-ai-config` header injection.
+- `src/context/AIConfigContext.tsx`: React context managing BYOK credentials, validation, draft state, and `localStorage` persistence.
 - `src/App.tsx`: Main state manager, navigation tabs, and persistence.
 - `src/types.ts`: Application type definitions and data contracts shared between server and client.
 - `src/components/`: UI components for each pedagogical mode.

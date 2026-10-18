@@ -15,10 +15,10 @@ A documentação está dividida de forma modular. Recomendamos a leitura sequenc
 
 ### [2. Funcionamento e Necessidade das Configurações e Tooling](./02-configuracoes-e-ferramental.md)
 > **Foco (Arquivo Dedicado)**: Por que esses arquivos existem e o que fazem? Análise do papel e da necessidade de:
-> - [`package.json`](file:///home/gui/Projects/synapse/package.json) (manifesto, dependências e automação)
-> - [`bun.lock`](file:///home/gui/Projects/synapse/bun.lock) (determinismo de versões no Bun)
-> - [`tsconfig.json`](file:///home/gui/Projects/synapse/tsconfig.json) (regras do verificador estático e a diretiva `"noEmit": true`)
-> - [`vite.config.ts`](file:///home/gui/Projects/synapse/vite.config.ts) (servidor de desenvolvimento com `@hono/vite-dev-server` e plugins)
+> - `package.json` (manifesto, dependências e automação)
+> - `bun.lock` (determinismo de versões no Bun)
+> - `tsconfig.json` (regras do verificador estático e a diretiva `"noEmit": true`)
+> - `vite.config.ts` (servidor de desenvolvimento com `@hono/vite-dev-server` e plugins)
 
 ### [3. Recursos da Linguagem TypeScript no Synapse](./03-recursos-da-linguagem-no-synapse.md)
 > **Foco**: Os conceitos de TypeScript aplicados diretamente no código-fonte do Synapse:
@@ -31,7 +31,7 @@ A documentação está dividida de forma modular. Recomendamos a leitura sequenc
 ### [4. Arquitetura e Fluxo do Synapse](./04-arquitetura-e-fluxo-do-synapse.md)
 > **Foco**: Como a aplicação funciona de ponta a ponta:
 > - Arquitetura unificada: **Bun + Hono + `@hono/vite-dev-server`** e cliente tipado **Hono RPC** (`src/api.ts`)
-> - Integração resiliente com o Google GenAI SDK (cascata de modelos e fallbacks pedagógicos)
+> - Pipeline de inteligência artificial com arquitetura BYOK (OpenAI, Anthropic, Google Gemini, Ollama)
 > - Gerenciamento de estado no cliente (React 19 + `localStorage`)
 > - O algoritmo de repetição espaçada SM-2 implementado no laboratório de recuperação ativa
 
