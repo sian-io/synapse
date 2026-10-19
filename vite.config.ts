@@ -1,5 +1,6 @@
 import devServer, { defaultOptions } from '@hono/vite-dev-server';
 import tailwindcss from '@tailwindcss/vite';
+import path from "path"
 import react from '@vitejs/plugin-react';
 import { defineConfig } from 'vite';
 
@@ -15,6 +16,11 @@ export default defineConfig({
       ],
     }),
   ],
+  resolve: {
+    alias: {
+      "@": path.resolve(__dirname, "./src"),
+    },
+  },
   server: {
     port: Number(process.env.PORT) || 3000,
     host: process.env.HOST || '0.0.0.0',

@@ -1,20 +1,179 @@
 import React, { useState, useRef, useEffect } from 'react';
 import {
   Send,
-  Sparkles,
   Brain,
-  HelpCircle,
   RotateCcw,
-  Target,
   ShieldAlert,
-  Sliders,
-  Info
+  Plus,
+  Copy,
+  Check,
 } from 'lucide-react';
-import Markdown from 'react-markdown';
+import Markdown, { type Components } from 'react-markdown';
 import { api } from '../api';
-import { ChatMessage, PedagogicalMode } from '../types';
+import { ChatMessage } from '../types';
 import { useLanguage } from '../i18n/LanguageContext';
-import { translateCognitivePhase } from '../i18n/translations';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from '@/components/ui/popover';
+import {
+  Dialog,
+  DialogClose,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from '@/components/ui/dialog';
+
+const PreContext = React.createContext(false);
+
+const SocraticCodeBlock: React.FC<{
+  language?: string;
+  code: string;
+  isPt: boolean;
+}> = ({ language, code, isPt }) => {
+  const [copied, setCopied] = useState(false);
+
+  const handleCopy = async () => {
+    try {
+      await navigator.clipboard.writeText(code);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 1800);
+    } catch {
+      // Clipboard API unavailable
+    }
+  };
+
+  return (
+    <div className="my-3 rounded-lg surface-recessed overflow-hidden">
+      <div className="px-3 py-1.5 border-b border-white/[0.05] bg-[#09090b]/60 flex items-center justify-between gap-2">
+        <span className="font-mono text-[10px] uppercase tracking-widest text-zinc-500 tabular-nums">
+          {language || 'CODE'}
+        </span>
+        <button
+          type="button"
+          onClick={handleCopy}
+          className="px-2 py-0.5 rounded text-[10px] font-mono uppercase tracking-wider text-zinc-400 hover:text-zinc-100 hover:bg-[#16161a] transition-colors flex items-center gap-1 cursor-pointer"
+        >
+          {copied ? (
+            <>
+              <Check className="w-3 h-3 text-zinc-200 stroke-[1.75]" />
+              <span>{isPt ? 'Copiado' : 'Copied'}</span>
+            </>
+          ) : (
+            <>
+              <Copy className="w-3 h-3 text-zinc-500 stroke-[1.75]" />
+              <span>{isPt ? 'Copiar' : 'Copy'}</span>
+            </>
+          )}
+        </button>
+      </div>
+      <pre className="p-3.5 overflow-x-auto font-mono text-xs text-zinc-200 leading-relaxed">
+        <code>{code}</code>
+      </pre>
+    </div>
+  );
+};
+
+const createMarkdownComponents = (isPt: boolean): Components => ({
+  p: ({ children }) => (
+    <p className="text-sm text-zinc-200 leading-relaxed mb-3 last:mb-0">{children}</p>
+  ),
+  h1: ({ children }) => (
+    <h1 className="text-base font-semibold tracking-tight text-zinc-100 mt-4 mb-2 first:mt-0">
+      {children}
+    </h1>
+  ),
+  h2: ({ children }) => (
+    <h2 className="text-sm font-semibold tracking-tight text-zinc-100 mt-4 mb-2 first:mt-0">
+      {children}
+    </h2>
+  ),
+  h3: ({ children }) => (
+    <h3 className="text-xs font-mono uppercase tracking-wider text-zinc-200 mt-3.5 mb-1.5 first:mt-0">
+      {children}
+    </h3>
+  ),
+  h4: ({ children }) => (
+    <h4 className="text-xs font-semibold text-zinc-300 mt-3 mb-1 first:mt-0">
+      {children}
+    </h4>
+  ),
+  ul: ({ children }) => (
+    <ul className="list-disc pl-5 my-2.5 space-y-1.5 text-sm text-zinc-200 marker:text-zinc-500">
+      {children}
+    </ul>
+  ),
+  ol: ({ children }) => (
+    <ol className="list-decimal pl-5 my-2.5 space-y-1.5 text-sm text-zinc-200 marker:text-zinc-500 marker:font-mono marker:text-xs tabular-nums">
+      {children}
+    </ol>
+  ),
+  li: ({ children }) => (
+    <li className="leading-relaxed pl-1 [&>p]:mb-1.5 [&>p:last-child]:mb-0">{children}</li>
+  ),
+  blockquote: ({ children }) => (
+    <blockquote className="my-3 border-l-2 border-zinc-400 bg-[#050507]/60 pl-3.5 py-2 pr-3 rounded-r-md text-sm text-zinc-300 italic [&>p]:mb-1.5 [&>p:last-child]:mb-0">
+      {children}
+    </blockquote>
+  ),
+  strong: ({ children }) => (
+    <strong className="font-semibold text-zinc-100">{children}</strong>
+  ),
+  em: ({ children }) => <em className="italic text-zinc-300">{children}</em>,
+  hr: () => <hr className="my-4 border-0 border-t border-white/[0.06]" />,
+  a: ({ href, children }) => (
+    <a
+      href={href}
+      target="_blank"
+      rel="noopener noreferrer"
+      className="text-zinc-100 underline decoration-white/30 underline-offset-4 hover:decoration-white transition-colors"
+    >
+      {children}
+    </a>
+  ),
+  pre: ({ children }) => (
+    <PreContext.Provider value={true}>{children}</PreContext.Provider>
+  ),
+  code: ({ className, children }) => {
+    const isInsidePre = React.useContext(PreContext);
+    const match = /language-([\w-]+)/.exec(className || '');
+    const rawCode = String(children).replace(/\n$/, '');
+
+    if (isInsidePre || match) {
+      return <SocraticCodeBlock language={match?.[1]} code={rawCode} isPt={isPt} />;
+    }
+
+    return (
+      <code className="bg-[#050507] border border-white/[0.07] px-1.5 py-0.5 rounded font-mono text-[12px] text-zinc-200">
+        {children}
+      </code>
+    );
+  },
+  table: ({ children }) => (
+    <div className="my-3 overflow-x-auto rounded-lg border border-white/[0.07]">
+      <table className="w-full border-collapse text-left text-xs text-zinc-200">
+        {children}
+      </table>
+    </div>
+  ),
+  thead: ({ children }) => (
+    <thead className="bg-[#050507] border-b border-white/[0.07] font-mono text-[10px] uppercase tracking-wider text-zinc-400">
+      {children}
+    </thead>
+  ),
+  tbody: ({ children }) => (
+    <tbody className="divide-y divide-white/[0.05]">{children}</tbody>
+  ),
+  tr: ({ children }) => <tr className="transition-colors">{children}</tr>,
+  th: ({ children }) => <th className="px-3 py-2 font-medium">{children}</th>,
+  td: ({ children }) => <td className="px-3 py-2 text-zinc-300">{children}</td>,
+});
 
 interface SocraticTutorProps {
   currentTopic: string;
@@ -30,6 +189,8 @@ export const SocraticTutor: React.FC<SocraticTutorProps> = ({
   onClearInitialPrompt,
 }) => {
   const { t, language } = useLanguage();
+  const isPt = language === 'pt';
+  const markdownComponents = React.useMemo(() => createMarkdownComponents(isPt), [isPt]);
 
   const getWelcomeMessage = (): ChatMessage => ({
     id: 'msg_welcome',
@@ -69,8 +230,9 @@ export const SocraticTutor: React.FC<SocraticTutorProps> = ({
   const [input, setInput] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [pedagogicalMode, setPedagogicalMode] = useState<PedagogicalMode>('socratic');
   const [metacognitiveCertainty, setMetacognitiveCertainty] = useState<number>(3);
+  const [isCalibrationOpen, setIsCalibrationOpen] = useState(false);
+  const [isResetDialogOpen, setIsResetDialogOpen] = useState(false);
 
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const isSendingRef = useRef(false);
@@ -91,7 +253,9 @@ export const SocraticTutor: React.FC<SocraticTutorProps> = ({
 
   useEffect(() => {
     localStorage.setItem(`synapse_chat_history_${language}`, JSON.stringify(messages));
-    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+    if (messages.length > 1 || error) {
+      messagesEndRef.current?.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+    }
   }, [messages, error, language]);
 
   const requestAssistantResponse = async (historyToSend: ChatMessage[]) => {
@@ -102,7 +266,7 @@ export const SocraticTutor: React.FC<SocraticTutorProps> = ({
       const response = await api.api.chat.$post({
         json: {
           messages: historyToSend.map((m) => ({ role: m.role, content: m.content })),
-          mode: pedagogicalMode,
+          mode: 'socratic',
           currentTopic: currentTopic || (language === 'pt' ? 'Aprendizado Ativo' : 'Active Learning'),
           studentCalibration: metacognitiveCertainty,
           language,
@@ -160,254 +324,238 @@ export const SocraticTutor: React.FC<SocraticTutorProps> = ({
     await requestAssistantResponse(messages);
   };
 
-  const handleClearHistory = () => {
-    if (window.confirm(t.socratic.resetConfirm)) {
-      setMessages([getWelcomeMessage()]);
-      setError(null);
-      localStorage.removeItem(`synapse_chat_history_${language}`);
-      localStorage.removeItem('synapse_chat_history');
-    }
+  const handleConfirmClearHistory = () => {
+    setMessages([getWelcomeMessage()]);
+    setError(null);
+    localStorage.removeItem(`synapse_chat_history_${language}`);
+    localStorage.removeItem('synapse_chat_history');
+    setIsResetDialogOpen(false);
   };
 
-  const quickPromptIcons = [HelpCircle, ShieldAlert, Brain, Target];
-
   return (
-    <div className="w-full grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
-      {/* Main Conversation Stream - 8 Columns */}
-      <div className="lg:col-span-8 flex flex-col h-[76vh] bg-zinc-900/30 rounded-2xl border border-zinc-800/80 backdrop-blur-md overflow-hidden shadow-sm">
-        {/* Top Header of Tutor */}
-        <div className="px-6 py-3.5 border-b border-zinc-800/80 bg-zinc-950/70 flex flex-wrap items-center justify-between gap-3 shrink-0">
-          <div className="flex items-center gap-3">
-            <div className="w-8 h-8 rounded-lg bg-zinc-900 border border-zinc-700/60 flex items-center justify-center text-zinc-300">
-              <Brain className="w-4 h-4 stroke-[1.75]" />
-            </div>
-            <div>
-              <h2 className="text-xs font-semibold text-zinc-200 tracking-wide uppercase">
-                {t.socratic.headerTitle}
-              </h2>
-            </div>
-          </div>
-
-          <div className="flex items-center gap-2.5">
-            <select
-              value={pedagogicalMode}
-              onChange={(e) => setPedagogicalMode(e.target.value as PedagogicalMode)}
-              className="bg-zinc-900 border border-zinc-800 text-xs text-zinc-300 rounded-lg px-3 py-1.5 focus:outline-none focus:border-zinc-600 transition-colors"
-              title={t.socratic.modeTooltip}
-            >
-              <option value="socratic">{t.socratic.modes.socratic}</option>
-              <option value="active_retrieval">{t.socratic.modes.active_retrieval}</option>
-              <option value="feynman">{t.socratic.modes.feynman}</option>
-              <option value="metacognition">{t.socratic.modes.metacognition}</option>
-            </select>
-
-            <button
-              onClick={handleClearHistory}
-              className="p-1.5 rounded-lg text-zinc-400 hover:text-zinc-200 hover:bg-zinc-800/70 transition-colors cursor-pointer"
-              title={t.socratic.resetTooltip}
-            >
-              <RotateCcw className="w-3.5 h-3.5" />
-            </button>
-          </div>
+    <div className="w-full flex flex-col h-[76vh] surface-panel rounded-xl overflow-hidden">
+      {/* Technical Header of Tutor */}
+      <div className="px-5 py-2.5 border-b border-white/[0.07] bg-[#09090b]/60 flex flex-wrap items-center justify-between gap-3 shrink-0">
+        <div className="flex items-center gap-2.5">
+          <Brain className="w-3.5 h-3.5 text-zinc-400 stroke-[1.75]" />
+          <h2 className="font-mono text-[11px] uppercase tracking-widest text-zinc-400">
+            {t.socratic.headerTitle}
+          </h2>
         </div>
 
-        {/* Messages Stream */}
-        <div className="flex-1 overflow-y-auto p-5 sm:p-7 space-y-6">
-          {messages.map((message) => {
-            const isUser = message.role === 'user';
-            return (
-              <div
-                key={message.id}
-                className={`flex flex-col ${isUser ? 'items-end' : 'items-start'}`}
-              >
-                <div className="flex items-center gap-2 mb-1.5 px-1">
-                  <span className="text-xs font-mono font-medium text-zinc-400">
-                    {isUser ? t.socratic.you : t.socratic.assistant}
-                  </span>
-                  <span className="text-[11px] text-zinc-500 font-mono">
-                    {new Date(message.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                  </span>
-                </div>
-
-                <div
-                  className={`max-w-[94%] sm:max-w-[88%] rounded-2xl p-5 sm:p-6 text-sm sm:text-base leading-relaxed ${
-                    isUser
-                      ? 'bg-zinc-800 text-zinc-100 border border-zinc-700/60 rounded-tr-sm'
-                      : 'bg-zinc-900/70 border border-zinc-800/80 text-zinc-200 rounded-tl-sm'
-                  }`}
-                >
-                  {isUser ? (
-                    <p className="whitespace-pre-wrap">{message.content}</p>
-                  ) : (
-                    <div className="space-y-4">
-                      {message.pedagogicalMeta && (
-                        <div className="flex flex-wrap items-center gap-2">
-                          <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-xs font-mono bg-zinc-950 text-zinc-300 border border-zinc-800">
-                            <Sparkles className="w-3.5 h-3.5 text-zinc-400 stroke-[1.75]" />
-                            {t.socratic.phase}: {translateCognitivePhase(message.pedagogicalMeta.cognitivePhase || t.socratic.welcomePhase, language)}
-                          </span>
-                        </div>
-                      )}
-
-                      <div className="prose prose-invert prose-sm sm:prose-base max-w-none text-zinc-200 leading-relaxed prose-headings:text-zinc-100 prose-headings:font-semibold prose-strong:text-zinc-100 prose-code:text-zinc-200 prose-code:bg-zinc-950 prose-code:px-1.5 prose-code:py-0.5 prose-code:rounded prose-code:border prose-code:border-zinc-800">
-                        <Markdown>{message.content.replace(/(?:[\r\n]+\s*(?:[-*_]\s*){3,})+$/, '').trim()}</Markdown>
-                      </div>
-                    </div>
-                  )}
-                </div>
-              </div>
-            );
-          })}
-
-          {error && !isLoading && (
-            <div className="p-4 rounded-xl bg-zinc-950 border border-zinc-800 text-xs sm:text-sm text-zinc-300 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
-              <div className="flex items-center gap-2.5">
-                <ShieldAlert className="w-4 h-4 text-zinc-400 shrink-0" />
-                <span>{error}</span>
-              </div>
-              <button
+        <Dialog open={isResetDialogOpen} onOpenChange={setIsResetDialogOpen}>
+          <DialogTrigger
+            render={
+              <Button
                 type="button"
-                onClick={handleRetry}
-                className="px-3.5 py-1.5 bg-zinc-900 hover:bg-zinc-800 border border-zinc-700 rounded-lg text-zinc-200 text-xs font-medium transition-colors flex items-center gap-1.5 shrink-0 cursor-pointer"
-              >
-                <RotateCcw className="w-3.5 h-3.5" />
-                <span>{t.socratic.retry}</span>
-              </button>
-            </div>
-          )}
-
-          {isLoading && (
-            <div className="flex items-start gap-3">
-              <div className="w-8 h-8 rounded-lg bg-zinc-900 border border-zinc-800 flex items-center justify-center text-zinc-400">
-                <Brain className="w-4 h-4 animate-pulse stroke-[1.75]" />
-              </div>
-              <div className="bg-zinc-900/60 border border-zinc-800/80 rounded-2xl rounded-tl-sm p-4 text-xs text-zinc-400 flex items-center gap-3">
-                <span className="flex h-2 w-2 relative">
-                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-zinc-400 opacity-75"></span>
-                  <span className="relative inline-flex rounded-full h-2 w-2 bg-zinc-400"></span>
-                </span>
-                <span>{t.socratic.loadingText}</span>
-              </div>
-            </div>
-          )}
-
-          <div ref={messagesEndRef} />
-        </div>
-
-        {/* Input Form Bar */}
-        <div className="p-4 sm:p-5 bg-zinc-950/80 border-t border-zinc-800/80 shrink-0">
-          <form
-            onSubmit={(e) => {
-              e.preventDefault();
-              handleSendMessage();
-            }}
-            className="flex items-center gap-2.5"
+                variant="ghost"
+                size="icon-sm"
+                className="h-7 w-7 rounded-md surface-recessed text-zinc-400 hover:text-zinc-100 hover:bg-[#16161a] hover:border-white/[0.14] cursor-pointer"
+                title={t.socratic.resetTooltip}
+              />
+            }
           >
-            <input
-              type="text"
-              value={input}
-              onChange={(e) => setInput(e.target.value)}
-              placeholder={t.socratic.inputPlaceholder}
-              disabled={isLoading}
-              className="flex-1 bg-zinc-950 border border-zinc-800 rounded-xl px-4 py-3 text-xs sm:text-sm text-zinc-100 placeholder-zinc-600 focus:outline-none focus:border-zinc-500 focus:ring-1 focus:ring-zinc-700/60 transition-all disabled:opacity-50"
-            />
-            <button
-              type="submit"
-              disabled={isLoading || !input.trim()}
-              className="px-5 py-3 bg-zinc-100 hover:bg-white disabled:bg-zinc-800 disabled:text-zinc-600 text-zinc-950 font-semibold text-xs sm:text-sm rounded-xl transition-all flex items-center justify-center gap-1.5 shrink-0 cursor-pointer shadow-sm"
-              title={t.socratic.sendTooltip}
-            >
-              <span>{t.socratic.sendButton}</span>
-              <Send className="w-3.5 h-3.5 stroke-[2]" />
-            </button>
-          </form>
-        </div>
+            <RotateCcw className="w-3.5 h-3.5" />
+          </DialogTrigger>
+          <DialogContent className="surface-panel rounded-xl text-zinc-100 ring-0 sm:max-w-md">
+            <DialogHeader>
+              <DialogTitle className="font-mono text-xs uppercase tracking-widest text-zinc-200">
+                {t.socratic.resetTooltip}
+              </DialogTitle>
+              <DialogDescription className="text-xs text-zinc-400 leading-relaxed">
+                {t.socratic.resetConfirm}
+              </DialogDescription>
+            </DialogHeader>
+            <DialogFooter className="bg-[#050507] border-white/[0.07]">
+              <DialogClose
+                render={
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="sm"
+                    className="rounded-md text-xs text-zinc-400 hover:text-zinc-100 hover:bg-[#16161a] cursor-pointer"
+                  />
+                }
+              >
+                {isPt ? 'Cancelar' : 'Cancel'}
+              </DialogClose>
+              <Button
+                type="button"
+                size="sm"
+                onClick={handleConfirmClearHistory}
+                className="rounded-md bg-zinc-100 text-zinc-950 hover:bg-white font-medium text-xs cursor-pointer"
+              >
+                {isPt ? 'Confirmar Reset' : 'Confirm Reset'}
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
       </div>
 
-      {/* Metacognitive Inspector & Provocations Sidebar - 4 Columns */}
-      <div className="lg:col-span-4 space-y-4">
-        {/* Metacognitive Certainty Card */}
-        <div className="p-5 rounded-2xl bg-zinc-900/40 border border-zinc-800/80 space-y-3.5">
-          <div className="flex items-center justify-between">
-            <span className="text-xs font-semibold text-zinc-300 uppercase tracking-wider font-mono flex items-center gap-1.5">
-              <Sliders className="w-3.5 h-3.5 text-zinc-400 stroke-[1.75]" />
-              {t.socratic.metacognitiveTitle}
-            </span>
-            <span className="text-xs font-mono font-bold text-zinc-100 bg-zinc-950 px-2 py-0.5 rounded border border-zinc-800">
-              {metacognitiveCertainty}/5
-            </span>
-          </div>
+      {/* Editorial Log Stream */}
+      <div className="flex-1 overflow-y-auto divide-y divide-white/[0.05]">
+        {messages.map((message) => {
+          const isUser = message.role === 'user';
+          return (
+            <div
+              key={message.id}
+              className={`px-5 sm:px-6 py-5 transition-colors ${
+                isUser ? 'bg-[#050507]/70' : 'bg-[#0f0f12]'
+              }`}
+            >
+              {/* Entry Metadata Bar */}
+              <div className="flex flex-wrap items-center justify-between gap-2 mb-3">
+                <span className="font-mono text-[11px] uppercase tracking-widest text-zinc-500">
+                  {isUser ? t.socratic.you : t.socratic.assistant}
+                </span>
+                <span className="text-[11px] text-zinc-500 font-mono tabular-nums">
+                  {new Date(message.timestamp).toLocaleTimeString([], {
+                    hour: '2-digit',
+                    minute: '2-digit',
+                  })}
+                </span>
+              </div>
 
-          <div className="space-y-2">
-            <input
-              type="range"
-              min={1}
-              max={5}
-              step={1}
-              value={metacognitiveCertainty}
-              onChange={(e) => setMetacognitiveCertainty(Number(e.target.value))}
-              className="w-full accent-zinc-200 cursor-pointer"
-            />
-            <div className="flex justify-between text-[11px] text-zinc-400 font-mono">
-              <span>{t.socratic.guess}</span>
-              <span>{t.socratic.partial}</span>
-              <span>{t.socratic.conviction}</span>
+              {/* Entry Body */}
+              {isUser ? (
+                <p className="whitespace-pre-wrap text-sm text-zinc-100 leading-relaxed pl-3 border-l border-zinc-600">
+                  {message.content}
+                </p>
+              ) : (
+                <div className="space-y-4">
+                  <div className="max-w-none text-sm text-zinc-200 leading-relaxed">
+                    <Markdown components={markdownComponents}>
+                      {message.content.replace(/(?:[\r\n]+\s*(?:[-*_]\s*){3,})+$/, '').trim()}
+                    </Markdown>
+                  </div>
+                </div>
+              )}
             </div>
-          </div>
+          );
+        })}
 
-          <div className="p-3 rounded-xl bg-zinc-950/70 border border-zinc-800/80 text-xs text-zinc-400 leading-relaxed">
-            <strong className="text-zinc-300 font-medium block mb-1">{t.socratic.dunningKrugerTitle}</strong>
-            {t.socratic.dunningKrugerDesc}
+        {error && !isLoading && (
+          <div className="px-5 sm:px-6 py-4 bg-[#050507] flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 text-xs text-zinc-300">
+            <div className="flex items-center gap-2.5">
+              <ShieldAlert className="w-4 h-4 text-zinc-400 shrink-0" />
+              <span>{error}</span>
+            </div>
+            <Button
+              type="button"
+              size="sm"
+              onClick={handleRetry}
+              className="h-7 px-3 rounded-md surface-panel hover:bg-[#16161a] text-zinc-200 text-xs font-medium flex items-center gap-1.5 shrink-0 cursor-pointer"
+            >
+              <RotateCcw className="w-3 h-3" />
+              <span>{t.socratic.retry}</span>
+            </Button>
           </div>
-        </div>
+        )}
 
-        {/* Quick Provocations Cards */}
-        <div className="p-5 rounded-2xl bg-zinc-900/40 border border-zinc-800/80 space-y-3">
-          <span className="text-xs font-semibold text-zinc-300 uppercase tracking-wider font-mono flex items-center gap-1.5">
-            <Sparkles className="w-3.5 h-3.5 text-zinc-400" />
-            {t.socratic.quickPromptsTitle}
-          </span>
-          <p className="text-xs text-zinc-500">
-            {t.socratic.quickPromptsDesc}
-          </p>
-
-          <div className="space-y-2">
-            {t.socratic.quickPrompts.map((item, idx) => {
-              const Icon = quickPromptIcons[idx % quickPromptIcons.length];
-              return (
-                <button
-                  key={idx}
-                  onClick={() => handleSendMessage(item.prompt)}
-                  disabled={isLoading}
-                  className="w-full text-left p-3 rounded-xl bg-zinc-950/70 hover:bg-zinc-800/80 text-zinc-300 hover:text-zinc-100 border border-zinc-800/80 hover:border-zinc-700 transition-all flex items-start gap-3 cursor-pointer group disabled:opacity-40"
-                >
-                  <div className="w-7 h-7 rounded-lg bg-zinc-900 border border-zinc-800 flex items-center justify-center text-zinc-400 group-hover:text-zinc-200 shrink-0 mt-0.5">
-                    <Icon className="w-3.5 h-3.5 stroke-[1.75]" />
-                  </div>
-                  <div className="space-y-0.5">
-                    <div className="text-xs font-semibold text-zinc-200 group-hover:text-white">
-                      {item.label}
-                    </div>
-                    <div className="text-[11px] text-zinc-400 leading-snug">
-                      {item.desc}
-                    </div>
-                  </div>
-                </button>
-              );
-            })}
+        {isLoading && (
+          <div className="px-5 sm:px-6 py-5 bg-[#0f0f12] flex items-center gap-3 text-xs text-zinc-400">
+            <span className="flex h-2 w-2 relative shrink-0">
+              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-zinc-400 opacity-75" />
+              <span className="relative inline-flex rounded-full h-2 w-2 bg-zinc-300" />
+            </span>
+            <span className="font-mono text-[11px] uppercase tracking-wider text-zinc-400">
+              {t.socratic.loadingText}
+            </span>
           </div>
-        </div>
+        )}
 
-        {/* Neuroscientific Scaffolding Card */}
-        <div className="p-5 rounded-2xl bg-zinc-900/30 border border-zinc-800/80 space-y-2">
-          <div className="flex items-center gap-2 text-xs font-semibold text-zinc-300 uppercase font-mono">
-            <Info className="w-3.5 h-3.5 text-zinc-400" />
-            <span>{t.socratic.whySocraticTitle}</span>
-          </div>
-          <p className="text-xs text-zinc-400 leading-relaxed">
-            {t.socratic.whySocraticDesc}
-          </p>
-        </div>
+        <div ref={messagesEndRef} />
+      </div>
+
+      {/* Input Form & Pop-up Metacognitive Calibration Bar */}
+      <div className="p-3 sm:p-3.5 bg-[#09090b]/80 border-t border-white/[0.07] shrink-0">
+        <form
+          onSubmit={(e) => {
+            e.preventDefault();
+            handleSendMessage();
+          }}
+          className="flex items-center gap-2"
+        >
+          <Popover open={isCalibrationOpen} onOpenChange={setIsCalibrationOpen}>
+            <PopoverTrigger
+              type="button"
+              title={t.socratic.metacognitiveTitle}
+              className="h-9 px-2.5 rounded-md surface-recessed hover:bg-[#16161a] hover:border-white/[0.14] text-zinc-300 hover:text-zinc-100 transition-colors flex items-center gap-1.5 shrink-0 cursor-pointer"
+            >
+              <Plus className="w-3.5 h-3.5 text-zinc-400 stroke-[1.75]" />
+              <span className="font-mono tabular-nums text-xs font-medium text-zinc-200">
+                {metacognitiveCertainty}/5
+              </span>
+            </PopoverTrigger>
+            <PopoverContent
+              side="top"
+              align="start"
+              sideOffset={8}
+              className="w-64 p-3.5 rounded-xl surface-panel text-zinc-100 ring-0 space-y-2.5"
+            >
+              <div className="flex items-center justify-between">
+                <span className="font-mono text-[10px] uppercase tracking-widest text-zinc-400">
+                  {t.socratic.metacognitiveTitle}
+                </span>
+                <span className="font-mono text-[11px] tabular-nums font-semibold text-zinc-100 surface-recessed px-1.5 py-0.5 rounded">
+                  {metacognitiveCertainty}/5
+                </span>
+              </div>
+
+              <div
+                role="group"
+                aria-label={t.socratic.metacognitiveTitle}
+                className="bg-[#050507] p-1 rounded-lg border border-white/[0.06] grid grid-cols-5 gap-1"
+              >
+                {[1, 2, 3, 4, 5].map((level) => {
+                  const isSelected = metacognitiveCertainty === level;
+                  return (
+                    <button
+                      key={level}
+                      type="button"
+                      onClick={() => {
+                        setMetacognitiveCertainty(level);
+                        setIsCalibrationOpen(false);
+                      }}
+                      className={`h-7 rounded-md font-mono tabular-nums text-xs transition-colors cursor-pointer flex items-center justify-center ${
+                        isSelected
+                          ? 'bg-zinc-100 text-zinc-950 font-semibold'
+                          : 'text-zinc-500 hover:text-zinc-200 hover:bg-[#16161a]'
+                      }`}
+                    >
+                      {level}
+                    </button>
+                  );
+                })}
+              </div>
+
+              <div className="flex justify-between text-[10px] text-zinc-500 font-mono tabular-nums uppercase tracking-wider">
+                <span>{t.socratic.guess}</span>
+                <span>{t.socratic.partial}</span>
+                <span>{t.socratic.conviction}</span>
+              </div>
+            </PopoverContent>
+          </Popover>
+
+          <Input
+            type="text"
+            value={input}
+            onChange={(e) => setInput(e.target.value)}
+            placeholder={t.socratic.inputPlaceholder}
+            disabled={isLoading}
+            className="flex-1 h-9 surface-recessed rounded-md px-3 text-xs sm:text-sm text-zinc-100 placeholder:text-zinc-600 focus-visible:border-white/[0.14] focus-visible:ring-0 disabled:opacity-50"
+          />
+
+          <Button
+            type="submit"
+            disabled={isLoading || !input.trim()}
+            className="h-9 px-4 bg-zinc-100 hover:bg-white disabled:bg-zinc-900 disabled:text-zinc-600 text-zinc-950 font-medium text-xs rounded-md transition-colors flex items-center justify-center gap-1.5 shrink-0 cursor-pointer"
+            title={t.socratic.sendTooltip}
+          >
+            <span>{t.socratic.sendButton}</span>
+            <Send className="w-3.5 h-3.5 stroke-[1.75]" />
+          </Button>
+        </form>
       </div>
     </div>
   );

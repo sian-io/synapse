@@ -1,6 +1,5 @@
 import React, { useState } from 'react';
 import {
-  Sparkles,
   AlertTriangle,
   CheckCircle,
   HelpCircle,
@@ -10,11 +9,20 @@ import {
   RefreshCw,
   BookOpen,
   Award,
-  FileText
+  FileText,
 } from 'lucide-react';
 import { api } from '../api';
 import { FeynmanEvaluation } from '../types';
 import { useLanguage } from '../i18n/LanguageContext';
+import { Button } from '@/components/ui/button';
+import { Textarea } from '@/components/ui/textarea';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
 
 interface FeynmanStudioProps {
   currentTopic: string;
@@ -82,334 +90,323 @@ export const FeynmanStudio: React.FC<FeynmanStudioProps> = ({
     setEvaluation(null);
   };
 
+  const wordCount = explanation.trim().split(/\s+/).filter(Boolean).length;
+
   return (
-    <div className="space-y-6 w-full">
-      {/* Top Banner explaining Feynman & Neuroscience */}
-      <div className="p-6 sm:p-7 rounded-2xl bg-zinc-900/40 border border-zinc-800/80 text-zinc-200">
-        <div className="flex items-start gap-4">
-          <div className="w-9 h-9 rounded-xl bg-zinc-900 border border-zinc-700/60 flex items-center justify-center text-zinc-200 shrink-0">
-            <Sparkles className="w-4.5 h-4.5 stroke-[1.75]" />
-          </div>
-          <div className="space-y-1">
-            <h2 className="text-base font-semibold text-zinc-100 tracking-tight">
-              {t.feynman.bannerTitle}
-            </h2>
-            <p className="text-xs sm:text-sm text-zinc-400 leading-relaxed max-w-4xl">
-              <em>{t.feynman.bannerQuote}</em>{' '}
-              <strong className="text-zinc-300 font-medium">{t.feynman.bannerNeuroBasis}</strong>: {t.feynman.bannerNeuroDesc}
-            </p>
-          </div>
+    <div className="w-full grid grid-cols-1 lg:grid-cols-12 gap-5 items-start">
+      {/* Left Column: Editor Workspace - 5 Columns */}
+      <div className="lg:col-span-5 surface-panel rounded-xl overflow-hidden">
+        <div className="px-5 py-3 border-b border-white/[0.07] bg-[#09090b]/60 flex items-center justify-between gap-2">
+          <span className="font-mono text-[11px] uppercase tracking-widest text-zinc-500">
+            {t.feynman.bannerTitle}
+          </span>
+          <span className="font-mono text-[11px] text-zinc-400 truncate max-w-[180px]">
+            {currentTopic || t.feynman.defineConceptPrompt}
+          </span>
         </div>
+
+        <form onSubmit={handleEvaluate} className="p-5 space-y-4">
+          {/* Target Audience Select */}
+          <div className="space-y-1.5">
+            <label className="font-mono text-[11px] uppercase tracking-widest text-zinc-500 block">
+              {t.feynman.audienceLabel}
+            </label>
+            <Select
+              value={audience}
+              onValueChange={(val) => {
+                if (val) setAudience(val);
+              }}
+            >
+              <SelectTrigger className="w-full h-8 rounded-md surface-recessed px-3 text-xs text-zinc-200 hover:border-white/[0.14] focus-visible:ring-0">
+                <SelectValue>{audienceLabelMap[audience]}</SelectValue>
+              </SelectTrigger>
+              <SelectContent
+                align="start"
+                sideOffset={6}
+                alignItemWithTrigger={false}
+                className="surface-panel rounded-lg p-1 text-zinc-200 ring-0"
+              >
+                <SelectItem
+                  value="child"
+                  className="rounded-md text-xs text-zinc-300 hover:bg-[#16161a] hover:text-zinc-100 focus:bg-[#16161a] focus:text-zinc-100 data-[highlighted]:bg-[#16161a] data-[highlighted]:text-zinc-100 cursor-pointer"
+                >
+                  {t.feynman.audienceOptions.child}
+                </SelectItem>
+                <SelectItem
+                  value="layperson"
+                  className="rounded-md text-xs text-zinc-300 hover:bg-[#16161a] hover:text-zinc-100 focus:bg-[#16161a] focus:text-zinc-100 data-[highlighted]:bg-[#16161a] data-[highlighted]:text-zinc-100 cursor-pointer"
+                >
+                  {t.feynman.audienceOptions.layperson}
+                </SelectItem>
+                <SelectItem
+                  value="beginner"
+                  className="rounded-md text-xs text-zinc-300 hover:bg-[#16161a] hover:text-zinc-100 focus:bg-[#16161a] focus:text-zinc-100 data-[highlighted]:bg-[#16161a] data-[highlighted]:text-zinc-100 cursor-pointer"
+                >
+                  {t.feynman.audienceOptions.beginner}
+                </SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+
+          {/* Explanation Textarea */}
+          <div className="space-y-2">
+            <div className="flex items-center justify-between">
+              <label className="font-mono text-[11px] uppercase tracking-widest text-zinc-500">
+                {t.feynman.yourExplanation}
+              </label>
+              <span className="font-mono tabular-nums text-[11px] text-zinc-400">
+                {wordCount} {t.feynman.words}
+              </span>
+            </div>
+
+            <Textarea
+              rows={9}
+              value={explanation}
+              onChange={(e) => setExplanation(e.target.value)}
+              placeholder={t.feynman.placeholder}
+              className="w-full min-h-[200px] surface-recessed rounded-lg p-3.5 text-xs sm:text-sm text-zinc-100 placeholder:text-zinc-600 focus-visible:border-white/[0.14] focus-visible:ring-0 leading-relaxed"
+            />
+          </div>
+
+          <Button
+            type="submit"
+            disabled={isAnalyzing || !currentTopic.trim() || !explanation.trim()}
+            className="w-full h-9 bg-zinc-100 hover:bg-white disabled:bg-zinc-900 disabled:text-zinc-600 text-zinc-950 font-medium text-xs rounded-md transition-colors flex items-center justify-center gap-2 cursor-pointer"
+          >
+            {isAnalyzing ? (
+              <>
+                <RefreshCw className="w-3.5 h-3.5 animate-spin" />
+                <span>{t.feynman.auditingButton}</span>
+              </>
+            ) : (
+              <>
+                <Award className="w-3.5 h-3.5 stroke-[1.75]" />
+                <span>{t.feynman.auditButton}</span>
+              </>
+            )}
+          </Button>
+
+          {error && (
+            <div className="pt-3 border-t border-white/[0.05] text-xs text-zinc-300 flex items-center justify-between gap-3">
+              <div className="flex items-center gap-2">
+                <AlertTriangle className="w-3.5 h-3.5 text-zinc-400 shrink-0" />
+                <span>{error}</span>
+              </div>
+              <Button
+                type="button"
+                size="sm"
+                onClick={() => handleEvaluate()}
+                className="h-7 px-2.5 surface-recessed hover:bg-[#16161a] text-zinc-200 rounded-md text-xs font-medium transition-colors flex items-center gap-1.5 shrink-0 cursor-pointer"
+              >
+                <RefreshCw className="w-3 h-3" />
+                <span>{t.feynman.retry}</span>
+              </Button>
+            </div>
+          )}
+        </form>
       </div>
 
-      {/* Main Studio Grid - 12 Columns */}
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
-        {/* Left Column: Editor Workspace - 5 Columns */}
-        <div className="lg:col-span-5 space-y-4">
-          <div className="p-6 rounded-2xl bg-zinc-900/30 border border-zinc-800/80 space-y-4">
-            <form onSubmit={handleEvaluate} className="space-y-4">
-              {/* Concept & Audience Controls */}
-              <div className="space-y-3 p-3.5 rounded-xl bg-zinc-950/80 border border-zinc-800/80">
-                <div className="flex items-center justify-between text-xs">
-                  <span className="text-zinc-400">{t.feynman.activeConceptLabel}</span>
-                  <span className="font-semibold text-zinc-100 text-xs sm:text-sm truncate max-w-[220px]">
-                    {currentTopic || t.feynman.defineConceptPrompt}
-                  </span>
-                </div>
+      {/* Right Column: Continuous Hairline Diagnostic Grid - 7 Columns */}
+      <div className="lg:col-span-7">
+        {evaluation ? (
+          <div className="grid grid-cols-1 md:grid-cols-12 gap-px bg-white/[0.07] border border-white/[0.07] rounded-xl overflow-hidden animate-fade-in">
+            {/* Assessment Summary (8 cols) */}
+            <div className="md:col-span-8 bg-[#0f0f12] p-6 space-y-2">
+              <span className="font-mono text-[11px] uppercase tracking-widest text-zinc-500 block">
+                {t.feynman.diagnosisTitle}
+              </span>
+              <h3 className="text-base font-semibold text-zinc-100">
+                {t.feynman.evaluationOf} "{currentTopic}"
+              </h3>
+              <p className="text-xs sm:text-sm text-zinc-400 leading-relaxed">
+                {evaluation.clarityAssessment}
+              </p>
+            </div>
 
-                <div className="space-y-1">
-                  <label className="text-xs text-zinc-400 block font-medium">
-                    {t.feynman.audienceLabel}
-                  </label>
-                  <select
-                    value={audience}
-                    onChange={(e) => setAudience(e.target.value)}
-                    className="w-full bg-zinc-900 border border-zinc-800 rounded-lg px-3 py-2 text-xs text-zinc-200 focus:outline-none focus:border-zinc-600 transition-colors"
-                  >
-                    <option value="child">{t.feynman.audienceOptions.child}</option>
-                    <option value="layperson">{t.feynman.audienceOptions.layperson}</option>
-                    <option value="beginner">{t.feynman.audienceOptions.beginner}</option>
-                  </select>
-                </div>
-              </div>
-
-              {/* Textarea Area */}
-              <div className="space-y-2">
-                <div className="flex items-center justify-between">
-                  <label className="text-xs font-semibold text-zinc-300">
-                    {t.feynman.yourExplanation}
-                  </label>
-                  <div className="flex items-center gap-2 text-xs text-zinc-400">
-                    <span className="font-mono">
-                      {explanation.trim().split(/\s+/).filter(Boolean).length} {t.feynman.words}
-                    </span>
-                  </div>
-                </div>
-
-                <textarea
-                  rows={8}
-                  value={explanation}
-                  onChange={(e) => setExplanation(e.target.value)}
-                  placeholder={t.feynman.placeholder}
-                  className="w-full bg-zinc-950 border border-zinc-800 rounded-xl p-4 text-xs sm:text-sm text-zinc-100 placeholder-zinc-600 focus:outline-none focus:border-zinc-500 focus:ring-1 focus:ring-zinc-700/60 leading-relaxed shadow-inner"
-                />
-
-                {/* Sample Topics Quick Load */}
-                <div className="flex items-center justify-between text-xs pt-1">
-                  <span className="text-zinc-500 text-[11px]">{t.feynman.loadSample}</span>
-                  <div className="flex items-center gap-2">
-                    {t.feynman.samples.map((s, idx) => (
-                      <button
-                        key={idx}
-                        type="button"
-                        onClick={() => loadSample(s)}
-                        className="text-[11px] text-zinc-400 hover:text-zinc-200 underline cursor-pointer"
-                      >
-                        {s.topic}
-                      </button>
-                    ))}
-                  </div>
-                </div>
-              </div>
-
-              <button
-                type="submit"
-                disabled={isAnalyzing || !currentTopic.trim() || !explanation.trim()}
-                className="w-full py-3 bg-zinc-100 hover:bg-white disabled:bg-zinc-800 disabled:text-zinc-600 text-zinc-950 font-semibold text-xs sm:text-sm rounded-xl transition-all flex items-center justify-center gap-2 cursor-pointer shadow-sm"
-              >
-                {isAnalyzing ? (
-                  <>
-                    <RefreshCw className="w-4 h-4 animate-spin" />
-                    <span>{t.feynman.auditingButton}</span>
-                  </>
-                ) : (
-                  <>
-                    <Award className="w-4 h-4 stroke-[2]" />
-                    <span>{t.feynman.auditButton}</span>
-                  </>
-                )}
-              </button>
-            </form>
-
-            {error && (
-              <div className="p-3.5 rounded-xl bg-zinc-950 border border-zinc-800 text-xs text-zinc-300 flex items-center justify-between gap-3">
-                <div className="flex items-center gap-2">
-                  <AlertTriangle className="w-4 h-4 text-zinc-400 shrink-0" />
-                  <span>{error}</span>
-                </div>
-                <button
-                  type="button"
-                  onClick={() => handleEvaluate()}
-                  className="px-3 py-1 bg-zinc-900 hover:bg-zinc-800 border border-zinc-700 rounded-lg text-zinc-200 font-medium transition-colors flex items-center gap-1.5 shrink-0 cursor-pointer"
-                >
-                  <RefreshCw className="w-3 h-3" />
-                  {t.feynman.retry}
-                </button>
-              </div>
-            )}
-          </div>
-        </div>
-
-        {/* Right Column: Diagnostic & Results - 7 Columns */}
-        <div className="lg:col-span-7">
-          {evaluation ? (
-            <div className="p-6 sm:p-7 rounded-2xl bg-zinc-900/40 border border-zinc-800/80 space-y-6 shadow-sm animate-fade-in">
-              {/* Header Score & Diagnosis */}
-              <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 pb-5 border-b border-zinc-800/80">
-                <div>
-                  <span className="text-xs font-mono font-medium text-zinc-400 uppercase tracking-wider">
-                    {t.feynman.diagnosisTitle}
-                  </span>
-                  <h3 className="text-lg font-semibold text-zinc-100 mt-0.5">
-                    {t.feynman.evaluationOf} "{currentTopic}"
-                  </h3>
-                  <p className="text-xs sm:text-sm text-zinc-400 mt-1 max-w-xl leading-relaxed">
-                    {evaluation.clarityAssessment}
-                  </p>
-                </div>
-
-                {/* Score Ring / Pill */}
-                <div className="flex items-center gap-3 bg-zinc-950 px-5 py-3 rounded-2xl border border-zinc-800 shrink-0">
-                  <div className="text-4xl font-bold font-mono text-zinc-100">
-                    {evaluation.score}
-                  </div>
-                  <div className="text-xs text-zinc-500 leading-tight font-mono">
-                    <span className="block font-semibold text-zinc-300">/ 100</span>
-                    <span>{t.feynman.mastery}</span>
-                  </div>
-                </div>
-              </div>
-
-              {/* Jargon vs Gaps Grid */}
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                {/* Jargons Identified */}
-                <div className="p-4 sm:p-5 rounded-xl bg-zinc-950/70 border border-zinc-800/80 space-y-3">
-                  <div className="flex items-center gap-2 text-zinc-300 text-xs font-semibold uppercase tracking-wider font-mono">
-                    <AlertTriangle className="w-4 h-4 text-zinc-400 stroke-[1.75]" />
-                    <span>{t.feynman.jargonTitle}</span>
-                  </div>
-                  {evaluation.jargonIdentified.length > 0 ? (
-                    <ul className="space-y-2 text-xs text-zinc-300 leading-relaxed">
-                      {evaluation.jargonIdentified.map((jargon, i) => (
-                        <li key={i} className="flex items-start gap-2">
-                          <span className="text-zinc-500 font-bold">•</span>
-                          <span>
-                            <strong className="text-zinc-100">"{jargon}"</strong> — {t.feynman.jargonItemSuffix}
-                          </span>
-                        </li>
-                      ))}
-                    </ul>
-                  ) : (
-                    <p className="text-xs text-zinc-400 flex items-center gap-1.5">
-                      <CheckCircle className="w-4 h-4 text-zinc-400" />
-                      {t.feynman.noJargon}
-                    </p>
-                  )}
-                </div>
-
-                {/* Conceptual Gaps */}
-                <div className="p-4 sm:p-5 rounded-xl bg-zinc-950/70 border border-zinc-800/80 space-y-3">
-                  <div className="flex items-center gap-2 text-zinc-300 text-xs font-semibold uppercase tracking-wider font-mono">
-                    <Brain className="w-4 h-4 text-zinc-400 stroke-[1.75]" />
-                    <span>{t.feynman.gapsTitle}</span>
-                  </div>
-                  {evaluation.conceptualGaps.length > 0 ? (
-                    <ul className="space-y-2 text-xs text-zinc-300 leading-relaxed">
-                      {evaluation.conceptualGaps.map((gap, i) => (
-                        <li key={i} className="flex items-start gap-2">
-                          <span className="text-zinc-500 font-bold">•</span>
-                          <span>{gap}</span>
-                        </li>
-                      ))}
-                    </ul>
-                  ) : (
-                    <p className="text-xs text-zinc-400 flex items-center gap-1.5">
-                      <CheckCircle className="w-4 h-4 text-zinc-400" />
-                      {t.feynman.noGaps}
-                    </p>
-                  )}
-                </div>
-              </div>
-
-              {/* Strengths */}
-              <div className="p-4 sm:p-5 rounded-xl bg-zinc-950/50 border border-zinc-800/80 space-y-2.5">
-                <span className="text-xs font-semibold text-zinc-300 flex items-center gap-2 font-mono uppercase tracking-wider">
-                  <CheckCircle className="w-4 h-4 text-zinc-400 stroke-[1.75]" />
-                  {t.feynman.strengthsTitle}
+            {/* Mastery Score (4 cols) */}
+            <div className="md:col-span-4 bg-[#0f0f12] p-6 flex flex-col justify-between">
+              <span className="font-mono text-[11px] uppercase tracking-widest text-zinc-500">
+                {t.feynman.mastery}
+              </span>
+              <div className="flex items-baseline gap-1.5 pt-2">
+                <span className="font-mono tabular-nums text-4xl tracking-tighter font-bold text-zinc-100">
+                  {evaluation.score}
                 </span>
-                <div className="flex flex-wrap gap-2 pt-1">
-                  {evaluation.strengths.map((str, i) => (
-                    <span
-                      key={i}
-                      className="px-3 py-1.5 rounded-lg text-xs font-mono bg-zinc-900 text-zinc-200 border border-zinc-800"
-                    >
-                      {str}
-                    </span>
-                  ))}
-                </div>
-              </div>
-
-              {/* Suggested Analogy & Benchmark */}
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div className="p-4 sm:p-5 rounded-xl bg-zinc-950/70 border border-zinc-800/80 space-y-2.5">
-                  <span className="text-xs font-semibold text-zinc-200 flex items-center gap-2">
-                    <Lightbulb className="w-4 h-4 text-zinc-400 stroke-[1.75]" />
-                    {t.feynman.analogyTitle}
-                  </span>
-                  <p className="text-xs sm:text-sm text-zinc-300 leading-relaxed">
-                    {evaluation.suggestedAnalogy}
-                  </p>
-                  <p className="text-xs text-zinc-500 italic">
-                    {evaluation.analogiesEvaluation}
-                  </p>
-                </div>
-
-                <div className="p-4 sm:p-5 rounded-xl bg-zinc-950/70 border border-zinc-800/80 space-y-2.5">
-                  <span className="text-xs font-semibold text-zinc-200 flex items-center gap-2">
-                    <BookOpen className="w-4 h-4 text-zinc-400 stroke-[1.75]" />
-                    {t.feynman.feynmanModelTitle}
-                  </span>
-                  <p className="text-xs sm:text-sm text-zinc-400 leading-relaxed italic">
-                    "{evaluation.simplifiedAlternative}"
-                  </p>
-                </div>
-              </div>
-
-              {/* Follow up Socratic Question */}
-              <div className="p-5 rounded-xl bg-zinc-950 border border-zinc-800 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
-                <div className="space-y-1">
-                  <span className="text-xs font-mono font-medium text-zinc-400 uppercase tracking-wider flex items-center gap-1.5">
-                    <HelpCircle className="w-3.5 h-3.5" />
-                    {t.feynman.challengeTitle}
-                  </span>
-                  <p className="text-xs sm:text-sm font-medium text-zinc-200">
-                    "{evaluation.followUpQuestion}"
-                  </p>
-                </div>
-
-                {onOpenSocraticWithPrompt && (
-                  <button
-                    onClick={() =>
-                      onOpenSocraticWithPrompt(
-                        `${t.feynman.discussPromptPrefix} ${currentTopic} ${t.feynman.discussPromptSuffix} "${evaluation.followUpQuestion}"`
-                      )
-                    }
-                    className="px-4 py-2.5 rounded-xl bg-zinc-100 hover:bg-white text-xs font-semibold text-zinc-950 transition-colors shrink-0 flex items-center gap-2 cursor-pointer shadow-sm"
-                  >
-                    <span>{t.feynman.discussWithTutor}</span>
-                    <ArrowRight className="w-3.5 h-3.5 stroke-[2]" />
-                  </button>
-                )}
+                <span className="font-mono tabular-nums text-xs text-zinc-500">
+                  / 100
+                </span>
               </div>
             </div>
-          ) : (
-            /* Blank state showing Feynman Protocol guide */
-            <div className="p-8 rounded-2xl bg-zinc-900/30 border border-zinc-800/80 space-y-6">
-              <div className="space-y-2">
-                <span className="text-xs font-mono uppercase tracking-wider text-zinc-400 flex items-center gap-2">
-                  <FileText className="w-4 h-4 text-zinc-400" />
-                  {t.feynman.protocolTitle}
+
+            {/* Jargon Identified (6 cols) */}
+            <div className="md:col-span-6 bg-[#0f0f12] p-6 space-y-3">
+              <div className="font-mono text-[11px] uppercase tracking-widest text-zinc-500 flex items-center gap-1.5">
+                <AlertTriangle className="w-3.5 h-3.5 text-zinc-500 stroke-[1.75]" />
+                <span>{t.feynman.jargonTitle}</span>
+              </div>
+              {evaluation.jargonIdentified.length > 0 ? (
+                <ul className="divide-y divide-white/[0.05] text-xs text-zinc-300 leading-relaxed">
+                  {evaluation.jargonIdentified.map((jargon, i) => (
+                    <li key={i} className="py-2.5 first:pt-0 last:pb-0">
+                      <strong className="text-zinc-100 font-medium">"{jargon}"</strong> —{' '}
+                      {t.feynman.jargonItemSuffix}
+                    </li>
+                  ))}
+                </ul>
+              ) : (
+                <p className="text-xs text-zinc-400 flex items-center gap-1.5">
+                  <CheckCircle className="w-3.5 h-3.5 text-zinc-400" />
+                  <span>{t.feynman.noJargon}</span>
+                </p>
+              )}
+            </div>
+
+            {/* Conceptual Gaps (6 cols) */}
+            <div className="md:col-span-6 bg-[#0f0f12] p-6 space-y-3">
+              <div className="font-mono text-[11px] uppercase tracking-widest text-zinc-500 flex items-center gap-1.5">
+                <Brain className="w-3.5 h-3.5 text-zinc-500 stroke-[1.75]" />
+                <span>{t.feynman.gapsTitle}</span>
+              </div>
+              {evaluation.conceptualGaps.length > 0 ? (
+                <ul className="divide-y divide-white/[0.05] text-xs text-zinc-300 leading-relaxed">
+                  {evaluation.conceptualGaps.map((gap, i) => (
+                    <li key={i} className="py-2.5 first:pt-0 last:pb-0">
+                      {gap}
+                    </li>
+                  ))}
+                </ul>
+              ) : (
+                <p className="text-xs text-zinc-400 flex items-center gap-1.5">
+                  <CheckCircle className="w-3.5 h-3.5 text-zinc-400" />
+                  <span>{t.feynman.noGaps}</span>
+                </p>
+              )}
+            </div>
+
+            {/* Strengths (12 cols) */}
+            <div className="md:col-span-12 bg-[#0f0f12] p-6 space-y-3">
+              <span className="font-mono text-[11px] uppercase tracking-widest text-zinc-500 flex items-center gap-1.5">
+                <CheckCircle className="w-3.5 h-3.5 text-zinc-500 stroke-[1.75]" />
+                {t.feynman.strengthsTitle}
+              </span>
+              <div className="flex flex-wrap gap-1.5">
+                {evaluation.strengths.map((str, i) => (
+                  <span
+                    key={i}
+                    className="px-2.5 py-1 rounded-md text-xs font-mono surface-recessed text-zinc-200"
+                  >
+                    {str}
+                  </span>
+                ))}
+              </div>
+            </div>
+
+            {/* Suggested Analogy (6 cols) */}
+            <div className="md:col-span-6 bg-[#0f0f12] p-6 space-y-2.5">
+              <span className="font-mono text-[11px] uppercase tracking-widest text-zinc-500 flex items-center gap-1.5">
+                <Lightbulb className="w-3.5 h-3.5 text-zinc-500 stroke-[1.75]" />
+                {t.feynman.analogyTitle}
+              </span>
+              <p className="text-xs sm:text-sm text-zinc-200 leading-relaxed">
+                {evaluation.suggestedAnalogy}
+              </p>
+              <p className="text-xs text-zinc-500 leading-relaxed pt-2 border-t border-white/[0.05]">
+                {evaluation.analogiesEvaluation}
+              </p>
+            </div>
+
+            {/* Ideal Feynman Model (6 cols) */}
+            <div className="md:col-span-6 bg-[#0f0f12] p-6 space-y-2.5">
+              <span className="font-mono text-[11px] uppercase tracking-widest text-zinc-500 flex items-center gap-1.5">
+                <BookOpen className="w-3.5 h-3.5 text-zinc-500 stroke-[1.75]" />
+                {t.feynman.feynmanModelTitle}
+              </span>
+              <p className="text-xs sm:text-sm text-zinc-300 leading-relaxed border-l-2 border-zinc-300 pl-3">
+                {evaluation.simplifiedAlternative}
+              </p>
+            </div>
+
+            {/* Follow-up Socratic Challenge (12 cols) */}
+            <div className="md:col-span-12 bg-[#0f0f12] p-6 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+              <div className="space-y-1.5">
+                <span className="font-mono text-[11px] uppercase tracking-widest text-zinc-500 flex items-center gap-1.5">
+                  <HelpCircle className="w-3.5 h-3.5 text-zinc-500 stroke-[1.75]" />
+                  {t.feynman.challengeTitle}
                 </span>
-                <h3 className="text-lg font-semibold text-zinc-100">
-                  {t.feynman.howItWorksTitle}
-                </h3>
-                <p className="text-xs sm:text-sm text-zinc-400 leading-relaxed">
-                  {t.feynman.howItWorksDesc}
+                <p className="text-xs sm:text-sm font-medium text-zinc-100 leading-relaxed">
+                  "{evaluation.followUpQuestion}"
                 </p>
               </div>
 
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-xs sm:text-sm">
-                <div className="p-4 rounded-xl bg-zinc-950/70 border border-zinc-800/80 space-y-1.5">
-                  <span className="font-semibold text-zinc-200 block">{t.feynman.step1Title}</span>
-                  <p className="text-xs text-zinc-400 leading-relaxed">
-                    {t.feynman.step1Desc}
-                  </p>
-                </div>
-
-                <div className="p-4 rounded-xl bg-zinc-950/70 border border-zinc-800/80 space-y-1.5">
-                  <span className="font-semibold text-zinc-200 block">{t.feynman.step2Title}</span>
-                  <p className="text-xs text-zinc-400 leading-relaxed">
-                    {t.feynman.step2Desc}
-                  </p>
-                </div>
-
-                <div className="p-4 rounded-xl bg-zinc-950/70 border border-zinc-800/80 space-y-1.5">
-                  <span className="font-semibold text-zinc-200 block">{t.feynman.step3Title}</span>
-                  <p className="text-xs text-zinc-400 leading-relaxed">
-                    {t.feynman.step3Desc}
-                  </p>
-                </div>
-
-                <div className="p-4 rounded-xl bg-zinc-950/70 border border-zinc-800/80 space-y-1.5">
-                  <span className="font-semibold text-zinc-200 block">{t.feynman.step4Title}</span>
-                  <p className="text-xs text-zinc-400 leading-relaxed">
-                    {t.feynman.step4Desc}
-                  </p>
-                </div>
-              </div>
+              {onOpenSocraticWithPrompt && (
+                <Button
+                  type="button"
+                  onClick={() =>
+                    onOpenSocraticWithPrompt(
+                      `${t.feynman.discussPromptPrefix} ${currentTopic} ${t.feynman.discussPromptSuffix} "${evaluation.followUpQuestion}"`
+                    )
+                  }
+                  className="h-8 px-3.5 rounded-md bg-zinc-100 hover:bg-white text-xs font-medium text-zinc-950 transition-colors shrink-0 flex items-center gap-1.5 cursor-pointer"
+                >
+                  <span>{t.feynman.discussWithTutor}</span>
+                  <ArrowRight className="w-3.5 h-3.5 stroke-[1.75]" />
+                </Button>
+              )}
             </div>
-          )}
-        </div>
+          </div>
+        ) : (
+          /* Blank State: Feynman Protocol Hairline Bento Grid */
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-px bg-white/[0.07] border border-white/[0.07] rounded-xl overflow-hidden">
+            <div className="sm:col-span-2 bg-[#0f0f12] p-6 space-y-2">
+              <span className="font-mono text-[11px] uppercase tracking-widest text-zinc-500 flex items-center gap-1.5">
+                <FileText className="w-3.5 h-3.5 text-zinc-500 stroke-[1.75]" />
+                {t.feynman.protocolTitle}
+              </span>
+              <h3 className="text-base font-semibold text-zinc-100">
+                {t.feynman.howItWorksTitle}
+              </h3>
+              <p className="text-xs sm:text-sm text-zinc-400 leading-relaxed">
+                {t.feynman.howItWorksDesc}
+              </p>
+            </div>
+
+            <div className="bg-[#0f0f12] p-5 space-y-1.5">
+              <span className="font-mono text-[11px] uppercase tracking-widest text-zinc-300 block">
+                {t.feynman.step1Title.replace(/^\d+\.\s*/, '')}
+              </span>
+              <p className="text-xs text-zinc-400 leading-relaxed">
+                {t.feynman.step1Desc}
+              </p>
+            </div>
+
+            <div className="bg-[#0f0f12] p-5 space-y-1.5">
+              <span className="font-mono text-[11px] uppercase tracking-widest text-zinc-300 block">
+                {t.feynman.step2Title.replace(/^\d+\.\s*/, '')}
+              </span>
+              <p className="text-xs text-zinc-400 leading-relaxed">
+                {t.feynman.step2Desc}
+              </p>
+            </div>
+
+            <div className="bg-[#0f0f12] p-5 space-y-1.5">
+              <span className="font-mono text-[11px] uppercase tracking-widest text-zinc-300 block">
+                {t.feynman.step3Title.replace(/^\d+\.\s*/, '')}
+              </span>
+              <p className="text-xs text-zinc-400 leading-relaxed">
+                {t.feynman.step3Desc}
+              </p>
+            </div>
+
+            <div className="bg-[#0f0f12] p-5 space-y-1.5">
+              <span className="font-mono text-[11px] uppercase tracking-widest text-zinc-300 block">
+                {t.feynman.step4Title.replace(/^\d+\.\s*/, '')}
+              </span>
+              <p className="text-xs text-zinc-400 leading-relaxed">
+                {t.feynman.step4Desc}
+              </p>
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );

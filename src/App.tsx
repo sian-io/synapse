@@ -27,7 +27,7 @@ function AppContent() {
   const { t, language, setLanguage } = useLanguage();
   const { isConfigured, openModal } = useAIConfig();
   const isPt = language === 'pt';
-  const [activeTab, setActiveTab] = useState<ActiveTab>('neuroscience');
+  const [activeTab, setActiveTab] = useState<ActiveTab>('socratic');
   const [currentTopic, setCurrentTopic] = useState<string>(() => {
     return localStorage.getItem('synapse_current_topic') || t.conceptBar.defaultTopic;
   });
@@ -106,20 +106,24 @@ function AppContent() {
   return (
     <div className="min-h-screen bg-[#09090b] text-zinc-100 flex flex-col font-sans selection:bg-zinc-800 selection:text-zinc-100">
       {/* Top Header */}
-      <header className="sticky top-0 z-40 border-b border-zinc-800/70 bg-[#09090b]/90 backdrop-blur-xl px-4 sm:px-8 xl:px-12 py-3.5">
-        <div className="max-w-[1600px] w-full mx-auto flex items-center justify-between gap-4">
-          {/* Brand Identity */}
-          <div className="flex items-center gap-3.5 shrink-0">
-            <div className="w-11 h-11 rounded-xl bg-zinc-900 border border-zinc-700/80 flex items-center justify-center text-zinc-100 shadow-md shadow-zinc-950/40">
-              <Brain className="w-6 h-6 text-zinc-100 stroke-[2]" />
+      <header className="sticky top-0 z-40 min-h-14 lg:h-14 py-2 lg:py-0 border-b border-white/[0.07] bg-[#09090b]/90 backdrop-blur-md px-4 sm:px-6 xl:px-8 flex items-center">
+        <div className="max-w-[1600px] w-full mx-auto flex flex-wrap lg:flex-nowrap items-center justify-between gap-y-2 gap-x-3">
+          {/* Left: Brand Identity */}
+          <div className="flex items-center gap-3 shrink-0">
+            <div className="flex items-center gap-2.5 shrink-0">
+              <div className="w-7 h-7 rounded-md surface-panel flex items-center justify-center text-zinc-100">
+                <Brain className="w-3.5 h-3.5 text-zinc-100 stroke-[1.75]" />
+              </div>
+              <span className="font-mono text-xs font-semibold tracking-[0.2em] text-zinc-100">
+                SYNAPSE
+              </span>
             </div>
-            <span className="text-xl sm:text-2xl font-bold tracking-wider text-zinc-100">
-              SYNAPSE
-            </span>
+
+            <div className="hidden lg:block h-4 w-px bg-white/[0.08] shrink-0" />
           </div>
 
-          {/* Navigation Tabs */}
-          <nav className="flex items-center justify-center gap-1.5 overflow-x-auto no-scrollbar min-w-0 flex-1 px-2">
+          {/* Navigation Tabs - Minimalist Segmented Control */}
+          <nav className="order-last lg:order-none w-full lg:w-auto lg:mr-auto flex items-center gap-0.5 p-0.5 rounded-lg surface-recessed overflow-x-auto no-scrollbar min-w-0">
             {navItems.map((item) => {
               const Icon = item.icon;
               const isActive = activeTab === item.id;
@@ -127,30 +131,61 @@ function AppContent() {
                 <button
                   key={item.id}
                   onClick={() => setActiveTab(item.id)}
-                  className={`px-3.5 py-2 rounded-lg text-xs sm:text-sm font-medium transition-all flex items-center gap-2 shrink-0 cursor-pointer ${
+                  className={`px-2.5 py-1 rounded-md text-xs font-medium transition-colors flex items-center gap-1.5 shrink-0 cursor-pointer ${
                     isActive
-                      ? 'bg-zinc-100 text-zinc-950 shadow-sm'
-                      : 'text-zinc-400 hover:text-zinc-200 hover:bg-zinc-900/80'
+                      ? 'bg-zinc-100 text-zinc-950 font-medium'
+                      : 'text-zinc-400 hover:text-zinc-200 hover:bg-[#16161a]'
                   }`}
                 >
-                  <Icon className={`w-4 h-4 stroke-[1.75] ${isActive ? 'text-zinc-950' : 'text-zinc-400'}`} />
+                  <Icon className={`w-3.5 h-3.5 stroke-[1.75] ${isActive ? 'text-zinc-950' : 'text-zinc-500'}`} />
                   <span>{item.label}</span>
                 </button>
               );
             })}
           </nav>
 
-          {/* Header Controls: Language Selector & Neuro Cognitive Stats Pills */}
-          <div className="flex items-center gap-2 sm:gap-3 shrink-0">
+          {/* Right Controls: Metrics, Language Selector & AI Settings */}
+          <div className="flex items-center gap-1.5 sm:gap-2.5 shrink-0">
+            {/* Neuro Cognitive Stats */}
+            <div className="flex items-center gap-1 sm:gap-1.5">
+              {/* Retention Streak */}
+              <div
+                className="flex items-center gap-1 sm:gap-1.5 px-2 sm:px-2.5 py-1 rounded-md surface-panel text-[11px] text-zinc-400 transition-colors hover:border-white/[0.14]"
+                title={t.app.stats.retentionStreakTooltip}
+              >
+                <Flame className="w-3.5 h-3.5 text-zinc-400 stroke-[1.75]" />
+                <span className="font-mono tabular-nums font-semibold text-zinc-100">
+                  {stats.retentionStreakDays}
+                </span>
+                <span className="hidden md:inline text-zinc-500">{t.app.stats.retentionStreak}</span>
+                <span className="md:hidden font-mono tabular-nums text-zinc-500">{t.app.stats.retentionStreakShort}</span>
+              </div>
+
+              {/* LTP Recalls */}
+              <div
+                className="flex items-center gap-1 sm:gap-1.5 px-2 sm:px-2.5 py-1 rounded-md surface-panel text-[11px] text-zinc-400 transition-colors hover:border-white/[0.14]"
+                title={t.app.stats.recallsLTPTooltip}
+              >
+                <Zap className="w-3.5 h-3.5 text-zinc-400 stroke-[1.75]" />
+                <span className="font-mono tabular-nums font-semibold text-zinc-100">
+                  {stats.retrievalAttempts + stats.socraticQuestionsAnswered}
+                </span>
+                <span className="hidden md:inline text-zinc-500">{t.app.stats.recallsLTP}</span>
+                <span className="md:hidden font-mono tabular-nums text-zinc-500">{t.app.stats.recallsLTPShort}</span>
+              </div>
+            </div>
+
+            <div className="hidden sm:block h-4 w-px bg-white/[0.08] shrink-0" />
+
             {/* Language Switcher */}
-            <div className="flex items-center rounded-lg bg-zinc-900/90 border border-zinc-800 p-0.5 text-xs text-zinc-300 font-medium">
-              <div className="flex items-center px-1.5 text-zinc-500">
-                <Globe className="w-3.5 h-3.5 stroke-[1.75]" />
+            <div className="flex items-center rounded-md surface-recessed p-0.5 text-xs text-zinc-300 font-medium">
+              <div className="hidden sm:flex items-center px-1.5 text-zinc-500">
+                <Globe className="w-3 h-3 stroke-[1.75]" />
               </div>
               <button
                 type="button"
                 onClick={() => setLanguage('en')}
-                className={`px-2 py-1 rounded text-xs font-mono font-semibold transition-colors cursor-pointer ${
+                className={`px-1.5 py-0.5 rounded-md text-[11px] font-mono tabular-nums font-medium transition-colors cursor-pointer ${
                   language === 'en'
                     ? 'bg-zinc-100 text-zinc-950'
                     : 'text-zinc-400 hover:text-zinc-200'
@@ -162,7 +197,7 @@ function AppContent() {
               <button
                 type="button"
                 onClick={() => setLanguage('pt')}
-                className={`px-2 py-1 rounded text-xs font-mono font-semibold transition-colors cursor-pointer ${
+                className={`px-1.5 py-0.5 rounded-md text-[11px] font-mono tabular-nums font-medium transition-colors cursor-pointer ${
                   language === 'pt'
                     ? 'bg-zinc-100 text-zinc-950'
                     : 'text-zinc-400 hover:text-zinc-200'
@@ -173,59 +208,41 @@ function AppContent() {
               </button>
             </div>
 
-            {/* Retention Streak */}
-            <div
-              className="flex items-center gap-2 px-3 py-1.5 sm:px-3.5 rounded-lg bg-zinc-900/90 border border-zinc-800 text-xs text-zinc-300 font-medium transition-colors hover:border-zinc-700"
-              title={t.app.stats.retentionStreakTooltip}
-            >
-              <Flame className="w-4 h-4 text-zinc-400 stroke-[1.75]" />
-              <span className="hidden sm:inline"><strong className="text-zinc-100 font-semibold">{stats.retentionStreakDays}</strong> {t.app.stats.retentionStreak}</span>
-              <span className="sm:hidden"><strong className="text-zinc-100 font-semibold">{stats.retentionStreakDays}</strong>{t.app.stats.retentionStreakShort}</span>
-            </div>
-
-            {/* LTP Recalls */}
-            <div
-              className="flex items-center gap-2 px-3 py-1.5 sm:px-3.5 rounded-lg bg-zinc-900/90 border border-zinc-800 text-xs text-zinc-300 font-medium transition-colors hover:border-zinc-700"
-              title={t.app.stats.recallsLTPTooltip}
-            >
-              <Zap className="w-4 h-4 text-zinc-400 stroke-[1.75]" />
-              <span className="hidden sm:inline"><strong className="text-zinc-100 font-semibold">{stats.retrievalAttempts + stats.socraticQuestionsAnswered}</strong> {t.app.stats.recallsLTP}</span>
-              <span className="sm:hidden"><strong className="text-zinc-100 font-semibold">{stats.retrievalAttempts + stats.socraticQuestionsAnswered}</strong> {t.app.stats.recallsLTPShort}</span>
-            </div>
+            <div className="hidden sm:block h-4 w-px bg-white/[0.08] shrink-0" />
 
             {/* AI Settings Button */}
             <button
               type="button"
               onClick={openModal}
-              className={`p-2 rounded-lg border text-xs font-medium transition-colors cursor-pointer flex items-center gap-1.5 ${
+              className={`h-7 w-7 rounded-md flex items-center justify-center transition-colors cursor-pointer ${
                 isConfigured
-                  ? 'bg-zinc-900/90 border-zinc-800 text-zinc-300 hover:text-zinc-100 hover:border-zinc-700'
-                  : 'bg-amber-950/60 border-amber-700/70 text-amber-300 hover:bg-amber-900/60'
+                  ? 'surface-panel text-zinc-400 hover:text-zinc-100 hover:border-white/[0.14] hover:bg-[#16161a]'
+                  : 'bg-zinc-100 text-zinc-950 hover:bg-white'
               }`}
-              title={isPt ? 'Configurações de IA (BYOK)' : 'AI Configuration (BYOK)'}
+              title={isPt ? 'Configurações de IA' : 'AI Configuration'}
             >
-              <Settings className="w-4 h-4 stroke-[1.75]" />
+              <Settings className="w-3.5 h-3.5 stroke-[1.75]" />
             </button>
           </div>
         </div>
       </header>
 
       {/* Main Content Viewport */}
-      <main className="flex-1 max-w-[1600px] w-full mx-auto px-4 sm:px-8 xl:px-12 py-6 space-y-6">
+      <main className="flex-1 max-w-[1600px] w-full mx-auto px-4 sm:px-6 xl:px-8 py-5 space-y-5">
         {!isConfigured && (
-          <div className="p-4 rounded-2xl bg-amber-950/40 border border-amber-800/70 text-amber-200 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 text-xs sm:text-sm">
+          <div className="px-3.5 py-2.5 rounded-lg surface-panel text-zinc-300 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 text-xs">
             <div className="flex items-center gap-2.5">
-              <AlertTriangle className="w-4 h-4 text-amber-400 shrink-0" />
+              <AlertTriangle className="w-3.5 h-3.5 text-zinc-400 shrink-0" />
               <span>
                 {isPt
-                  ? 'Configure sua API de IA (BYOK) para habilitar o Tutor Socrático, Feynman, Flashcards e Mapa Cognitivo.'
-                  : 'Configure your AI API (BYOK) to enable Socratic Tutor, Feynman Studio, Flashcards, and Cognitive Map.'}
+                  ? 'Configure sua API de inferência para habilitar o Tutor Socrático, Feynman, Flashcards e Mapa Cognitivo.'
+                  : 'Configure your Inference API to enable Socratic Tutor, Feynman Studio, Flashcards, and Cognitive Map.'}
               </span>
             </div>
             <button
               type="button"
               onClick={openModal}
-              className="px-3.5 py-1.5 rounded-xl bg-amber-200 hover:bg-amber-100 text-zinc-950 font-semibold text-xs transition-colors shrink-0 cursor-pointer"
+              className="px-3 py-1 rounded-md bg-zinc-100 hover:bg-white text-zinc-950 font-medium text-xs transition-colors shrink-0 cursor-pointer"
             >
               {isPt ? 'Configurar API' : 'Configure API'}
             </button>

@@ -3,6 +3,13 @@ import { Settings, X, Eye, EyeOff } from 'lucide-react';
 import { AIProviderConfig, APIStandard, OpenAIApiType } from '../types';
 import { AI_CONFIG_STORAGE_KEY } from '../api';
 import { useLanguage } from '../i18n/LanguageContext';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
 
 const EMPTY_FORM_DRAFT: AIProviderConfig = {
   apiStandard: 'openai',
@@ -91,6 +98,18 @@ export const AIConfigProvider: React.FC<{ children: React.ReactNode }> = ({ chil
 
   const isConfigured = isAIConfigValid(config);
 
+  const apiStandardLabels: Record<APIStandard, string> = {
+    openai: 'OpenAI',
+    anthropic: 'Anthropic (/v1/messages)',
+    google: 'Google (/v1beta/models/{model}:generateContent)',
+    ollama: 'Ollama (/api/chat)',
+  };
+
+  const openaiEndpointLabels: Record<OpenAIApiType, string> = {
+    completions: '/v1/chat/completions',
+    responses: '/v1/responses',
+  };
+
   return (
     <AIConfigContext.Provider value={{ config, setConfig, isConfigured, isModalOpen, openModal, closeModal }}>
       {children}
@@ -100,20 +119,20 @@ export const AIConfigProvider: React.FC<{ children: React.ReactNode }> = ({ chil
           onClick={closeModal}
         >
           <div
-            className="w-full max-w-md rounded-2xl bg-zinc-900 border border-zinc-800 p-6 shadow-2xl space-y-5 text-zinc-100"
+            className="w-full max-w-md rounded-xl surface-panel p-6 space-y-5 text-zinc-100"
             onClick={(e) => e.stopPropagation()}
           >
-            <div className="flex items-center justify-between border-b border-zinc-800 pb-3.5">
-              <div className="flex items-center gap-2.5">
-                <Settings className="w-4 h-4 text-zinc-300" />
-                <h2 className="text-sm font-semibold tracking-wide uppercase font-mono">
+            <div className="flex items-center justify-between border-b border-white/[0.07] pb-3.5">
+              <div className="flex items-center gap-2">
+                <Settings className="w-3.5 h-3.5 text-zinc-400 stroke-[1.75]" />
+                <h2 className="font-mono text-[11px] uppercase tracking-widest text-zinc-300">
                   {isPt ? 'Configurações de IA' : 'AI Configuration'}
                 </h2>
               </div>
               <button
                 type="button"
                 onClick={closeModal}
-                className="p-1 rounded-lg text-zinc-400 hover:text-zinc-100 hover:bg-zinc-800 transition-colors cursor-pointer"
+                className="p-1 rounded-md text-zinc-400 hover:text-zinc-100 hover:bg-[#16161a] transition-colors cursor-pointer"
               >
                 <X className="w-4 h-4" />
               </button>
@@ -121,47 +140,81 @@ export const AIConfigProvider: React.FC<{ children: React.ReactNode }> = ({ chil
 
             <form onSubmit={handleSave} className="space-y-4 text-xs">
               <div className="space-y-1.5">
-                <label className="block font-medium text-zinc-300">
+                <label className="block font-mono text-[11px] uppercase tracking-widest text-zinc-500">
                   {isPt ? 'Padrão de API' : 'API Standard'}
                 </label>
-                <select
+                <Select
                   value={draft.apiStandard}
-                  onChange={(e) =>
-                    setDraft({
-                      ...draft,
-                      apiStandard: e.target.value as APIStandard,
-                      openaiApiType: draft.openaiApiType || 'completions',
-                      maxTokens: draft.maxTokens || 2048,
-                    })
-                  }
-                  className="w-full bg-zinc-950 border border-zinc-800 rounded-xl px-3.5 py-2.5 text-zinc-100 focus:outline-none focus:border-zinc-500"
+                  onValueChange={(val) => {
+                    if (val) {
+                      setDraft({
+                        ...draft,
+                        apiStandard: val as APIStandard,
+                        openaiApiType: draft.openaiApiType || 'completions',
+                        maxTokens: draft.maxTokens || 2048,
+                      });
+                    }
+                  }}
                 >
-                  <option value="openai">OpenAI</option>
-                  <option value="anthropic">Anthropic (/v1/messages)</option>
-                  <option value="google">Google (/v1beta/models/{'{model}'}:generateContent)</option>
-                  <option value="ollama">Ollama (/api/chat)</option>
-                </select>
+                  <SelectTrigger className="w-full h-9 surface-recessed rounded-md px-3 text-xs text-zinc-100 hover:border-white/[0.14] focus-visible:ring-0">
+                    <SelectValue>{apiStandardLabels[draft.apiStandard]}</SelectValue>
+                  </SelectTrigger>
+                  <SelectContent
+                    align="start"
+                    sideOffset={6}
+                    alignItemWithTrigger={false}
+                    className="surface-panel rounded-lg p-1 text-zinc-200 ring-0"
+                  >
+                    <SelectItem value="openai" className="rounded-md text-xs text-zinc-300 hover:bg-[#16161a] hover:text-zinc-100 focus:bg-[#16161a] focus:text-zinc-100 data-[highlighted]:bg-[#16161a] data-[highlighted]:text-zinc-100 cursor-pointer">
+                      OpenAI
+                    </SelectItem>
+                    <SelectItem value="anthropic" className="rounded-md text-xs text-zinc-300 hover:bg-[#16161a] hover:text-zinc-100 focus:bg-[#16161a] focus:text-zinc-100 data-[highlighted]:bg-[#16161a] data-[highlighted]:text-zinc-100 cursor-pointer">
+                      Anthropic (/v1/messages)
+                    </SelectItem>
+                    <SelectItem value="google" className="rounded-md text-xs text-zinc-300 hover:bg-[#16161a] hover:text-zinc-100 focus:bg-[#16161a] focus:text-zinc-100 data-[highlighted]:bg-[#16161a] data-[highlighted]:text-zinc-100 cursor-pointer">
+                      Google (/v1beta/models/{'{model}'}:generateContent)
+                    </SelectItem>
+                    <SelectItem value="ollama" className="rounded-md text-xs text-zinc-300 hover:bg-[#16161a] hover:text-zinc-100 focus:bg-[#16161a] focus:text-zinc-100 data-[highlighted]:bg-[#16161a] data-[highlighted]:text-zinc-100 cursor-pointer">
+                      Ollama (/api/chat)
+                    </SelectItem>
+                  </SelectContent>
+                </Select>
               </div>
 
               {draft.apiStandard === 'openai' && (
                 <div className="space-y-1.5">
-                  <label className="block font-medium text-zinc-300">
+                  <label className="block font-mono text-[11px] uppercase tracking-widest text-zinc-500">
                     {isPt ? 'Endpoint OpenAI' : 'OpenAI Endpoint'}
                   </label>
-                  <select
+                  <Select
                     value={draft.openaiApiType || 'completions'}
-                    onChange={(e) => setDraft({ ...draft, openaiApiType: e.target.value as OpenAIApiType })}
-                    className="w-full bg-zinc-950 border border-zinc-800 rounded-xl px-3.5 py-2.5 text-zinc-100 focus:outline-none focus:border-zinc-500"
+                    onValueChange={(val) => {
+                      if (val) setDraft({ ...draft, openaiApiType: val as OpenAIApiType });
+                    }}
                   >
-                    <option value="completions">/v1/chat/completions</option>
-                    <option value="responses">/v1/responses</option>
-                  </select>
+                    <SelectTrigger className="w-full h-9 surface-recessed rounded-md px-3 text-xs text-zinc-100 hover:border-white/[0.14] focus-visible:ring-0">
+                      <SelectValue>{openaiEndpointLabels[draft.openaiApiType || 'completions']}</SelectValue>
+                    </SelectTrigger>
+                    <SelectContent
+                      align="start"
+                      sideOffset={6}
+                      alignItemWithTrigger={false}
+                      className="surface-panel rounded-lg p-1 text-zinc-200 ring-0"
+                    >
+                      <SelectItem value="completions" className="rounded-md text-xs text-zinc-300 hover:bg-[#16161a] hover:text-zinc-100 focus:bg-[#16161a] focus:text-zinc-100 data-[highlighted]:bg-[#16161a] data-[highlighted]:text-zinc-100 cursor-pointer">
+                        /v1/chat/completions
+                      </SelectItem>
+                      <SelectItem value="responses" className="rounded-md text-xs text-zinc-300 hover:bg-[#16161a] hover:text-zinc-100 focus:bg-[#16161a] focus:text-zinc-100 data-[highlighted]:bg-[#16161a] data-[highlighted]:text-zinc-100 cursor-pointer">
+                        /v1/responses
+                      </SelectItem>
+                    </SelectContent>
+                  </Select>
                 </div>
               )}
 
               {draft.apiStandard === 'anthropic' && (
                 <div className="space-y-1.5">
-                  <label className="block font-medium text-zinc-300">
+                  <label className="block font-mono text-[11px] uppercase tracking-widest text-zinc-500">
                     max_tokens
                   </label>
                   <input
@@ -171,14 +224,14 @@ export const AIConfigProvider: React.FC<{ children: React.ReactNode }> = ({ chil
                     value={draft.maxTokens ?? 2048}
                     onChange={(e) => setDraft({ ...draft, maxTokens: Number(e.target.value) })}
                     required
-                    className="w-full bg-zinc-950 border border-zinc-800 rounded-xl px-3.5 py-2.5 text-zinc-100 font-mono focus:outline-none focus:border-zinc-500"
+                    className="w-full surface-recessed rounded-md px-3 py-2 text-zinc-100 font-mono tabular-nums focus:outline-none focus:border-white/[0.14]"
                   />
                 </div>
               )}
 
               {draft.apiStandard !== 'ollama' && (
                 <div className="space-y-1.5">
-                  <label className="block font-medium text-zinc-300">
+                  <label className="block font-mono text-[11px] uppercase tracking-widest text-zinc-500">
                     API Key
                   </label>
                   <div className="relative flex items-center">
@@ -187,21 +240,21 @@ export const AIConfigProvider: React.FC<{ children: React.ReactNode }> = ({ chil
                       value={draft.apiKey || ''}
                       onChange={(e) => setDraft({ ...draft, apiKey: e.target.value })}
                       placeholder={isPt ? 'Insira sua chave de API...' : 'Enter your API key...'}
-                      className="w-full bg-zinc-950 border border-zinc-800 rounded-xl pl-3.5 pr-10 py-2.5 text-zinc-100 placeholder-zinc-600 font-mono focus:outline-none focus:border-zinc-500"
+                      className="w-full surface-recessed rounded-md pl-3 pr-9 py-2 text-zinc-100 placeholder-zinc-600 font-mono focus:outline-none focus:border-white/[0.14]"
                     />
                     <button
                       type="button"
                       onClick={() => setShowKey(!showKey)}
-                      className="absolute right-2.5 p-1 text-zinc-400 hover:text-zinc-200 cursor-pointer"
+                      className="absolute right-2 p-1 text-zinc-400 hover:text-zinc-200 cursor-pointer"
                     >
-                      {showKey ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                      {showKey ? <EyeOff className="w-3.5 h-3.5" /> : <Eye className="w-3.5 h-3.5" />}
                     </button>
                   </div>
                 </div>
               )}
 
               <div className="space-y-1.5">
-                <label className="block font-medium text-zinc-300">
+                <label className="block font-mono text-[11px] uppercase tracking-widest text-zinc-500">
                   {isPt ? 'URL Base' : 'Base URL'}
                 </label>
                 <input
@@ -210,12 +263,12 @@ export const AIConfigProvider: React.FC<{ children: React.ReactNode }> = ({ chil
                   onChange={(e) => setDraft({ ...draft, baseUrl: e.target.value })}
                   required
                   placeholder="https://api.openai.com/v1"
-                  className="w-full bg-zinc-950 border border-zinc-800 rounded-xl px-3.5 py-2.5 text-zinc-100 placeholder-zinc-600 font-mono focus:outline-none focus:border-zinc-500"
+                  className="w-full surface-recessed rounded-md px-3 py-2 text-zinc-100 placeholder-zinc-600 font-mono focus:outline-none focus:border-white/[0.14]"
                 />
               </div>
 
               <div className="space-y-1.5">
-                <label className="block font-medium text-zinc-300">
+                <label className="block font-mono text-[11px] uppercase tracking-widest text-zinc-500">
                   {isPt ? 'Nome do Modelo' : 'Model Name'}
                 </label>
                 <input
@@ -224,7 +277,7 @@ export const AIConfigProvider: React.FC<{ children: React.ReactNode }> = ({ chil
                   onChange={(e) => setDraft({ ...draft, model: e.target.value })}
                   required
                   placeholder="gpt-4o-mini, claude-3-5-haiku-latest, gemini-2.5-flash, llama3.2..."
-                  className="w-full bg-zinc-950 border border-zinc-800 rounded-xl px-3.5 py-2.5 text-zinc-100 placeholder-zinc-600 font-mono focus:outline-none focus:border-zinc-500"
+                  className="w-full surface-recessed rounded-md px-3 py-2 text-zinc-100 placeholder-zinc-600 font-mono focus:outline-none focus:border-white/[0.14]"
                 />
               </div>
 
@@ -234,17 +287,17 @@ export const AIConfigProvider: React.FC<{ children: React.ReactNode }> = ({ chil
                   : 'Your credentials are stored only in your browser (localStorage) and proxied statelessly without disk logging.'}
               </p>
 
-              <div className="flex items-center justify-end gap-2.5 pt-2">
+              <div className="flex items-center justify-end gap-2 pt-2">
                 <button
                   type="button"
                   onClick={closeModal}
-                  className="px-4 py-2 rounded-xl border border-zinc-800 text-zinc-300 hover:bg-zinc-800 transition-colors cursor-pointer"
+                  className="px-3.5 py-1.5 rounded-md surface-recessed text-zinc-300 hover:bg-[#16161a] transition-colors cursor-pointer"
                 >
                   {isPt ? 'Cancelar' : 'Cancel'}
                 </button>
                 <button
                   type="submit"
-                  className="px-5 py-2 rounded-xl bg-zinc-100 hover:bg-white text-zinc-950 font-semibold transition-colors cursor-pointer"
+                  className="px-4 py-1.5 rounded-md bg-zinc-100 hover:bg-white text-zinc-950 font-medium transition-colors cursor-pointer"
                 >
                   {isPt ? 'Salvar' : 'Save'}
                 </button>

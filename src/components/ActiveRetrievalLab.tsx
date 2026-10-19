@@ -1,6 +1,5 @@
 import React, { useState, useEffect } from 'react';
 import {
-  Zap,
   RotateCw,
   Sparkles,
   CheckCircle2,
@@ -8,18 +7,41 @@ import {
   Brain,
   Layers,
   ChevronRight,
+  ChevronLeft,
   Eye,
   AlertCircle,
-  Bookmark
+  Bookmark,
 } from 'lucide-react';
 import { api } from '../api';
 import { Flashcard } from '../types';
 import { getInitialPresetFlashcards } from '../data/neurosciencePillars';
 import { useLanguage } from '../i18n/LanguageContext';
+import { Button } from '@/components/ui/button';
+import { Textarea } from '@/components/ui/textarea';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
 
 interface ActiveRetrievalLabProps {
   currentTopic: string;
   onIncrementStats: (type: 'socratic' | 'retrieval' | 'feynman') => void;
+}
+
+export function previewNextInterval(card: Flashcard, quality: 0 | 1 | 2 | 3): number {
+  if (quality === 0) {
+    return 1;
+  }
+  if (quality === 1) {
+    return Math.max(1, Math.round(card.intervalDays * 1.2));
+  }
+  if (quality === 2) {
+    return Math.max(2, Math.round(card.intervalDays * card.easeFactor));
+  }
+  return Math.max(3, Math.round(card.intervalDays * card.easeFactor * 1.3));
 }
 
 export const ActiveRetrievalLab: React.FC<ActiveRetrievalLabProps> = ({
@@ -53,37 +75,45 @@ export const ActiveRetrievalLab: React.FC<ActiveRetrievalLabProps> = ({
 
   const currentCard = cards[currentIndex] || null;
 
+  const difficultyLabels: Record<string, string> = {
+    fundamentos: t.retrieval.diffFundamentals,
+    intermediario: t.retrieval.diffIntermediate,
+    avancado: t.retrieval.diffAdvanced,
+  };
+
   const handleNextCard = () => {
     setIsFlipped(false);
     setUserDraftAnswer('');
     setCurrentIndex((prev) => (prev + 1) % cards.length);
   };
 
+  const handlePrevCard = () => {
+    setIsFlipped(false);
+    setUserDraftAnswer('');
+    setCurrentIndex((prev) => (prev - 1 + cards.length) % cards.length);
+  };
+
   const handleRateCard = (quality: 0 | 1 | 2 | 3) => {
     if (!currentCard) return;
 
     // Quality: 0 = forgot, 1 = hard, 2 = good, 3 = perfect
-    let newInterval = currentCard.intervalDays;
+    const newInterval = previewNextInterval(currentCard, quality);
     let newRepetitions = currentCard.repetitions;
     let newEase = currentCard.easeFactor;
     let newMastery = currentCard.masteryLevel;
 
     if (quality === 0) {
-      newInterval = 1;
       newRepetitions = 0;
       newEase = Math.max(1.3, newEase - 0.2);
       newMastery = 0;
     } else if (quality === 1) {
-      newInterval = Math.max(1, Math.round(newInterval * 1.2));
       newRepetitions += 1;
       newEase = Math.max(1.3, newEase - 0.1);
       newMastery = Math.min(5, newMastery + 1);
     } else if (quality === 2) {
-      newInterval = Math.max(2, Math.round(newInterval * newEase));
       newRepetitions += 1;
       newMastery = Math.min(5, newMastery + 1);
     } else {
-      newInterval = Math.max(3, Math.round(newInterval * newEase * 1.3));
       newRepetitions += 1;
       newEase += 0.15;
       newMastery = Math.min(5, newMastery + 2);
@@ -147,304 +177,370 @@ export const ActiveRetrievalLab: React.FC<ActiveRetrievalLabProps> = ({
   };
 
   return (
-    <div className="space-y-6 w-full">
-      {/* Header Banner on Active Recall */}
-      <div className="p-6 sm:p-7 rounded-2xl bg-zinc-900/40 border border-zinc-800/80 text-zinc-200">
-        <div className="flex items-start gap-4">
-          <div className="w-9 h-9 rounded-xl bg-zinc-900 border border-zinc-700/60 flex items-center justify-center text-zinc-200 shrink-0">
-            <Zap className="w-4.5 h-4.5 stroke-[1.75]" />
-          </div>
-          <div className="space-y-1">
-            <div className="flex items-center gap-2">
-              <h2 className="text-base font-semibold text-zinc-100 tracking-tight">
-                {t.retrieval.bannerTitle}
-              </h2>
-            </div>
-            <p className="text-xs sm:text-sm text-zinc-400 leading-relaxed max-w-4xl">
-              {t.retrieval.bannerSubtitle}
-            </p>
-          </div>
-        </div>
-      </div>
-
-      {/* Main Grid - 12 Columns */}
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
-        {/* Left Column: Flashcard Experience - 8 Columns */}
-        <div className="lg:col-span-8 space-y-4">
-          {currentCard ? (
-            <div className="space-y-4">
-              <div className="flex items-center justify-between text-xs text-zinc-400 px-1">
-                <span className="flex items-center gap-2 font-mono">
-                  <Layers className="w-4 h-4 text-zinc-400 stroke-[1.75]" />
-                  {t.retrieval.cardCount} <strong className="text-zinc-100 font-semibold">{currentIndex + 1}</strong> {t.retrieval.of} <strong className="text-zinc-100 font-semibold">{cards.length}</strong>
+    <div className="w-full grid grid-cols-1 lg:grid-cols-12 gap-5 items-start">
+      {/* Left Column: Flashcard Experience - 8 Columns */}
+      <div className="lg:col-span-8 space-y-3.5">
+        {currentCard ? (
+          <div className="space-y-3.5">
+            {/* Top Status Strip */}
+            <div className="surface-panel rounded-lg px-4 py-2 flex flex-wrap items-center justify-between gap-2 text-xs">
+              <span className="flex items-center gap-2 font-mono text-[11px] uppercase tracking-widest text-zinc-500 tabular-nums">
+                <Layers className="w-3.5 h-3.5 text-zinc-500 stroke-[1.75]" />
+                <span>
+                  {t.retrieval.cardCount}{' '}
+                  <strong className="text-zinc-100 font-semibold">{currentIndex + 1}</strong>{' '}
+                  {t.retrieval.of}{' '}
+                  <strong className="text-zinc-100 font-semibold">{cards.length}</strong>
                 </span>
+              </span>
+
+              <div className="flex items-center gap-2.5">
+                <span className="px-2 py-0.5 rounded-md surface-recessed text-[11px] font-mono text-zinc-300 truncate max-w-[200px]">
+                  {currentCard.topic}
+                </span>
+                <span className="text-[11px] text-zinc-400 font-mono tabular-nums">
+                  {t.retrieval.nextReview} +{currentCard.intervalDays}d
+                </span>
+              </div>
+            </div>
+
+            {/* Precision Flashcard Surface */}
+            <div className="bg-[#0f0f12] border border-white/[0.08] rounded-xl shadow-[inset_0_1px_0_0_rgba(255,255,255,0.05)] p-6 sm:p-8 relative overflow-hidden transition-all space-y-6">
+              {/* Top Indicator & Geometric Mastery Blocks */}
+              <div className="flex flex-wrap items-center justify-between gap-2 pb-4 border-b border-white/[0.06]">
+                <span className="font-mono text-[11px] uppercase tracking-widest text-zinc-500">
+                  {isFlipped ? t.retrieval.solutionHeader : t.retrieval.challengeHeader}
+                </span>
+
                 <div className="flex items-center gap-2">
-                  <span className="px-2.5 py-1 rounded bg-zinc-900 border border-zinc-800 text-xs font-mono text-zinc-300">
-                    {currentCard.topic}
+                  <span className="font-mono text-[11px] uppercase tracking-widest text-zinc-500">
+                    {t.retrieval.masteryLevel}
                   </span>
-                  <span className="text-xs text-zinc-400 font-mono">
-                    {t.retrieval.nextReview} +{currentCard.intervalDays}d
-                  </span>
-                </div>
-              </div>
-
-              {/* Flashcard Body */}
-              <div className="p-7 sm:p-9 rounded-2xl bg-zinc-900/50 border border-zinc-800/80 shadow-sm relative overflow-hidden transition-all">
-                {/* Top Indicator */}
-                <div className="flex items-center justify-between mb-5">
-                  <span className="text-xs font-mono font-medium tracking-wider text-zinc-400 uppercase">
-                    {isFlipped ? t.retrieval.solutionHeader : t.retrieval.challengeHeader}
-                  </span>
-                  <span className="text-xs text-zinc-400 font-mono">
-                    {t.retrieval.masteryLevel} {'★'.repeat(currentCard.masteryLevel || 0)}{'☆'.repeat(5 - (currentCard.masteryLevel || 0))}
-                  </span>
-                </div>
-
-                {/* Question Section */}
-                <div className="space-y-3">
-                  <h3 className="text-lg sm:text-xl lg:text-2xl font-semibold text-zinc-100 leading-snug">
-                    {currentCard.question}
-                  </h3>
-                  <p className="text-xs sm:text-sm text-zinc-400">
-                    {t.retrieval.targetConcept} <span className="text-zinc-200 font-mono font-medium">{currentCard.keyConcept}</span>
-                  </p>
-                </div>
-
-                {/* Draft Answer Area (Generation Effect) */}
-                {!isFlipped && (
-                  <div className="mt-8 pt-6 border-t border-zinc-800/80 space-y-4">
-                    <div className="flex items-center justify-between text-xs sm:text-sm">
-                      <label className="text-zinc-200 font-medium flex items-center gap-2">
-                        <Brain className="w-4 h-4 text-zinc-400 stroke-[1.75]" />
-                        {t.retrieval.forceGeneration}
-                      </label>
-                      <span className="text-xs text-zinc-500 hidden sm:inline">
-                        {t.retrieval.avoidsHindsight}
-                      </span>
-                    </div>
-                    <textarea
-                      rows={4}
-                      value={userDraftAnswer}
-                      onChange={(e) => setUserDraftAnswer(e.target.value)}
-                      placeholder={t.retrieval.draftPlaceholder}
-                      className="w-full bg-zinc-950 border border-zinc-800 rounded-xl p-4 text-xs sm:text-sm text-zinc-100 placeholder-zinc-600 focus:outline-none focus:border-zinc-500 focus:ring-1 focus:ring-zinc-700/60 leading-relaxed shadow-inner"
-                    />
-                    <div className="flex justify-end">
-                      <button
-                        onClick={() => setIsFlipped(true)}
-                        className="px-6 py-3 bg-zinc-100 hover:bg-white text-zinc-950 text-xs sm:text-sm font-semibold rounded-xl transition-all flex items-center gap-2 cursor-pointer shadow-sm"
-                      >
-                        <Eye className="w-4 h-4 stroke-[1.75]" />
-                        <span>{t.retrieval.checkAnswer}</span>
-                      </button>
-                    </div>
+                  <div className="flex items-center gap-1" aria-label={`${currentCard.masteryLevel || 0}/5`}>
+                    {[1, 2, 3, 4, 5].map((lvl) => (
+                      <span
+                        key={lvl}
+                        className={`w-3 h-1.5 rounded-[1px] transition-colors ${
+                          lvl <= (currentCard.masteryLevel || 0)
+                            ? 'bg-zinc-100'
+                            : 'bg-white/[0.08]'
+                        }`}
+                      />
+                    ))}
                   </div>
-                )}
-
-                {/* Answer Section (When Flipped) */}
-                {isFlipped && (
-                  <div className="mt-8 pt-6 border-t border-zinc-800/80 space-y-5 animate-fade-in">
-                    {userDraftAnswer && (
-                      <div className="p-4 rounded-xl bg-zinc-950/80 border border-zinc-800 space-y-1">
-                        <span className="text-xs font-mono text-zinc-400">{t.retrieval.yourAttempt}</span>
-                        <p className="text-xs sm:text-sm text-zinc-300 italic leading-relaxed">"{userDraftAnswer}"</p>
-                      </div>
-                    )}
-
-                    <div className="p-5 rounded-xl bg-zinc-950/90 border border-zinc-800 space-y-2">
-                      <span className="text-xs font-semibold text-zinc-200 block uppercase tracking-wider font-mono">
-                        {t.retrieval.benchmarkAnswer}
-                      </span>
-                      <p className="text-sm sm:text-base text-zinc-200 leading-relaxed">
-                        {currentCard.answer}
-                      </p>
-                    </div>
-
-                    <div className="p-4 rounded-xl bg-zinc-950/60 border border-zinc-800/80 flex items-start gap-3">
-                      <Brain className="w-5 h-5 text-zinc-400 shrink-0 mt-0.5 stroke-[1.75]" />
-                      <div className="text-xs sm:text-sm">
-                        <span className="font-semibold text-zinc-200 block mb-0.5">
-                          {t.retrieval.neuroTipHeader}
-                        </span>
-                        <span className="text-zinc-400 leading-relaxed">
-                          {currentCard.neuroTip}
-                        </span>
-                      </div>
-                    </div>
-
-                    {/* Rating Buttons */}
-                    <div className="space-y-3 pt-3">
-                      <span className="text-xs text-zinc-400 block text-center font-medium">
-                        {t.retrieval.calibrateRating}
-                      </span>
-                      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-                        <button
-                          onClick={() => handleRateCard(0)}
-                          className="p-3.5 rounded-xl bg-zinc-950 hover:bg-zinc-900 border border-zinc-800 hover:border-zinc-700 text-zinc-300 text-xs font-medium transition-all flex flex-col items-center gap-1 cursor-pointer"
-                        >
-                          <XCircle className="w-4 h-4 text-zinc-400 stroke-[1.75]" />
-                          <span>{t.retrieval.ratingForgot}</span>
-                          <span className="text-[10px] text-zinc-500 font-mono">{t.retrieval.ratingForgotSub}</span>
-                        </button>
-
-                        <button
-                          onClick={() => handleRateCard(1)}
-                          className="p-3.5 rounded-xl bg-zinc-950 hover:bg-zinc-900 border border-zinc-800 hover:border-zinc-700 text-zinc-300 text-xs font-medium transition-all flex flex-col items-center gap-1 cursor-pointer"
-                        >
-                          <AlertCircle className="w-4 h-4 text-zinc-400 stroke-[1.75]" />
-                          <span>{t.retrieval.ratingHard}</span>
-                          <span className="text-[10px] text-zinc-500 font-mono">{t.retrieval.ratingHardSub}</span>
-                        </button>
-
-                        <button
-                          onClick={() => handleRateCard(2)}
-                          className="p-3.5 rounded-xl bg-zinc-950 hover:bg-zinc-900 border border-zinc-800 hover:border-zinc-700 text-zinc-300 text-xs font-medium transition-all flex flex-col items-center gap-1 cursor-pointer"
-                        >
-                          <CheckCircle2 className="w-4 h-4 text-zinc-300 stroke-[1.75]" />
-                          <span>{t.retrieval.ratingGood}</span>
-                          <span className="text-[10px] text-zinc-500 font-mono">+{currentCard.intervalDays * 2} {t.retrieval.ratingGoodSub}</span>
-                        </button>
-
-                        <button
-                          onClick={() => handleRateCard(3)}
-                          className="p-3.5 rounded-xl bg-zinc-900 hover:bg-zinc-850 border border-zinc-700 text-zinc-100 text-xs font-medium transition-all flex flex-col items-center gap-1 cursor-pointer shadow-sm"
-                        >
-                          <Sparkles className="w-4 h-4 text-zinc-200 stroke-[1.75]" />
-                          <span>{t.retrieval.ratingPerfect}</span>
-                          <span className="text-[10px] text-zinc-400 font-mono">+{Math.round(currentCard.intervalDays * 2.5)} {t.retrieval.ratingPerfectSub}</span>
-                        </button>
-                      </div>
-                    </div>
-                  </div>
-                )}
+                  <span className="font-mono tabular-nums text-[11px] text-zinc-400">
+                    {currentCard.masteryLevel || 0}/5
+                  </span>
+                </div>
               </div>
 
-              <div className="flex justify-between items-center text-xs sm:text-sm text-zinc-400 px-1 pt-1">
-                <button
-                  onClick={() => {
-                    setIsFlipped(false);
-                    setUserDraftAnswer('');
-                    setCurrentIndex((prev) => (prev - 1 + cards.length) % cards.length);
-                  }}
-                  className="hover:text-zinc-200 transition-colors cursor-pointer"
-                >
-                  {t.retrieval.prevCard}
-                </button>
-                <button
-                  onClick={handleNextCard}
-                  className="hover:text-zinc-200 transition-colors flex items-center gap-1 cursor-pointer"
-                >
-                  <span>{t.retrieval.nextCard}</span>
-                  <ChevronRight className="w-4 h-4" />
-                </button>
-              </div>
-            </div>
-          ) : (
-            <div className="p-12 text-center rounded-2xl bg-zinc-900/30 border border-zinc-800 text-zinc-400">
-              <p>{t.retrieval.noCards}</p>
-            </div>
-          )}
-        </div>
-
-        {/* Right Column: Deck Control & Card Navigation - 4 Columns */}
-        <div className="lg:col-span-4 space-y-4">
-          {/* Deck Generator Card */}
-          <div className="p-5 rounded-2xl bg-zinc-900/30 border border-zinc-800/80 space-y-4">
-            <span className="text-xs font-mono font-semibold uppercase tracking-wider text-zinc-300 flex items-center gap-2">
-              <Sparkles className="w-4 h-4 text-zinc-400" />
-              {t.retrieval.synthesizeTitle}
-            </span>
-
-            <form onSubmit={handleGenerateDeck} className="space-y-3">
-              <div className="p-3 rounded-xl bg-zinc-950/80 border border-zinc-800 text-xs space-y-1">
-                <span className="text-zinc-500">{t.retrieval.targetConceptLabel}</span>
-                <p className="font-semibold text-zinc-200 text-xs sm:text-sm truncate">
-                  {currentTopic || t.feynman.defineConceptPrompt}
+              {/* Question Section */}
+              <div className="space-y-2.5">
+                <h3 className="text-lg sm:text-xl font-semibold text-zinc-100 leading-snug">
+                  {currentCard.question}
+                </h3>
+                <p className="text-xs text-zinc-500 font-mono">
+                  {t.retrieval.targetConcept}{' '}
+                  <span className="text-zinc-300">{currentCard.keyConcept}</span>
                 </p>
               </div>
 
-              <div className="space-y-1">
-                <label className="text-xs text-zinc-400 block font-medium">{t.retrieval.difficultyLabel}</label>
-                <select
-                  value={deckDifficulty}
-                  onChange={(e) => setDeckDifficulty(e.target.value)}
-                  className="w-full bg-zinc-900 border border-zinc-800 rounded-lg px-3 py-2 text-xs text-zinc-200 focus:outline-none focus:border-zinc-600 transition-colors"
-                >
-                  <option value="fundamentos">{t.retrieval.diffFundamentals}</option>
-                  <option value="intermediario">{t.retrieval.diffIntermediate}</option>
-                  <option value="avancado">{t.retrieval.diffAdvanced}</option>
-                </select>
-              </div>
-
-              <button
-                type="submit"
-                disabled={isGeneratingDeck || !currentTopic.trim()}
-                className="w-full py-2.5 bg-zinc-100 hover:bg-white disabled:bg-zinc-800 disabled:text-zinc-600 text-zinc-950 text-xs font-semibold rounded-xl transition-colors flex items-center justify-center gap-2 cursor-pointer shadow-sm"
-              >
-                {isGeneratingDeck ? (
-                  <>
-                    <RotateCw className="w-3.5 h-3.5 animate-spin" />
-                    <span>{t.retrieval.synthesizing}</span>
-                  </>
-                ) : (
-                  <>
-                    <Sparkles className="w-3.5 h-3.5 stroke-[1.75]" />
-                    <span>{t.retrieval.synthesizeButton}</span>
-                  </>
-                )}
-              </button>
-
-              {error && (
-                <div className="p-3 rounded-xl bg-zinc-950 border border-zinc-800 text-xs text-zinc-300 flex items-center justify-between gap-2">
-                  <div className="flex items-center gap-1.5">
-                    <AlertCircle className="w-3.5 h-3.5 text-zinc-400 shrink-0" />
-                    <span className="text-[11px]">{error}</span>
+              {/* Draft Answer Area (Generation Effect) */}
+              {!isFlipped && (
+                <div className="pt-5 border-t border-white/[0.06] space-y-3.5">
+                  <div className="flex items-center justify-between text-xs">
+                    <label className="font-mono text-[11px] uppercase tracking-widest text-zinc-400 flex items-center gap-1.5">
+                      <Brain className="w-3.5 h-3.5 text-zinc-500 stroke-[1.75]" />
+                      {t.retrieval.forceGeneration}
+                    </label>
+                    <span className="font-mono text-[10px] uppercase tracking-wider text-zinc-500 hidden sm:inline">
+                      {t.retrieval.avoidsHindsight}
+                    </span>
                   </div>
-                  <button
-                    type="button"
-                    onClick={() => handleGenerateDeck()}
-                    className="px-2.5 py-1 bg-zinc-900 hover:bg-zinc-800 border border-zinc-700 rounded-lg text-[11px] text-zinc-200 font-medium transition-colors flex items-center gap-1 shrink-0 cursor-pointer"
-                  >
-                    <RotateCw className="w-3 h-3" />
-                    {t.feynman.retry}
-                  </button>
+
+                  <Textarea
+                    rows={4}
+                    value={userDraftAnswer}
+                    onChange={(e) => setUserDraftAnswer(e.target.value)}
+                    placeholder={t.retrieval.draftPlaceholder}
+                    className="w-full surface-recessed rounded-lg p-3.5 text-xs sm:text-sm text-zinc-100 placeholder:text-zinc-600 focus-visible:border-white/[0.14] focus-visible:ring-0 leading-relaxed"
+                  />
+
+                  <div className="flex justify-end">
+                    <Button
+                      type="button"
+                      onClick={() => setIsFlipped(true)}
+                      className="h-9 px-5 bg-zinc-100 hover:bg-white text-zinc-950 text-xs font-medium rounded-md transition-colors flex items-center gap-2 cursor-pointer"
+                    >
+                      <Eye className="w-3.5 h-3.5 stroke-[1.75]" />
+                      <span>{t.retrieval.checkAnswer}</span>
+                    </Button>
+                  </div>
                 </div>
               )}
-            </form>
-          </div>
 
-          {/* Deck Overview & Question Jump List */}
-          <div className="p-5 rounded-2xl bg-zinc-900/30 border border-zinc-800/80 space-y-3">
-            <div className="flex items-center justify-between">
-              <span className="text-xs font-mono font-semibold uppercase tracking-wider text-zinc-300 flex items-center gap-2">
-                <Bookmark className="w-4 h-4 text-zinc-400" />
-                {t.retrieval.deckCardsTitle}
-              </span>
-              <span className="text-xs font-mono text-zinc-400">
-                {cards.length} {t.retrieval.cardsUnit}
-              </span>
+              {/* Answer Section (When Flipped) */}
+              {isFlipped && (
+                <div className="pt-5 border-t border-white/[0.06] space-y-5 animate-fade-in">
+                  {userDraftAnswer && (
+                    <div className="space-y-1.5 pb-4 border-b border-white/[0.05]">
+                      <span className="font-mono text-[11px] uppercase tracking-widest text-zinc-500 block">
+                        {t.retrieval.yourAttempt}
+                      </span>
+                      <p className="text-xs sm:text-sm text-zinc-300 border-l-2 border-zinc-600 pl-3 leading-relaxed">
+                        {userDraftAnswer}
+                      </p>
+                    </div>
+                  )}
+
+                  <div className="space-y-2">
+                    <span className="font-mono text-[11px] uppercase tracking-widest text-zinc-500 block">
+                      {t.retrieval.benchmarkAnswer}
+                    </span>
+                    <p className="text-sm sm:text-base text-zinc-100 leading-relaxed border-l-2 border-zinc-200 pl-3.5">
+                      {currentCard.answer}
+                    </p>
+                  </div>
+
+                  <div className="pt-4 border-t border-white/[0.05] flex items-start gap-2.5 text-xs">
+                    <span className="font-mono text-[10px] uppercase tracking-widest text-zinc-500 shrink-0 mt-0.5">
+                      LTP //
+                    </span>
+                    <div className="space-y-0.5">
+                      <span className="font-medium text-zinc-300 block">
+                        {t.retrieval.neuroTipHeader}
+                      </span>
+                      <p className="text-zinc-400 leading-relaxed">
+                        {currentCard.neuroTip}
+                      </p>
+                    </div>
+                  </div>
+
+                  {/* SM-2 Rating Buttons */}
+                  <div className="pt-4 border-t border-white/[0.06] space-y-3">
+                    <span className="font-mono text-[11px] uppercase tracking-widest text-zinc-500 block">
+                      {t.retrieval.calibrateRating}
+                    </span>
+                    <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+                      <button
+                        type="button"
+                        onClick={() => handleRateCard(0)}
+                        className="p-3 rounded-md surface-recessed hover:bg-[#16161a] hover:border-white/[0.14] text-zinc-300 text-xs font-medium transition-colors flex flex-col items-center gap-1 cursor-pointer"
+                      >
+                        <XCircle className="w-3.5 h-3.5 text-zinc-500 stroke-[1.75]" />
+                        <span>{t.retrieval.ratingForgot}</span>
+                        <span className="text-[11px] text-zinc-500 font-mono tabular-nums">
+                          +{previewNextInterval(currentCard, 0)}d
+                        </span>
+                      </button>
+
+                      <button
+                        type="button"
+                        onClick={() => handleRateCard(1)}
+                        className="p-3 rounded-md surface-recessed hover:bg-[#16161a] hover:border-white/[0.14] text-zinc-300 text-xs font-medium transition-colors flex flex-col items-center gap-1 cursor-pointer"
+                      >
+                        <AlertCircle className="w-3.5 h-3.5 text-zinc-400 stroke-[1.75]" />
+                        <span>{t.retrieval.ratingHard}</span>
+                        <span className="text-[11px] text-zinc-500 font-mono tabular-nums">
+                          +{previewNextInterval(currentCard, 1)} {t.retrieval.ratingGoodSub}
+                        </span>
+                      </button>
+
+                      <button
+                        type="button"
+                        onClick={() => handleRateCard(2)}
+                        className="p-3 rounded-md surface-recessed hover:bg-[#16161a] hover:border-white/[0.14] text-zinc-200 text-xs font-medium transition-colors flex flex-col items-center gap-1 cursor-pointer"
+                      >
+                        <CheckCircle2 className="w-3.5 h-3.5 text-zinc-300 stroke-[1.75]" />
+                        <span>{t.retrieval.ratingGood}</span>
+                        <span className="text-[11px] text-zinc-400 font-mono tabular-nums">
+                          +{previewNextInterval(currentCard, 2)} {t.retrieval.ratingGoodSub}
+                        </span>
+                      </button>
+
+                      <button
+                        type="button"
+                        onClick={() => handleRateCard(3)}
+                        className="p-3 rounded-md bg-zinc-100 hover:bg-white text-zinc-950 text-xs font-medium transition-colors flex flex-col items-center gap-1 cursor-pointer"
+                      >
+                        <Sparkles className="w-3.5 h-3.5 text-zinc-950 stroke-[1.75]" />
+                        <span>{t.retrieval.ratingPerfect}</span>
+                        <span className="text-[11px] text-zinc-700 font-mono tabular-nums">
+                          +{previewNextInterval(currentCard, 3)} {t.retrieval.ratingPerfectSub}
+                        </span>
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              )}
             </div>
 
-            <div className="space-y-1.5 max-h-[300px] overflow-y-auto pr-1">
-              {cards.map((c, idx) => (
+            {/* Card Prev / Next Bar */}
+            <div className="flex justify-between items-center text-xs text-zinc-400 px-1">
+              <Button
+                type="button"
+                variant="ghost"
+                size="sm"
+                onClick={handlePrevCard}
+                className="h-7 px-2.5 rounded-md text-xs text-zinc-400 hover:text-zinc-100 hover:bg-[#16161a] flex items-center gap-1 cursor-pointer"
+              >
+                <ChevronLeft className="w-3.5 h-3.5" />
+                <span>{t.retrieval.prevCard.replace(/^←\s*/, '')}</span>
+              </Button>
+              <Button
+                type="button"
+                variant="ghost"
+                size="sm"
+                onClick={handleNextCard}
+                className="h-7 px-2.5 rounded-md text-xs text-zinc-400 hover:text-zinc-100 hover:bg-[#16161a] flex items-center gap-1 cursor-pointer"
+              >
+                <span>{t.retrieval.nextCard}</span>
+                <ChevronRight className="w-3.5 h-3.5" />
+              </Button>
+            </div>
+          </div>
+        ) : (
+          <div className="p-10 text-center rounded-xl surface-panel text-zinc-400 text-xs">
+            <p>{t.retrieval.noCards}</p>
+          </div>
+        )}
+      </div>
+
+      {/* Right Column: Deck Control & Card Navigation Hairline Bento - 4 Columns */}
+      <div className="lg:col-span-4 grid grid-cols-1 gap-px bg-white/[0.07] border border-white/[0.07] rounded-xl overflow-hidden">
+        {/* Cell 1: Deck Synthesizer */}
+        <div className="bg-[#0f0f12] p-5 space-y-4">
+          <span className="font-mono text-[11px] uppercase tracking-widest text-zinc-500 flex items-center gap-1.5">
+            <Sparkles className="w-3.5 h-3.5 text-zinc-500 stroke-[1.75]" />
+            {t.retrieval.synthesizeTitle}
+          </span>
+
+          <form onSubmit={handleGenerateDeck} className="space-y-3.5">
+            <div className="space-y-1">
+              <span className="font-mono text-[10px] uppercase tracking-wider text-zinc-500 block">
+                {t.retrieval.targetConceptLabel}
+              </span>
+              <p className="font-medium text-zinc-100 text-xs truncate">
+                {currentTopic || t.feynman.defineConceptPrompt}
+              </p>
+            </div>
+
+            <div className="space-y-1.5">
+              <label className="font-mono text-[10px] uppercase tracking-wider text-zinc-500 block">
+                {t.retrieval.difficultyLabel}
+              </label>
+              <Select
+                value={deckDifficulty}
+                onValueChange={(val) => {
+                  if (val) setDeckDifficulty(val);
+                }}
+              >
+                <SelectTrigger className="w-full h-8 rounded-md surface-recessed px-3 text-xs text-zinc-200 hover:border-white/[0.14] focus-visible:ring-0">
+                  <SelectValue>{difficultyLabels[deckDifficulty]}</SelectValue>
+                </SelectTrigger>
+                <SelectContent
+                  align="start"
+                  sideOffset={6}
+                  alignItemWithTrigger={false}
+                  className="surface-panel rounded-lg p-1 text-zinc-200 ring-0"
+                >
+                  <SelectItem
+                    value="fundamentos"
+                    className="rounded-md text-xs text-zinc-300 hover:bg-[#16161a] hover:text-zinc-100 focus:bg-[#16161a] focus:text-zinc-100 data-[highlighted]:bg-[#16161a] data-[highlighted]:text-zinc-100 cursor-pointer"
+                  >
+                    {t.retrieval.diffFundamentals}
+                  </SelectItem>
+                  <SelectItem
+                    value="intermediario"
+                    className="rounded-md text-xs text-zinc-300 hover:bg-[#16161a] hover:text-zinc-100 focus:bg-[#16161a] focus:text-zinc-100 data-[highlighted]:bg-[#16161a] data-[highlighted]:text-zinc-100 cursor-pointer"
+                  >
+                    {t.retrieval.diffIntermediate}
+                  </SelectItem>
+                  <SelectItem
+                    value="avancado"
+                    className="rounded-md text-xs text-zinc-300 hover:bg-[#16161a] hover:text-zinc-100 focus:bg-[#16161a] focus:text-zinc-100 data-[highlighted]:bg-[#16161a] data-[highlighted]:text-zinc-100 cursor-pointer"
+                  >
+                    {t.retrieval.diffAdvanced}
+                  </SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
+            <Button
+              type="submit"
+              disabled={isGeneratingDeck || !currentTopic.trim()}
+              className="w-full h-8 bg-zinc-100 hover:bg-white disabled:bg-zinc-900 disabled:text-zinc-600 text-zinc-950 text-xs font-medium rounded-md transition-colors flex items-center justify-center gap-2 cursor-pointer"
+            >
+              {isGeneratingDeck ? (
+                <>
+                  <RotateCw className="w-3.5 h-3.5 animate-spin" />
+                  <span>{t.retrieval.synthesizing}</span>
+                </>
+              ) : (
+                <>
+                  <Sparkles className="w-3.5 h-3.5 stroke-[1.75]" />
+                  <span>{t.retrieval.synthesizeButton}</span>
+                </>
+              )}
+            </Button>
+
+            {error && (
+              <div className="pt-3 border-t border-white/[0.05] text-xs text-zinc-300 flex items-center justify-between gap-2">
+                <div className="flex items-center gap-1.5">
+                  <AlertCircle className="w-3.5 h-3.5 text-zinc-400 shrink-0" />
+                  <span className="text-[11px]">{error}</span>
+                </div>
+                <Button
+                  type="button"
+                  size="sm"
+                  onClick={() => handleGenerateDeck()}
+                  className="h-6 px-2 surface-recessed hover:bg-[#16161a] rounded-md text-[11px] text-zinc-200 font-medium transition-colors flex items-center gap-1 shrink-0 cursor-pointer"
+                >
+                  <RotateCw className="w-3 h-3" />
+                  <span>{t.feynman.retry}</span>
+                </Button>
+              </div>
+            )}
+          </form>
+        </div>
+
+        {/* Cell 2: Deck Overview & Question Jump List */}
+        <div className="bg-[#0f0f12] p-5 space-y-3">
+          <div className="flex items-center justify-between">
+            <span className="font-mono text-[11px] uppercase tracking-widest text-zinc-500 flex items-center gap-1.5">
+              <Bookmark className="w-3.5 h-3.5 text-zinc-500 stroke-[1.75]" />
+              {t.retrieval.deckCardsTitle}
+            </span>
+            <span className="text-[11px] font-mono tabular-nums text-zinc-400">
+              {cards.length} {t.retrieval.cardsUnit}
+            </span>
+          </div>
+
+          <div className="divide-y divide-white/[0.05] -mx-5 border-t border-white/[0.05] max-h-[320px] overflow-y-auto">
+            {cards.map((c, idx) => {
+              const isSelected = currentIndex === idx;
+              return (
                 <button
                   key={c.id}
+                  type="button"
                   onClick={() => {
                     setCurrentIndex(idx);
                     setIsFlipped(false);
                     setUserDraftAnswer('');
                   }}
-                  className={`w-full text-left p-2.5 rounded-lg text-xs transition-colors flex items-start gap-2 border cursor-pointer ${
-                    currentIndex === idx
-                      ? 'bg-zinc-800 text-zinc-100 border-zinc-600'
-                      : 'bg-zinc-950/60 hover:bg-zinc-900 text-zinc-400 hover:text-zinc-200 border-zinc-800/80'
+                  className={`w-full text-left px-5 py-2.5 text-xs transition-colors flex items-center justify-between gap-2.5 cursor-pointer ${
+                    isSelected
+                      ? 'bg-[#16161a] text-zinc-100 font-medium'
+                      : 'text-zinc-400 hover:text-zinc-200 hover:bg-[#16161a]/60'
                   }`}
                 >
-                  <span className="font-mono text-[10px] text-zinc-500 shrink-0 mt-0.5">#{idx + 1}</span>
-                  <span className="truncate flex-1">{c.question}</span>
+                  <span className="truncate min-w-0">{c.question}</span>
+                  <span className="font-mono text-[10px] text-zinc-500 tabular-nums shrink-0">
+                    +{c.intervalDays}d
+                  </span>
                 </button>
-              ))}
-            </div>
+              );
+            })}
           </div>
         </div>
       </div>

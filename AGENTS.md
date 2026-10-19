@@ -120,7 +120,7 @@ The inference function `runInference` in `server.ts` standardizes requests acros
 
 ### 3.3 Structured JSON Processing & Error Handling
 
-- **`cleanJsonText`**: Strips markdown code fences (````json ... ````) before executing `JSON.parse` to avoid parsing failures across varied LLM providers.
+- **`cleanJsonText`**: Strips markdown code fences (````json ...````) before executing `JSON.parse` to avoid parsing failures across varied LLM providers.
 - **Transparent Error Propagation**: Upstream inference errors (such as 401 Unauthorized, 429 Quota Exceeded, or 503 Provider Unavailable) are caught and surfaced as HTTP 503/400 with descriptive localized messages in the student's selected language (`en` or `pt`). Silent mock responses that disguise inference failures are removed to ensure transparency.
 
 ---
@@ -138,6 +138,7 @@ The inference function `runInference` in `server.ts` standardizes requests acros
   NeuroTip: [Neurobiological explanation]
   SuggestedNextSteps: [Action 1 | Action 2]
   ```
+
   ```
 
   The server parses this block via regular expressions in `server.ts`, maps cognitive phase names via `translateCognitivePhase` for consistency in English or Portuguese, and returns clean text in `content` and structured data in `meta`.
@@ -225,8 +226,32 @@ The root component `App.tsx` keeps primary state synchronized via `localStorage`
 
 ## 7. Guidelines for Modifications and Extensions
 
-### 7.1 Rules for AI Agents
+### 7.1 General Rules for AI Agents
 
 1. **Preserve Pedagogical Stance**: The agent must never be instructed to answer conceptual questions directly in an expository manner. Any prompt modifications must uphold the policy of guiding students to deduce answers themselves.
 2. **Adhere to Type Contracts & Hono RPC**: All TypeScript interfaces in `src/types.ts` must strictly mirror the schemas defined in `server.ts`. Keep API routes chained on `const routes = app...` in `server.ts` with `jsonBody<...>()` and explicit status codes (`200`, `400`) so `export type AppType = typeof routes` and `src/api.ts` (`hc<AppType>('/')`) remain end-to-end type-safe.
 3. **Maintain Stateless BYOK Architecture**: All LLM interactions must flow through `resolveAIConfig` and `runInference`. Do not persist user API keys on the server or reintroduce silent mock answers that disguise inference failures.
+
+### 7.2 UI & Aesthetic Rules (Monochrome Precision)
+
+All frontend components in `src/` MUST strictly obey these architectural and aesthetic constraints:
+
+1. **Color & Luminance Hierarchy (Pure Grayscale)**:
+   - Canvas Background: `#09090b` (`bg-[#09090b]`)
+   - Primary Surface / Panels: `#0f0f12` (`bg-[#0f0f12]`)
+   - Recessed Surface (Inputs, Code, Textareas): `#050507` (`bg-[#050507]`)
+   - Interactive / Elevated Hover: `#16161a` (`bg-[#16161a]`)
+   - Borders: 1px solid low-contrast hairline (`border-white/[0.07]`), hover state (`border-white/[0.14]`).
+   - Primary CTA: High-contrast monochrome (`bg-zinc-100 text-zinc-950 hover:bg-white font-medium`).
+
+2. **Structural Geometry (Anti-AI-Slop)**:
+   - **FORBIDDEN**: `rounded-2xl`, `rounded-3xl`, `shadow-lg`, `shadow-xl`, or decorative top explanatory banners on every tab.
+   - **FORBIDDEN**: "Boxes inside boxes" (never put a bordered card with padding inside another bordered card). Use **1px Hairline Bento Grids** (`grid gap-px bg-white/[0.07] border border-white/[0.07] rounded-xl overflow-hidden`) where inner cells have `bg-[#0f0f12]` and no individual borders.
+   - Outer containers use `rounded-xl` (12px) or `rounded-lg` (8px). Inner interactive controls use `rounded-md` (6px).
+
+3. **Typography & Scannability**:
+   - Section headers and metadata must use `font-mono text-[11px] uppercase tracking-widest text-zinc-500 tabular-nums` (e.g., `01 // CORE MECHANISM`).
+   - All numeric metrics (scores, intervals, streaks, word counts) MUST include `font-mono tabular-nums`.
+
+4. **Component Primitives**:
+   - **FORBIDDEN**: Native `<select>`, `<input type="range">`, or `window.confirm()`. Always use shadcn/Radix primitives from `@/components/ui/*`.
