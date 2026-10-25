@@ -113,9 +113,9 @@ function AppContent() {
           <div className="flex items-center gap-3 shrink-0">
             <div className="flex items-center gap-2.5 shrink-0">
               <div className="w-7 h-7 rounded-md surface-panel flex items-center justify-center text-zinc-100">
-                <Brain className="w-3.5 h-3.5 text-zinc-100 stroke-[1.75]" />
+                <Brain className="w-4.5 h-4.5 text-zinc-100 stroke-[1.75]" />
               </div>
-              <span className="font-mono text-xs font-semibold tracking-[0.2em] text-zinc-100">
+              <span className="font-mono text-xs-[14px] font-semibold tracking-[0.2em] text-zinc-100">
                 SYNAPSE
               </span>
             </div>
@@ -147,37 +147,6 @@ function AppContent() {
 
           {/* Right Controls: Metrics, Language Selector & AI Settings */}
           <div className="flex items-center gap-1.5 sm:gap-2.5 shrink-0">
-            {/* Neuro Cognitive Stats */}
-            <div className="flex items-center gap-1 sm:gap-1.5">
-              {/* Retention Streak */}
-              <div
-                className="flex items-center gap-1 sm:gap-1.5 px-2 sm:px-2.5 py-1 rounded-md surface-panel text-[11px] text-zinc-400 transition-colors hover:border-white/[0.14]"
-                title={t.app.stats.retentionStreakTooltip}
-              >
-                <Flame className="w-3.5 h-3.5 text-zinc-400 stroke-[1.75]" />
-                <span className="font-mono tabular-nums font-semibold text-zinc-100">
-                  {stats.retentionStreakDays}
-                </span>
-                <span className="hidden md:inline text-zinc-500">{t.app.stats.retentionStreak}</span>
-                <span className="md:hidden font-mono tabular-nums text-zinc-500">{t.app.stats.retentionStreakShort}</span>
-              </div>
-
-              {/* LTP Recalls */}
-              <div
-                className="flex items-center gap-1 sm:gap-1.5 px-2 sm:px-2.5 py-1 rounded-md surface-panel text-[11px] text-zinc-400 transition-colors hover:border-white/[0.14]"
-                title={t.app.stats.recallsLTPTooltip}
-              >
-                <Zap className="w-3.5 h-3.5 text-zinc-400 stroke-[1.75]" />
-                <span className="font-mono tabular-nums font-semibold text-zinc-100">
-                  {stats.retrievalAttempts + stats.socraticQuestionsAnswered}
-                </span>
-                <span className="hidden md:inline text-zinc-500">{t.app.stats.recallsLTP}</span>
-                <span className="md:hidden font-mono tabular-nums text-zinc-500">{t.app.stats.recallsLTPShort}</span>
-              </div>
-            </div>
-
-            <div className="hidden sm:block h-4 w-px bg-white/[0.08] shrink-0" />
-
             {/* Language Switcher */}
             <div className="flex items-center rounded-md surface-recessed p-0.5 text-xs text-zinc-300 font-medium">
               <div className="hidden sm:flex items-center px-1.5 text-zinc-500">
