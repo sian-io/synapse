@@ -77,14 +77,26 @@ export interface CognitiveStats {
 
 export type APIStandard = 'openai' | 'anthropic' | 'google' | 'ollama';
 export type OpenAIApiType = 'completions' | 'responses';
+export type ReasoningEffort = 'low' | 'medium' | 'high';
 
 export interface AIProviderConfig {
   apiStandard: APIStandard;
   openaiApiType?: OpenAIApiType;
-  maxTokens?: number;
   apiKey?: string;
   baseUrl: string;
   model: string;
+  maxTokens?: number;
+  temperature?: number;
+  topP?: number;
+  topK?: number;
+  frequencyPenalty?: number;
+  presencePenalty?: number;
+  reasoningEffort?: ReasoningEffort;
+  thinkingBudget?: number;
+  numCtx?: number;
+  repeatPenalty?: number;
+  manualEditEnabled?: boolean;
+  customBodyOverride?: Record<string, unknown>;
 }
 
 

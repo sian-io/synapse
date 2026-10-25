@@ -19,7 +19,8 @@ import { NeuroscienceGuide } from './components/NeuroscienceGuide';
 import { UnifiedConceptBar } from './components/UnifiedConceptBar';
 import { CognitiveStats } from './types';
 import { LanguageProvider, useLanguage } from './i18n/LanguageContext';
-import { AIConfigProvider, useAIConfig } from './context/AIConfigContext';
+import { AIConfigProvider } from './context/AIConfigContext';
+import { useAIConfig } from './context/useAIConfig';
 
 type ActiveTab = 'socratic' | 'feynman' | 'retrieval' | 'cognitive_map' | 'neuroscience';
 

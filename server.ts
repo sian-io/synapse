@@ -1,6 +1,7 @@
 import { Hono, Context } from 'hono';
 import { validator } from 'hono/validator';
 import { translateCognitivePhase } from './src/i18n/translations';
+import { buildInferenceRequest } from './src/lib/inferenceRequest';
 import type {
   AIProviderConfig,
   ChatMessage,
@@ -62,118 +63,41 @@ async function runInference(
     jsonMode?: boolean;
   }
 ): Promise<string> {
-  const baseUrl = cfg.baseUrl.trim().replace(/\/+$/, '');
-  const model = cfg.model.trim();
-  const apiKey = cfg.apiKey?.trim() || '';
-  const systemPrompt = [
-    options.systemInstruction || '',
-    options.jsonMode ? 'You MUST respond ONLY with a valid JSON object.' : '',
-  ]
-    .filter(Boolean)
-    .join('\n\n');
+  const req = buildInferenceRequest(cfg, options);
+
+  const res = await fetch(req.url, {
+    method: req.method,
+    headers: req.headers,
+    body: JSON.stringify(req.body),
+  });
 
   if (cfg.apiStandard === 'anthropic') {
-    const url = baseUrl.endsWith('/messages')
-      ? baseUrl
-      : baseUrl.endsWith('/v1')
-        ? `${baseUrl}/messages`
-        : `${baseUrl}/v1/messages`;
-
-    const maxTokens = Number.isInteger(cfg.maxTokens) && (cfg.maxTokens as number) >= 1 ? cfg.maxTokens : 2048;
-
-    const res = await fetch(url, {
-      method: 'POST',
-      headers: {
-        'content-type': 'application/json',
-        'x-api-key': apiKey,
-        'anthropic-version': '2023-06-01',
-      },
-      body: JSON.stringify({
-        model,
-        max_tokens: maxTokens,
-        ...(systemPrompt ? { system: systemPrompt } : {}),
-        messages: options.messages.map((m) => ({
-          role: m.role === 'assistant' ? 'assistant' : 'user',
-          content: m.content,
-        })),
-      }),
-    });
-
     if (!res.ok) {
       const errBody = await res.text().catch(() => '');
       throw new Error(`Anthropic API error (${res.status}): ${errBody.slice(0, 200)}`);
     }
 
     const data: any = await res.json();
-    const text = data?.content?.[0]?.text?.trim();
+    const text = data?.content?.find((b: any) => b?.type === 'text')?.text?.trim() ?? data?.content?.[0]?.text?.trim();
     if (!text) throw new Error('Empty response from Anthropic API.');
     return options.jsonMode ? cleanJsonText(text) : text;
   }
 
   if (cfg.apiStandard === 'google') {
-    const modelPath = model.startsWith('models/') ? model : `models/${model}`;
-    const url = baseUrl.includes(':generateContent')
-      ? baseUrl
-      : baseUrl.match(/\/v1(?:beta)?$/)
-        ? `${baseUrl}/${modelPath}:generateContent`
-        : `${baseUrl}/v1beta/${modelPath}:generateContent`;
-
-    const headers: Record<string, string> = { 'content-type': 'application/json' };
-    if (apiKey) headers['x-goog-api-key'] = apiKey;
-
-    const res = await fetch(url, {
-      method: 'POST',
-      headers,
-      body: JSON.stringify({
-        ...(systemPrompt ? { systemInstruction: { parts: [{ text: systemPrompt }] } } : {}),
-        contents: options.messages.map((m) => ({
-          role: m.role === 'assistant' ? 'model' : 'user',
-          parts: [{ text: m.content }],
-        })),
-        ...(options.jsonMode ? { generationConfig: { responseMimeType: 'application/json' } } : {}),
-      }),
-    });
-
     if (!res.ok) {
       const errBody = await res.text().catch(() => '');
       throw new Error(`Google API error (${res.status}): ${errBody.slice(0, 200)}`);
     }
 
     const data: any = await res.json();
-    const text = data?.candidates?.[0]?.content?.parts?.[0]?.text?.trim();
+    const parts: any[] = data?.candidates?.[0]?.content?.parts || [];
+    const textPart = parts.find((p: any) => typeof p?.text === 'string' && !p?.thought) ?? parts[0];
+    const text = textPart?.text?.trim();
     if (!text) throw new Error('Empty response from Google API.');
     return options.jsonMode ? cleanJsonText(text) : text;
   }
 
   if (cfg.apiStandard === 'ollama') {
-    const url = baseUrl.endsWith('/api/chat')
-      ? baseUrl
-      : baseUrl.endsWith('/api')
-        ? `${baseUrl}/chat`
-        : `${baseUrl.replace(/\/v1$/, '')}/api/chat`;
-
-    const headers: Record<string, string> = { 'content-type': 'application/json' };
-    if (apiKey) headers['authorization'] = `Bearer ${apiKey}`;
-
-    const chatMessages = [
-      ...(systemPrompt ? [{ role: 'system', content: systemPrompt }] : []),
-      ...options.messages.map((m) => ({
-        role: m.role === 'assistant' ? 'assistant' : 'user',
-        content: m.content,
-      })),
-    ];
-
-    const res = await fetch(url, {
-      method: 'POST',
-      headers,
-      body: JSON.stringify({
-        model,
-        messages: chatMessages,
-        stream: false,
-        ...(options.jsonMode ? { format: 'json' } : {}),
-      }),
-    });
-
     if (!res.ok) {
       const errBody = await res.text().catch(() => '');
       throw new Error(`Ollama API error (${res.status}): ${errBody.slice(0, 200)}`);
@@ -185,31 +109,7 @@ async function runInference(
     return options.jsonMode ? cleanJsonText(text) : text;
   }
 
-  // OpenAI standard (Chat Completions or Responses API)
-  const headers: Record<string, string> = { 'content-type': 'application/json' };
-  if (apiKey) headers['authorization'] = `Bearer ${apiKey}`;
-
   if (cfg.openaiApiType === 'responses') {
-    const url = baseUrl.endsWith('/responses')
-      ? baseUrl
-      : baseUrl.endsWith('/v1')
-        ? `${baseUrl}/responses`
-        : `${baseUrl}/v1/responses`;
-
-    const res = await fetch(url, {
-      method: 'POST',
-      headers,
-      body: JSON.stringify({
-        model,
-        ...(systemPrompt ? { instructions: systemPrompt } : {}),
-        input: options.messages.map((m) => ({
-          role: m.role === 'assistant' ? 'assistant' : 'user',
-          content: m.content,
-        })),
-        ...(options.jsonMode ? { text: { format: { type: 'json_object' } } } : {}),
-      }),
-    });
-
     if (!res.ok) {
       const errBody = await res.text().catch(() => '');
       throw new Error(`OpenAI Responses API error (${res.status}): ${errBody.slice(0, 200)}`);
@@ -226,30 +126,6 @@ async function runInference(
     if (!text) throw new Error('Empty response from OpenAI Responses API.');
     return options.jsonMode ? cleanJsonText(text) : text;
   }
-
-  const url = baseUrl.endsWith('/chat/completions')
-    ? baseUrl
-    : baseUrl.endsWith('/v1')
-      ? `${baseUrl}/chat/completions`
-      : `${baseUrl}/v1/chat/completions`;
-
-  const chatMessages = [
-    ...(systemPrompt ? [{ role: 'system', content: systemPrompt }] : []),
-    ...options.messages.map((m) => ({
-      role: m.role === 'assistant' ? 'assistant' : 'user',
-      content: m.content,
-    })),
-  ];
-
-  const res = await fetch(url, {
-    method: 'POST',
-    headers,
-    body: JSON.stringify({
-      model,
-      messages: chatMessages,
-      ...(options.jsonMode ? { response_format: { type: 'json_object' } } : {}),
-    }),
-  });
 
   if (!res.ok) {
     const errBody = await res.text().catch(() => '');
