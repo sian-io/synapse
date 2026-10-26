@@ -48,7 +48,7 @@ export const NeuroscienceGuide: React.FC = () => {
           <h2 className="text-xl sm:text-2xl lg:text-3xl font-semibold text-zinc-100 tracking-tight leading-snug">
             {t.neuroscience.heroTitle}
           </h2>
-          <p className="text-xs sm:text-sm text-zinc-400 leading-relaxed max-w-3xl">
+          <p className="text-[15px] text-zinc-400 leading-relaxed max-w-3xl">
             {t.neuroscience.heroDesc}
           </p>
         </div>
@@ -61,10 +61,10 @@ export const NeuroscienceGuide: React.FC = () => {
               </span>
               <TrendingUp className="w-3.5 h-3.5 text-zinc-500 stroke-[1.75]" />
             </div>
-            <div className="text-2xl font-bold font-mono tabular-nums tracking-tight text-zinc-100">
+            <div className="text-3xl font-bold font-mono tabular-nums tracking-tight text-zinc-100">
               {t.neuroscience.metricRetentionValue}
             </div>
-            <p className="text-xs text-zinc-400 leading-relaxed">
+            <p className="text-sm text-zinc-400 leading-relaxed">
               {t.neuroscience.metricRetentionDesc}
             </p>
           </div>
@@ -76,10 +76,10 @@ export const NeuroscienceGuide: React.FC = () => {
               </span>
               <ShieldAlert className="w-3.5 h-3.5 text-zinc-500 stroke-[1.75]" />
             </div>
-            <div className="text-2xl font-bold font-mono tabular-nums tracking-tight text-zinc-100">
+            <div className="text-3xl font-bold font-mono tabular-nums tracking-tight text-zinc-100">
               {t.neuroscience.metricJargonValue}
             </div>
-            <p className="text-xs text-zinc-400 leading-relaxed">
+            <p className="text-sm text-zinc-400 leading-relaxed">
               {t.neuroscience.metricJargonDesc}
             </p>
           </div>
@@ -98,11 +98,11 @@ export const NeuroscienceGuide: React.FC = () => {
 
         {/* Passive Column */}
         <div className="bg-[#0f0f12] p-6 space-y-4">
-          <div className="flex items-center gap-2 text-sm font-semibold text-zinc-300">
+          <div className="flex items-center gap-2 text-[15px] font-semibold text-zinc-300">
             <XCircle className="w-4 h-4 text-zinc-500 stroke-[1.75] shrink-0" />
             <span>{t.neuroscience.passiveTitle}</span>
           </div>
-          <ul className="divide-y divide-white/[0.05] text-xs sm:text-sm text-zinc-400 leading-relaxed">
+          <ul className="divide-y divide-white/[0.05] text-sm text-zinc-400 leading-relaxed">
             <li className="py-3 first:pt-0 last:pb-0">
               <strong className="text-zinc-200 font-medium">{t.neuroscience.passivePoint1Title}</strong>{' '}
               {t.neuroscience.passivePoint1Desc}
@@ -120,11 +120,11 @@ export const NeuroscienceGuide: React.FC = () => {
 
         {/* Active Column */}
         <div className="bg-[#0f0f12] p-6 space-y-4">
-          <div className="flex items-center gap-2 text-sm font-semibold text-zinc-100">
+          <div className="flex items-center gap-2 text-[15px] font-semibold text-zinc-100">
             <CheckCircle2 className="w-4 h-4 text-zinc-200 stroke-[1.75] shrink-0" />
             <span>{t.neuroscience.activeTitle}</span>
           </div>
-          <ul className="divide-y divide-white/[0.05] text-xs sm:text-sm text-zinc-400 leading-relaxed">
+          <ul className="divide-y divide-white/[0.05] text-sm text-zinc-400 leading-relaxed">
             <li className="py-3 first:pt-0 last:pb-0">
               <strong className="text-zinc-100 font-medium">{t.neuroscience.activePoint1Title}</strong>{' '}
               {t.neuroscience.activePoint1Desc}
@@ -166,7 +166,7 @@ export const NeuroscienceGuide: React.FC = () => {
                     <span className="font-mono text-[11px] uppercase tracking-widest text-zinc-500 block">
                       {pillar.scientist}
                     </span>
-                    <h4 className="text-sm sm:text-base font-semibold text-zinc-100">
+                    <h4 className="text-base font-semibold text-zinc-100">
                       {pillar.name}
                     </h4>
                   </div>
@@ -174,20 +174,20 @@ export const NeuroscienceGuide: React.FC = () => {
                 </div>
 
                 <div className="pt-3 border-t border-white/[0.05] space-y-1">
-                  <span className="font-mono text-[10px] uppercase tracking-widest text-zinc-500 block">
+                  <span className="font-mono text-[11px] uppercase tracking-widest text-zinc-500 block">
                     {t.neuroscience.neuroBasisLabel}
                   </span>
-                  <p className="text-zinc-300 leading-relaxed text-xs sm:text-sm">
+                  <p className="text-zinc-300 leading-relaxed text-sm">
                     {pillar.neuroBasis}
                   </p>
                 </div>
               </div>
 
               <div className="pt-3 border-t border-white/[0.05] space-y-1">
-                <span className="font-mono text-[10px] uppercase tracking-widest text-zinc-500 block">
+                <span className="font-mono text-[11px] uppercase tracking-widest text-zinc-500 block">
                   {t.neuroscience.practicalActionLabel}
                 </span>
-                <p className="text-zinc-400 leading-relaxed text-xs">
+                <p className="text-zinc-400 leading-relaxed text-sm">
                   {pillar.practicalAction}
                 </p>
               </div>
@@ -207,10 +207,10 @@ export const NeuroscienceGuide: React.FC = () => {
 
         {consolidationSteps.map((step, idx) => (
           <div key={idx} className="bg-[#0f0f12] p-6 space-y-2">
-            <span className="font-semibold text-zinc-100 block text-sm">
+            <span className="font-semibold text-zinc-100 block text-[15px]">
               {step.name.replace(/^\d+\.\s*/, '')}
             </span>
-            <p className="text-zinc-400 leading-relaxed text-xs sm:text-sm">
+            <p className="text-zinc-400 leading-relaxed text-sm">
               {step.desc}
             </p>
           </div>

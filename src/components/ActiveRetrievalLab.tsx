@@ -183,7 +183,7 @@ export const ActiveRetrievalLab: React.FC<ActiveRetrievalLabProps> = ({
         {currentCard ? (
           <div className="space-y-3.5">
             {/* Top Status Strip */}
-            <div className="surface-panel rounded-lg px-4 py-2 flex flex-wrap items-center justify-between gap-2 text-xs">
+            <div className="surface-panel rounded-lg px-5 py-2.5 flex flex-wrap items-center justify-between gap-2 text-sm">
               <span className="flex items-center gap-2 font-mono text-[11px] uppercase tracking-widest text-zinc-500 tabular-nums">
                 <Layers className="w-3.5 h-3.5 text-zinc-500 stroke-[1.75]" />
                 <span>
@@ -239,7 +239,7 @@ export const ActiveRetrievalLab: React.FC<ActiveRetrievalLabProps> = ({
                 <h3 className="text-lg sm:text-xl font-semibold text-zinc-100 leading-snug">
                   {currentCard.question}
                 </h3>
-                <p className="text-xs text-zinc-500 font-mono">
+                <p className="text-[13px] text-zinc-500 font-mono">
                   {t.retrieval.targetConcept}{' '}
                   <span className="text-zinc-300">{currentCard.keyConcept}</span>
                 </p>
@@ -253,7 +253,7 @@ export const ActiveRetrievalLab: React.FC<ActiveRetrievalLabProps> = ({
                       <Brain className="w-3.5 h-3.5 text-zinc-500 stroke-[1.75]" />
                       {t.retrieval.forceGeneration}
                     </label>
-                    <span className="font-mono text-[10px] uppercase tracking-wider text-zinc-500 hidden sm:inline">
+                    <span className="font-mono text-[11px] uppercase tracking-wider text-zinc-500 hidden sm:inline">
                       {t.retrieval.avoidsHindsight}
                     </span>
                   </div>
@@ -263,14 +263,14 @@ export const ActiveRetrievalLab: React.FC<ActiveRetrievalLabProps> = ({
                     value={userDraftAnswer}
                     onChange={(e) => setUserDraftAnswer(e.target.value)}
                     placeholder={t.retrieval.draftPlaceholder}
-                    className="w-full surface-recessed rounded-lg p-3.5 text-xs sm:text-sm text-zinc-100 placeholder:text-zinc-600 focus-visible:border-white/[0.14] focus-visible:ring-0 leading-relaxed"
+                    className="w-full min-h-[120px] surface-recessed rounded-lg p-4 text-[15px] text-zinc-100 placeholder:text-zinc-600 focus-visible:border-white/[0.14] focus-visible:ring-0 leading-relaxed"
                   />
 
                   <div className="flex justify-end">
                     <Button
                       type="button"
                       onClick={() => setIsFlipped(true)}
-                      className="h-9 px-5 bg-zinc-100 hover:bg-white text-zinc-950 text-xs font-medium rounded-md transition-colors flex items-center gap-2 cursor-pointer"
+                      className="h-10 px-5 bg-zinc-100 hover:bg-white text-zinc-950 text-sm font-medium rounded-md transition-colors flex items-center gap-2 cursor-pointer"
                     >
                       <Eye className="w-3.5 h-3.5 stroke-[1.75]" />
                       <span>{t.retrieval.checkAnswer}</span>
@@ -287,7 +287,7 @@ export const ActiveRetrievalLab: React.FC<ActiveRetrievalLabProps> = ({
                       <span className="font-mono text-[11px] uppercase tracking-widest text-zinc-500 block">
                         {t.retrieval.yourAttempt}
                       </span>
-                      <p className="text-xs sm:text-sm text-zinc-300 border-l-2 border-zinc-600 pl-3 leading-relaxed">
+                      <p className="text-sm text-zinc-300 border-l-2 border-zinc-600 pl-3 leading-relaxed">
                         {userDraftAnswer}
                       </p>
                     </div>
@@ -302,8 +302,8 @@ export const ActiveRetrievalLab: React.FC<ActiveRetrievalLabProps> = ({
                     </p>
                   </div>
 
-                  <div className="pt-4 border-t border-white/[0.05] flex items-start gap-2.5 text-xs">
-                    <span className="font-mono text-[10px] uppercase tracking-widest text-zinc-500 shrink-0 mt-0.5">
+                  <div className="pt-4 border-t border-white/[0.05] flex items-start gap-2.5 text-sm">
+                    <span className="font-mono text-[11px] uppercase tracking-widest text-zinc-500 shrink-0 mt-0.5">
                       LTP //
                     </span>
                     <div className="space-y-0.5">
@@ -325,7 +325,7 @@ export const ActiveRetrievalLab: React.FC<ActiveRetrievalLabProps> = ({
                       <button
                         type="button"
                         onClick={() => handleRateCard(0)}
-                        className="p-3 rounded-md surface-recessed hover:bg-[#16161a] hover:border-white/[0.14] text-zinc-300 text-xs font-medium transition-colors flex flex-col items-center gap-1 cursor-pointer"
+                        className="p-3 rounded-md surface-recessed hover:bg-[#16161a] hover:border-white/[0.14] text-zinc-300 text-sm font-medium transition-colors flex flex-col items-center gap-1 cursor-pointer"
                       >
                         <XCircle className="w-3.5 h-3.5 text-zinc-500 stroke-[1.75]" />
                         <span>{t.retrieval.ratingForgot}</span>
@@ -337,7 +337,7 @@ export const ActiveRetrievalLab: React.FC<ActiveRetrievalLabProps> = ({
                       <button
                         type="button"
                         onClick={() => handleRateCard(1)}
-                        className="p-3 rounded-md surface-recessed hover:bg-[#16161a] hover:border-white/[0.14] text-zinc-300 text-xs font-medium transition-colors flex flex-col items-center gap-1 cursor-pointer"
+                        className="p-3 rounded-md surface-recessed hover:bg-[#16161a] hover:border-white/[0.14] text-zinc-300 text-sm font-medium transition-colors flex flex-col items-center gap-1 cursor-pointer"
                       >
                         <AlertCircle className="w-3.5 h-3.5 text-zinc-400 stroke-[1.75]" />
                         <span>{t.retrieval.ratingHard}</span>
@@ -349,7 +349,7 @@ export const ActiveRetrievalLab: React.FC<ActiveRetrievalLabProps> = ({
                       <button
                         type="button"
                         onClick={() => handleRateCard(2)}
-                        className="p-3 rounded-md surface-recessed hover:bg-[#16161a] hover:border-white/[0.14] text-zinc-200 text-xs font-medium transition-colors flex flex-col items-center gap-1 cursor-pointer"
+                        className="p-3 rounded-md surface-recessed hover:bg-[#16161a] hover:border-white/[0.14] text-zinc-200 text-sm font-medium transition-colors flex flex-col items-center gap-1 cursor-pointer"
                       >
                         <CheckCircle2 className="w-3.5 h-3.5 text-zinc-300 stroke-[1.75]" />
                         <span>{t.retrieval.ratingGood}</span>
@@ -361,7 +361,7 @@ export const ActiveRetrievalLab: React.FC<ActiveRetrievalLabProps> = ({
                       <button
                         type="button"
                         onClick={() => handleRateCard(3)}
-                        className="p-3 rounded-md bg-zinc-100 hover:bg-white text-zinc-950 text-xs font-medium transition-colors flex flex-col items-center gap-1 cursor-pointer"
+                        className="p-3 rounded-md bg-zinc-100 hover:bg-white text-zinc-950 text-sm font-medium transition-colors flex flex-col items-center gap-1 cursor-pointer"
                       >
                         <Sparkles className="w-3.5 h-3.5 text-zinc-950 stroke-[1.75]" />
                         <span>{t.retrieval.ratingPerfect}</span>
@@ -376,13 +376,13 @@ export const ActiveRetrievalLab: React.FC<ActiveRetrievalLabProps> = ({
             </div>
 
             {/* Card Prev / Next Bar */}
-            <div className="flex justify-between items-center text-xs text-zinc-400 px-1">
+            <div className="flex justify-between items-center text-sm text-zinc-400 px-1">
               <Button
                 type="button"
                 variant="ghost"
                 size="sm"
                 onClick={handlePrevCard}
-                className="h-7 px-2.5 rounded-md text-xs text-zinc-400 hover:text-zinc-100 hover:bg-[#16161a] flex items-center gap-1 cursor-pointer"
+                className="h-8 px-3 rounded-md text-[13px] text-zinc-400 hover:text-zinc-100 hover:bg-[#16161a] flex items-center gap-1 cursor-pointer"
               >
                 <ChevronLeft className="w-3.5 h-3.5" />
                 <span>{t.retrieval.prevCard.replace(/^←\s*/, '')}</span>
@@ -392,7 +392,7 @@ export const ActiveRetrievalLab: React.FC<ActiveRetrievalLabProps> = ({
                 variant="ghost"
                 size="sm"
                 onClick={handleNextCard}
-                className="h-7 px-2.5 rounded-md text-xs text-zinc-400 hover:text-zinc-100 hover:bg-[#16161a] flex items-center gap-1 cursor-pointer"
+                className="h-8 px-3 rounded-md text-[13px] text-zinc-400 hover:text-zinc-100 hover:bg-[#16161a] flex items-center gap-1 cursor-pointer"
               >
                 <span>{t.retrieval.nextCard}</span>
                 <ChevronRight className="w-3.5 h-3.5" />
@@ -400,16 +400,16 @@ export const ActiveRetrievalLab: React.FC<ActiveRetrievalLabProps> = ({
             </div>
           </div>
         ) : (
-          <div className="p-10 text-center rounded-xl surface-panel text-zinc-400 text-xs">
+          <div className="p-12 text-center rounded-xl surface-panel text-zinc-400 text-sm">
             <p>{t.retrieval.noCards}</p>
           </div>
         )}
       </div>
 
       {/* Right Column: Deck Control & Card Navigation Hairline Bento - 4 Columns */}
-      <div className="lg:col-span-4 grid grid-cols-1 gap-px bg-white/[0.07] border border-white/[0.07] rounded-xl overflow-hidden">
+      <div className="lg:col-span-4 lg:sticky lg:top-24 grid grid-cols-1 gap-px bg-white/[0.07] border border-white/[0.07] rounded-xl overflow-hidden">
         {/* Cell 1: Deck Synthesizer */}
-        <div className="bg-[#0f0f12] p-5 space-y-4">
+        <div className="bg-[#0f0f12] p-6 space-y-4">
           <span className="font-mono text-[11px] uppercase tracking-widest text-zinc-500 flex items-center gap-1.5">
             <Sparkles className="w-3.5 h-3.5 text-zinc-500 stroke-[1.75]" />
             {t.retrieval.synthesizeTitle}
@@ -417,16 +417,16 @@ export const ActiveRetrievalLab: React.FC<ActiveRetrievalLabProps> = ({
 
           <form onSubmit={handleGenerateDeck} className="space-y-3.5">
             <div className="space-y-1">
-              <span className="font-mono text-[10px] uppercase tracking-wider text-zinc-500 block">
+              <span className="font-mono text-[11px] uppercase tracking-wider text-zinc-500 block">
                 {t.retrieval.targetConceptLabel}
               </span>
-              <p className="font-medium text-zinc-100 text-xs truncate">
+              <p className="font-medium text-zinc-100 text-sm truncate">
                 {currentTopic || t.feynman.defineConceptPrompt}
               </p>
             </div>
 
             <div className="space-y-1.5">
-              <label className="font-mono text-[10px] uppercase tracking-wider text-zinc-500 block">
+              <label className="font-mono text-[11px] uppercase tracking-wider text-zinc-500 block">
                 {t.retrieval.difficultyLabel}
               </label>
               <Select
@@ -435,7 +435,7 @@ export const ActiveRetrievalLab: React.FC<ActiveRetrievalLabProps> = ({
                   if (val) setDeckDifficulty(val);
                 }}
               >
-                <SelectTrigger className="w-full h-8 rounded-md surface-recessed px-3 text-xs text-zinc-200 hover:border-white/[0.14] focus-visible:ring-0">
+                <SelectTrigger className="w-full h-10 rounded-md surface-recessed px-3.5 text-sm text-zinc-200 hover:border-white/[0.14] focus-visible:ring-0">
                   <SelectValue>{difficultyLabels[deckDifficulty]}</SelectValue>
                 </SelectTrigger>
                 <SelectContent
@@ -446,19 +446,19 @@ export const ActiveRetrievalLab: React.FC<ActiveRetrievalLabProps> = ({
                 >
                   <SelectItem
                     value="fundamentos"
-                    className="rounded-md text-xs text-zinc-300 hover:bg-[#16161a] hover:text-zinc-100 focus:bg-[#16161a] focus:text-zinc-100 data-[highlighted]:bg-[#16161a] data-[highlighted]:text-zinc-100 cursor-pointer"
+                    className="rounded-md text-sm text-zinc-300 hover:bg-[#16161a] hover:text-zinc-100 focus:bg-[#16161a] focus:text-zinc-100 data-[highlighted]:bg-[#16161a] data-[highlighted]:text-zinc-100 cursor-pointer"
                   >
                     {t.retrieval.diffFundamentals}
                   </SelectItem>
                   <SelectItem
                     value="intermediario"
-                    className="rounded-md text-xs text-zinc-300 hover:bg-[#16161a] hover:text-zinc-100 focus:bg-[#16161a] focus:text-zinc-100 data-[highlighted]:bg-[#16161a] data-[highlighted]:text-zinc-100 cursor-pointer"
+                    className="rounded-md text-sm text-zinc-300 hover:bg-[#16161a] hover:text-zinc-100 focus:bg-[#16161a] focus:text-zinc-100 data-[highlighted]:bg-[#16161a] data-[highlighted]:text-zinc-100 cursor-pointer"
                   >
                     {t.retrieval.diffIntermediate}
                   </SelectItem>
                   <SelectItem
                     value="avancado"
-                    className="rounded-md text-xs text-zinc-300 hover:bg-[#16161a] hover:text-zinc-100 focus:bg-[#16161a] focus:text-zinc-100 data-[highlighted]:bg-[#16161a] data-[highlighted]:text-zinc-100 cursor-pointer"
+                    className="rounded-md text-sm text-zinc-300 hover:bg-[#16161a] hover:text-zinc-100 focus:bg-[#16161a] focus:text-zinc-100 data-[highlighted]:bg-[#16161a] data-[highlighted]:text-zinc-100 cursor-pointer"
                   >
                     {t.retrieval.diffAdvanced}
                   </SelectItem>
@@ -469,7 +469,7 @@ export const ActiveRetrievalLab: React.FC<ActiveRetrievalLabProps> = ({
             <Button
               type="submit"
               disabled={isGeneratingDeck || !currentTopic.trim()}
-              className="w-full h-8 bg-zinc-100 hover:bg-white disabled:bg-zinc-900 disabled:text-zinc-600 text-zinc-950 text-xs font-medium rounded-md transition-colors flex items-center justify-center gap-2 cursor-pointer"
+              className="w-full h-10 bg-zinc-100 hover:bg-white disabled:bg-zinc-900 disabled:text-zinc-600 text-zinc-950 text-sm font-medium rounded-md transition-colors flex items-center justify-center gap-2 cursor-pointer"
             >
               {isGeneratingDeck ? (
                 <>
@@ -485,16 +485,16 @@ export const ActiveRetrievalLab: React.FC<ActiveRetrievalLabProps> = ({
             </Button>
 
             {error && (
-              <div className="pt-3 border-t border-white/[0.05] text-xs text-zinc-300 flex items-center justify-between gap-2">
+              <div className="pt-3 border-t border-white/[0.05] text-sm text-zinc-300 flex items-center justify-between gap-2">
                 <div className="flex items-center gap-1.5">
                   <AlertCircle className="w-3.5 h-3.5 text-zinc-400 shrink-0" />
-                  <span className="text-[11px]">{error}</span>
+                  <span className="text-[13px]">{error}</span>
                 </div>
                 <Button
                   type="button"
                   size="sm"
                   onClick={() => handleGenerateDeck()}
-                  className="h-6 px-2 surface-recessed hover:bg-[#16161a] rounded-md text-[11px] text-zinc-200 font-medium transition-colors flex items-center gap-1 shrink-0 cursor-pointer"
+                  className="h-7 px-2.5 surface-recessed hover:bg-[#16161a] rounded-md text-xs text-zinc-200 font-medium transition-colors flex items-center gap-1 shrink-0 cursor-pointer"
                 >
                   <RotateCw className="w-3 h-3" />
                   <span>{t.feynman.retry}</span>
@@ -505,7 +505,7 @@ export const ActiveRetrievalLab: React.FC<ActiveRetrievalLabProps> = ({
         </div>
 
         {/* Cell 2: Deck Overview & Question Jump List */}
-        <div className="bg-[#0f0f12] p-5 space-y-3">
+        <div className="bg-[#0f0f12] p-6 space-y-3">
           <div className="flex items-center justify-between">
             <span className="font-mono text-[11px] uppercase tracking-widest text-zinc-500 flex items-center gap-1.5">
               <Bookmark className="w-3.5 h-3.5 text-zinc-500 stroke-[1.75]" />
@@ -516,7 +516,7 @@ export const ActiveRetrievalLab: React.FC<ActiveRetrievalLabProps> = ({
             </span>
           </div>
 
-          <div className="divide-y divide-white/[0.05] -mx-5 border-t border-white/[0.05] max-h-[320px] overflow-y-auto">
+          <div className="divide-y divide-white/[0.05] -mx-6 border-t border-white/[0.05] max-h-[360px] overflow-y-auto">
             {cards.map((c, idx) => {
               const isSelected = currentIndex === idx;
               return (
@@ -528,14 +528,14 @@ export const ActiveRetrievalLab: React.FC<ActiveRetrievalLabProps> = ({
                     setIsFlipped(false);
                     setUserDraftAnswer('');
                   }}
-                  className={`w-full text-left px-5 py-2.5 text-xs transition-colors flex items-center justify-between gap-2.5 cursor-pointer ${
+                  className={`w-full text-left px-6 py-3 text-[13px] transition-colors flex items-center justify-between gap-2.5 cursor-pointer ${
                     isSelected
                       ? 'bg-[#16161a] text-zinc-100 font-medium'
                       : 'text-zinc-400 hover:text-zinc-200 hover:bg-[#16161a]/60'
                   }`}
                 >
                   <span className="truncate min-w-0">{c.question}</span>
-                  <span className="font-mono text-[10px] text-zinc-500 tabular-nums shrink-0">
+                  <span className="font-mono text-[11px] text-zinc-500 tabular-nums shrink-0">
                     +{c.intervalDays}d
                   </span>
                 </button>

@@ -82,7 +82,7 @@ const SocraticCodeBlock: React.FC<{
 
 const createMarkdownComponents = (isPt: boolean): Components => ({
   p: ({ children }) => (
-    <p className="text-sm text-zinc-200 leading-relaxed mb-3 last:mb-0">{children}</p>
+    <p className="text-[15px] text-zinc-200 leading-relaxed mb-3 last:mb-0">{children}</p>
   ),
   h1: ({ children }) => (
     <h1 className="text-base font-semibold tracking-tight text-zinc-100 mt-4 mb-2 first:mt-0">
@@ -105,12 +105,12 @@ const createMarkdownComponents = (isPt: boolean): Components => ({
     </h4>
   ),
   ul: ({ children }) => (
-    <ul className="list-disc pl-5 my-2.5 space-y-1.5 text-sm text-zinc-200 marker:text-zinc-500">
+    <ul className="list-disc pl-5 my-2.5 space-y-1.5 text-[15px] text-zinc-200 marker:text-zinc-500">
       {children}
     </ul>
   ),
   ol: ({ children }) => (
-    <ol className="list-decimal pl-5 my-2.5 space-y-1.5 text-sm text-zinc-200 marker:text-zinc-500 marker:font-mono marker:text-xs tabular-nums">
+    <ol className="list-decimal pl-5 my-2.5 space-y-1.5 text-[15px] text-zinc-200 marker:text-zinc-500 marker:font-mono marker:text-xs tabular-nums">
       {children}
     </ol>
   ),
@@ -333,12 +333,12 @@ export const SocraticTutor: React.FC<SocraticTutorProps> = ({
   };
 
   return (
-    <div className="w-full flex flex-col h-[76vh] surface-panel rounded-xl overflow-hidden">
+    <div className="w-full flex flex-col flex-1 min-h-[520px] surface-panel rounded-xl overflow-hidden">
       {/* Technical Header of Tutor */}
-      <div className="px-5 py-2.5 border-b border-white/[0.07] bg-[#09090b]/60 flex flex-wrap items-center justify-between gap-3 shrink-0">
-        <div className="flex items-center gap-2.5">
-          <Brain className="w-3.5 h-3.5 text-zinc-400 stroke-[1.75]" />
-          <h2 className="font-mono text-[11px] uppercase tracking-widest text-zinc-400">
+      <div className="px-5 py-3 border-b border-white/[0.07] bg-[#09090b]/60 flex items-center justify-between gap-3 shrink-0">
+        <div className="flex items-center gap-2.5 min-w-0">
+          <Brain className="w-3.5 h-3.5 text-zinc-400 stroke-[1.75] shrink-0" />
+          <h2 className="font-mono text-[11px] uppercase tracking-widest text-zinc-400 truncate">
             {t.socratic.headerTitle}
           </h2>
         </div>
@@ -350,7 +350,7 @@ export const SocraticTutor: React.FC<SocraticTutorProps> = ({
                 type="button"
                 variant="ghost"
                 size="icon-sm"
-                className="h-7 w-7 rounded-md surface-recessed text-zinc-400 hover:text-zinc-100 hover:bg-[#16161a] hover:border-white/[0.14] cursor-pointer"
+                className="h-8 w-8 rounded-md surface-recessed text-zinc-400 hover:text-zinc-100 hover:bg-[#16161a] hover:border-white/[0.14] cursor-pointer"
                 title={t.socratic.resetTooltip}
               />
             }
@@ -399,10 +399,11 @@ export const SocraticTutor: React.FC<SocraticTutorProps> = ({
           return (
             <div
               key={message.id}
-              className={`px-5 sm:px-6 py-5 transition-colors ${
+              className={`px-5 sm:px-8 py-6 transition-colors ${
                 isUser ? 'bg-[#050507]/70' : 'bg-[#0f0f12]'
               }`}
             >
+              <div className="max-w-3xl mx-auto">
               {/* Entry Metadata Bar */}
               <div className="flex flex-wrap items-center justify-between gap-2 mb-3">
                 <span className="font-mono text-[11px] uppercase tracking-widest text-zinc-500">
@@ -418,24 +419,25 @@ export const SocraticTutor: React.FC<SocraticTutorProps> = ({
 
               {/* Entry Body */}
               {isUser ? (
-                <p className="whitespace-pre-wrap text-sm text-zinc-100 leading-relaxed pl-3 border-l border-zinc-600">
+                <p className="whitespace-pre-wrap text-[15px] text-zinc-100 leading-relaxed pl-3 border-l border-zinc-600">
                   {message.content}
                 </p>
               ) : (
                 <div className="space-y-4">
-                  <div className="max-w-none text-sm text-zinc-200 leading-relaxed">
+                  <div className="max-w-none text-[15px] text-zinc-200 leading-relaxed">
                     <Markdown components={markdownComponents}>
                       {message.content.replace(/(?:[\r\n]+\s*(?:[-*_]\s*){3,})+$/, '').trim()}
                     </Markdown>
                   </div>
                 </div>
               )}
+              </div>
             </div>
           );
         })}
 
         {error && !isLoading && (
-          <div className="px-5 sm:px-6 py-4 bg-[#050507] flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 text-xs text-zinc-300">
+          <div className="max-w-3xl mx-auto px-5 sm:px-0 py-4 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 text-sm text-zinc-300">
             <div className="flex items-center gap-2.5">
               <ShieldAlert className="w-4 h-4 text-zinc-400 shrink-0" />
               <span>{error}</span>
@@ -444,7 +446,7 @@ export const SocraticTutor: React.FC<SocraticTutorProps> = ({
               type="button"
               size="sm"
               onClick={handleRetry}
-              className="h-7 px-3 rounded-md surface-panel hover:bg-[#16161a] text-zinc-200 text-xs font-medium flex items-center gap-1.5 shrink-0 cursor-pointer"
+              className="h-8 px-3 rounded-md surface-panel hover:bg-[#16161a] text-zinc-200 text-[13px] font-medium flex items-center gap-1.5 shrink-0 cursor-pointer"
             >
               <RotateCcw className="w-3 h-3" />
               <span>{t.socratic.retry}</span>
@@ -453,7 +455,7 @@ export const SocraticTutor: React.FC<SocraticTutorProps> = ({
         )}
 
         {isLoading && (
-          <div className="px-5 sm:px-6 py-5 bg-[#0f0f12] flex items-center gap-3 text-xs text-zinc-400">
+          <div className="max-w-3xl mx-auto px-5 sm:px-0 py-6 flex items-center gap-3 text-sm text-zinc-400">
             <span className="flex h-2 w-2 relative shrink-0">
               <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-zinc-400 opacity-75" />
               <span className="relative inline-flex rounded-full h-2 w-2 bg-zinc-300" />
@@ -468,19 +470,19 @@ export const SocraticTutor: React.FC<SocraticTutorProps> = ({
       </div>
 
       {/* Input Form & Pop-up Metacognitive Calibration Bar */}
-      <div className="p-3 sm:p-3.5 bg-[#09090b]/80 border-t border-white/[0.07] shrink-0">
+      <div className="px-4 py-4 sm:px-8 bg-[#09090b]/80 border-t border-white/[0.07] shrink-0">
         <form
           onSubmit={(e) => {
             e.preventDefault();
             handleSendMessage();
           }}
-          className="flex items-center gap-2"
+          className="max-w-3xl mx-auto flex items-center gap-2"
         >
           <Popover open={isCalibrationOpen} onOpenChange={setIsCalibrationOpen}>
             <PopoverTrigger
               type="button"
               title={t.socratic.metacognitiveTitle}
-              className="h-9 px-2.5 rounded-md surface-recessed hover:bg-[#16161a] hover:border-white/[0.14] text-zinc-300 hover:text-zinc-100 transition-colors flex items-center gap-1.5 shrink-0 cursor-pointer"
+              className="h-10 px-3 rounded-md surface-recessed hover:bg-[#16161a] hover:border-white/[0.14] text-zinc-300 hover:text-zinc-100 transition-colors flex items-center gap-1.5 shrink-0 cursor-pointer"
             >
               <Plus className="w-3.5 h-3.5 text-zinc-400 stroke-[1.75]" />
               <span className="font-mono tabular-nums text-xs font-medium text-zinc-200">
@@ -543,16 +545,16 @@ export const SocraticTutor: React.FC<SocraticTutorProps> = ({
             onChange={(e) => setInput(e.target.value)}
             placeholder={t.socratic.inputPlaceholder}
             disabled={isLoading}
-            className="flex-1 h-9 surface-recessed rounded-md px-3 text-xs sm:text-sm text-zinc-100 placeholder:text-zinc-600 focus-visible:border-white/[0.14] focus-visible:ring-0 disabled:opacity-50"
+            className="flex-1 h-10 surface-recessed rounded-md px-3.5 text-sm text-zinc-100 placeholder:text-zinc-600 focus-visible:border-white/[0.14] focus-visible:ring-0 disabled:opacity-50"
           />
 
           <Button
             type="submit"
             disabled={isLoading || !input.trim()}
-            className="h-9 px-4 bg-zinc-100 hover:bg-white disabled:bg-zinc-900 disabled:text-zinc-600 text-zinc-950 font-medium text-xs rounded-md transition-colors flex items-center justify-center gap-1.5 shrink-0 cursor-pointer"
+            className="h-10 px-4 bg-zinc-100 hover:bg-white disabled:bg-zinc-900 disabled:text-zinc-600 text-zinc-950 font-medium text-[13px] rounded-md transition-colors flex items-center justify-center gap-1.5 shrink-0 cursor-pointer"
             title={t.socratic.sendTooltip}
           >
-            <span>{t.socratic.sendButton}</span>
+            <span className="hidden sm:inline">{t.socratic.sendButton}</span>
             <Send className="w-3.5 h-3.5 stroke-[1.75]" />
           </Button>
         </form>

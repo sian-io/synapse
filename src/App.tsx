@@ -73,10 +73,15 @@ function AppContent() {
 
   const handleOpenSocraticWithPrompt = (prompt: string) => {
     setSocraticPromptOverride(prompt);
-    setActiveTab('socratic');
+    setActiveTab('cognitive_map');
   };
 
   const navItems = [
+    {
+      id: 'cognitive_map' as ActiveTab,
+      label: t.app.nav.cognitive_map,
+      icon: Layers,
+    },
     {
       id: 'socratic' as ActiveTab,
       label: t.app.nav.socratic,
@@ -93,11 +98,6 @@ function AppContent() {
       icon: Zap,
     },
     {
-      id: 'cognitive_map' as ActiveTab,
-      label: t.app.nav.cognitive_map,
-      icon: Layers,
-    },
-    {
       id: 'neuroscience' as ActiveTab,
       label: t.app.nav.neuroscience,
       icon: BookOpen,
@@ -107,15 +107,15 @@ function AppContent() {
   return (
     <div className="min-h-screen bg-[#09090b] text-zinc-100 flex flex-col font-sans selection:bg-zinc-800 selection:text-zinc-100">
       {/* Top Header */}
-      <header className="sticky top-0 z-40 min-h-14 lg:h-14 py-2 lg:py-0 border-b border-white/[0.07] bg-[#09090b]/90 backdrop-blur-md px-4 sm:px-6 xl:px-8 flex items-center">
-        <div className="max-w-[1600px] w-full mx-auto flex flex-wrap lg:flex-nowrap items-center justify-between gap-y-2 gap-x-3">
+      <header className="sticky top-0 z-40 min-h-16 lg:h-16 py-2.5 lg:py-0 border-b border-white/[0.07] bg-[#09090b]/90 backdrop-blur-md px-4 sm:px-6 xl:px-8 flex items-center">
+        <div className="max-w-[1320px] w-full mx-auto flex flex-wrap lg:flex-nowrap items-center justify-between gap-y-2.5 gap-x-4">
           {/* Left: Brand Identity */}
           <div className="flex items-center gap-3 shrink-0">
             <div className="flex items-center gap-2.5 shrink-0">
-              <div className="w-7 h-7 rounded-md surface-panel flex items-center justify-center text-zinc-100">
-                <Brain className="w-4.5 h-4.5 text-zinc-100 stroke-[1.75]" />
+              <div className="w-8 h-8 rounded-md surface-panel flex items-center justify-center text-zinc-100">
+                <Brain className="w-[18px] h-[18px] text-zinc-100 stroke-[1.75]" />
               </div>
-              <span className="font-mono text-xs-[14px] font-semibold tracking-[0.2em] text-zinc-100">
+              <span className="font-mono text-sm font-semibold tracking-[0.2em] text-zinc-100">
                 SYNAPSE
               </span>
             </div>
@@ -124,7 +124,7 @@ function AppContent() {
           </div>
 
           {/* Navigation Tabs - Minimalist Segmented Control */}
-          <nav className="order-last lg:order-none w-full lg:w-auto lg:mr-auto flex items-center gap-0.5 p-0.5 rounded-lg surface-recessed overflow-x-auto no-scrollbar min-w-0">
+          <nav className="order-last lg:order-none w-full lg:w-auto lg:mr-auto flex items-center gap-1 p-1 rounded-lg surface-recessed overflow-x-auto no-scrollbar min-w-0">
             {navItems.map((item) => {
               const Icon = item.icon;
               const isActive = activeTab === item.id;
@@ -132,13 +132,13 @@ function AppContent() {
                 <button
                   key={item.id}
                   onClick={() => setActiveTab(item.id)}
-                  className={`px-2.5 py-1 rounded-md text-xs font-medium transition-colors flex items-center gap-1.5 shrink-0 cursor-pointer ${
+                  className={`h-8 px-3 rounded-md text-[13px] font-medium transition-colors flex items-center gap-2 shrink-0 cursor-pointer ${
                     isActive
                       ? 'bg-zinc-100 text-zinc-950 font-medium'
                       : 'text-zinc-400 hover:text-zinc-200 hover:bg-[#16161a]'
                   }`}
                 >
-                  <Icon className={`w-3.5 h-3.5 stroke-[1.75] ${isActive ? 'text-zinc-950' : 'text-zinc-500'}`} />
+                  <Icon className={`w-4 h-4 stroke-[1.75] ${isActive ? 'text-zinc-950' : 'text-zinc-500'}`} />
                   <span>{item.label}</span>
                 </button>
               );
@@ -155,7 +155,7 @@ function AppContent() {
               <button
                 type="button"
                 onClick={() => setLanguage('en')}
-                className={`px-1.5 py-0.5 rounded-md text-[11px] font-mono tabular-nums font-medium transition-colors cursor-pointer ${
+                className={`h-6 px-2 rounded-md text-[11px] font-mono tabular-nums font-medium transition-colors cursor-pointer ${
                   language === 'en'
                     ? 'bg-zinc-100 text-zinc-950'
                     : 'text-zinc-400 hover:text-zinc-200'
@@ -167,7 +167,7 @@ function AppContent() {
               <button
                 type="button"
                 onClick={() => setLanguage('pt')}
-                className={`px-1.5 py-0.5 rounded-md text-[11px] font-mono tabular-nums font-medium transition-colors cursor-pointer ${
+                className={`h-6 px-2 rounded-md text-[11px] font-mono tabular-nums font-medium transition-colors cursor-pointer ${
                   language === 'pt'
                     ? 'bg-zinc-100 text-zinc-950'
                     : 'text-zinc-400 hover:text-zinc-200'
@@ -184,25 +184,25 @@ function AppContent() {
             <button
               type="button"
               onClick={openModal}
-              className={`h-7 w-7 rounded-md flex items-center justify-center transition-colors cursor-pointer ${
+              className={`h-8 w-8 rounded-md flex items-center justify-center transition-colors cursor-pointer ${
                 isConfigured
                   ? 'surface-panel text-zinc-400 hover:text-zinc-100 hover:border-white/[0.14] hover:bg-[#16161a]'
                   : 'bg-zinc-100 text-zinc-950 hover:bg-white'
               }`}
               title={isPt ? 'Configurações de IA' : 'AI Configuration'}
             >
-              <Settings className="w-3.5 h-3.5 stroke-[1.75]" />
+              <Settings className="w-4 h-4 stroke-[1.75]" />
             </button>
           </div>
         </div>
       </header>
 
       {/* Main Content Viewport */}
-      <main className="flex-1 max-w-[1600px] w-full mx-auto px-4 sm:px-6 xl:px-8 py-5 space-y-5">
+      <main className="flex-1 max-w-[1320px] w-full mx-auto px-4 sm:px-6 xl:px-8 py-6 flex flex-col gap-5">
         {!isConfigured && (
-          <div className="px-3.5 py-2.5 rounded-lg surface-panel text-zinc-300 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 text-xs">
+          <div className="px-4 py-3 rounded-lg surface-panel text-zinc-300 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 text-sm">
             <div className="flex items-center gap-2.5">
-              <AlertTriangle className="w-3.5 h-3.5 text-zinc-400 shrink-0" />
+              <AlertTriangle className="w-4 h-4 text-zinc-400 shrink-0" />
               <span>
                 {isPt
                   ? 'Configure sua API de inferência para habilitar o Tutor Socrático, Feynman, Flashcards e Mapa Cognitivo.'
@@ -212,7 +212,7 @@ function AppContent() {
             <button
               type="button"
               onClick={openModal}
-              className="px-3 py-1 rounded-md bg-zinc-100 hover:bg-white text-zinc-950 font-medium text-xs transition-colors shrink-0 cursor-pointer"
+              className="h-8 px-3.5 rounded-md bg-zinc-100 hover:bg-white text-zinc-950 font-medium text-[13px] transition-colors shrink-0 cursor-pointer"
             >
               {isPt ? 'Configurar API' : 'Configure API'}
             </button>

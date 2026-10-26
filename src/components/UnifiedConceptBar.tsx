@@ -45,7 +45,7 @@ export const UnifiedConceptBar: React.FC<UnifiedConceptBarProps> = ({
   };
 
   return (
-    <div className="w-full surface-panel rounded-lg px-3 py-1.5 flex items-center gap-2.5 transition-colors focus-within:border-white/[0.14]">
+    <div className="w-full surface-panel rounded-lg px-3.5 py-2 flex items-center gap-3 transition-colors focus-within:border-white/[0.14]">
       {/* Label & Active Context */}
       <div className="flex items-center gap-2 shrink-0">
         <Compass className="w-3.5 h-3.5 text-zinc-500 stroke-[1.75]" />
@@ -69,7 +69,7 @@ export const UnifiedConceptBar: React.FC<UnifiedConceptBarProps> = ({
           onBlur={() => handleApply(inputValue)}
           onKeyDown={handleKeyDown}
           placeholder={t.conceptBar.placeholder}
-          className="h-7 w-full border-0 bg-transparent px-1.5 py-0 text-xs sm:text-sm text-zinc-100 placeholder:text-zinc-600 focus-visible:ring-0 focus-visible:border-transparent dark:bg-transparent pr-7"
+          className="h-9 w-full border-0 bg-transparent px-1.5 py-0 text-sm sm:text-[15px] font-medium text-zinc-100 placeholder:text-zinc-600 focus-visible:ring-0 focus-visible:border-transparent dark:bg-transparent pr-8"
         />
         {inputValue && (
           <Button
@@ -96,7 +96,7 @@ export const UnifiedConceptBar: React.FC<UnifiedConceptBarProps> = ({
           type="button"
           size="sm"
           onClick={() => handleApply(inputValue)}
-          className={`h-7 px-3 rounded-md text-xs font-medium flex items-center gap-1.5 transition-colors shrink-0 cursor-pointer ${
+          className={`h-8 px-3.5 rounded-md text-[13px] font-medium flex items-center gap-1.5 transition-colors shrink-0 cursor-pointer ${
             isSavedRecently
               ? 'surface-recessed text-zinc-200 hover:bg-[#16161a]'
               : 'bg-zinc-100 hover:bg-white text-zinc-950 font-medium'
@@ -105,12 +105,12 @@ export const UnifiedConceptBar: React.FC<UnifiedConceptBarProps> = ({
           {isSavedRecently ? (
             <>
               <Check className="w-3.5 h-3.5 text-zinc-200 stroke-[2]" />
-              <span>{t.conceptBar.pinned}</span>
+              <span className="hidden sm:inline">{t.conceptBar.pinned}</span>
             </>
           ) : (
             <>
               <Sparkles className="w-3.5 h-3.5 stroke-[1.75]" />
-              <span>{t.conceptBar.pin}</span>
+              <span className="hidden sm:inline">{t.conceptBar.pin}</span>
             </>
           )}
         </Button>

@@ -456,7 +456,7 @@ export const AIConfigProvider: React.FC<{ children: React.ReactNode }> = ({ chil
             <div className="flex items-center justify-between border-b border-white/[0.07] px-5 py-3.5 bg-[#0f0f12]">
               <div className="flex items-center gap-2.5">
                 <Settings className="w-3.5 h-3.5 text-zinc-400 stroke-[1.75]" />
-                <h2 className="font-mono text-[14px] uppercase tracking-widest text-zinc-200">
+                <h2 className="font-mono text-xs uppercase tracking-widest text-zinc-200 truncate">
                   {isPt ? 'Configurações de IA & Inspetor de Payload' : 'AI Configuration & Payload Inspector'}
                 </h2>
               </div>
@@ -476,14 +476,14 @@ export const AIConfigProvider: React.FC<{ children: React.ReactNode }> = ({ chil
                 {/* Left Column: Connection & Endpoint-Specific Generation Parameters */}
                 <fieldset
                   disabled={Boolean(draft.manualEditEnabled)}
-                  className={`lg:col-span-7 bg-[#0f0f12] p-5 space-y-5 text-xs lg:h-[490px] overflow-y-auto transition-opacity duration-200 ${
+                  className={`lg:col-span-7 bg-[#0f0f12] p-5 sm:p-6 space-y-5 text-sm lg:h-[520px] overflow-y-auto transition-opacity duration-200 ${
                     draft.manualEditEnabled ? 'opacity-35 pointer-events-none select-none' : ''
                   }`}
                 >
                   {/* Section 01: Core Connection */}
                   <div className="space-y-3.5">
                     <div className="h-6 flex items-center justify-between">
-                      <span className="font-mono text-[14px] uppercase tracking-widest text-zinc-500 tabular-nums">
+                      <span className="font-mono text-[11px] uppercase tracking-widest text-zinc-500 tabular-nums">
                         {isPt ? 'CONEXÃO & MODELO' : 'CONNECTION & MODEL'}
                       </span>
                     </div>
@@ -512,7 +512,7 @@ export const AIConfigProvider: React.FC<{ children: React.ReactNode }> = ({ chil
                             }
                           }}
                         >
-                          <SelectTrigger className="w-full h-9 surface-recessed rounded-md px-3 text-xs text-zinc-100 hover:border-white/[0.14] focus-visible:ring-0">
+                          <SelectTrigger className="w-full h-10 surface-recessed rounded-md px-3.5 text-sm text-zinc-100 hover:border-white/[0.14] focus-visible:ring-0">
                             <SelectValue>{apiStandardLabels[draft.apiStandard]}</SelectValue>
                           </SelectTrigger>
                           <SelectContent
@@ -521,16 +521,16 @@ export const AIConfigProvider: React.FC<{ children: React.ReactNode }> = ({ chil
                             alignItemWithTrigger={false}
                             className="surface-panel rounded-lg p-1 text-zinc-200 ring-0"
                           >
-                            <SelectItem value="openai" className="rounded-md text-xs cursor-pointer">
+                            <SelectItem value="openai" className="rounded-md text-sm cursor-pointer">
                               OpenAI
                             </SelectItem>
-                            <SelectItem value="anthropic" className="rounded-md text-xs cursor-pointer">
+                            <SelectItem value="anthropic" className="rounded-md text-sm cursor-pointer">
                               Anthropic
                             </SelectItem>
-                            <SelectItem value="google" className="rounded-md text-xs cursor-pointer">
+                            <SelectItem value="google" className="rounded-md text-sm cursor-pointer">
                               Google
                             </SelectItem>
-                            <SelectItem value="ollama" className="rounded-md text-xs cursor-pointer">
+                            <SelectItem value="ollama" className="rounded-md text-sm cursor-pointer">
                               Ollama
                             </SelectItem>
                           </SelectContent>
@@ -555,7 +555,7 @@ export const AIConfigProvider: React.FC<{ children: React.ReactNode }> = ({ chil
                               }
                             }}
                           >
-                            <SelectTrigger className="w-full h-9 surface-recessed rounded-md px-3 text-xs text-zinc-100 hover:border-white/[0.14] focus-visible:ring-0">
+                            <SelectTrigger className="w-full h-10 surface-recessed rounded-md px-3.5 text-sm text-zinc-100 hover:border-white/[0.14] focus-visible:ring-0">
                               <SelectValue>
                                 {openaiEndpointLabels[draft.openaiApiType || 'completions']}
                               </SelectValue>
@@ -566,10 +566,10 @@ export const AIConfigProvider: React.FC<{ children: React.ReactNode }> = ({ chil
                               alignItemWithTrigger={false}
                               className="surface-panel rounded-lg p-1 text-zinc-200 ring-0"
                             >
-                              <SelectItem value="completions" className="rounded-md text-xs cursor-pointer">
+                              <SelectItem value="completions" className="rounded-md text-sm cursor-pointer">
                                 /v1/chat/completions
                               </SelectItem>
-                              <SelectItem value="responses" className="rounded-md text-xs cursor-pointer">
+                              <SelectItem value="responses" className="rounded-md text-sm cursor-pointer">
                                 /v1/responses
                               </SelectItem>
                             </SelectContent>
@@ -580,7 +580,7 @@ export const AIConfigProvider: React.FC<{ children: React.ReactNode }> = ({ chil
                           <label className="block font-mono text-[11px] uppercase tracking-widest text-zinc-500">
                             Endpoint
                           </label>
-                          <div className="h-9 surface-recessed rounded-md px-3 flex items-center font-mono text-[11px] text-zinc-400 truncate">
+                          <div className="h-10 surface-recessed rounded-md px-3.5 flex items-center font-mono text-xs text-zinc-400 truncate">
                             {draft.apiStandard === 'anthropic' && '/v1/messages'}
                             {draft.apiStandard === 'google' && '/v1beta/models/{model}:generateContent'}
                             {draft.apiStandard === 'ollama' && '/api/chat'}
@@ -602,7 +602,7 @@ export const AIConfigProvider: React.FC<{ children: React.ReactNode }> = ({ chil
                               updateDraftFromMenu((prev) => ({ ...prev, apiKey: e.target.value }))
                             }
                             placeholder={isPt ? 'Insira sua chave de API...' : 'Enter your API key...'}
-                            className="w-full surface-recessed rounded-md pl-3 pr-9 py-2 text-zinc-100 placeholder-zinc-600 font-mono focus:outline-none focus:border-white/[0.14]"
+                            className="w-full h-10 surface-recessed rounded-md pl-3.5 pr-10 text-sm text-zinc-100 placeholder-zinc-600 font-mono focus:outline-none focus:border-white/[0.14]"
                           />
                           <button
                             type="button"
@@ -633,7 +633,7 @@ export const AIConfigProvider: React.FC<{ children: React.ReactNode }> = ({ chil
                           }
                           required
                           placeholder={providerDefaults.baseUrl}
-                          className="w-full surface-recessed rounded-md px-3 py-2 text-zinc-100 placeholder-zinc-600 font-mono focus:outline-none focus:border-white/[0.14]"
+                          className="w-full h-10 surface-recessed rounded-md px-3.5 text-sm text-zinc-100 placeholder-zinc-600 font-mono focus:outline-none focus:border-white/[0.14]"
                         />
                       </div>
 
@@ -649,7 +649,7 @@ export const AIConfigProvider: React.FC<{ children: React.ReactNode }> = ({ chil
                           }
                           required
                           placeholder={providerDefaults.modelHint}
-                          className="w-full surface-recessed rounded-md px-3 py-2 text-zinc-100 placeholder-zinc-600 font-mono focus:outline-none focus:border-white/[0.14]"
+                          className="w-full h-10 surface-recessed rounded-md px-3.5 text-sm text-zinc-100 placeholder-zinc-600 font-mono focus:outline-none focus:border-white/[0.14]"
                         />
                       </div>
                     </div>
@@ -664,7 +664,7 @@ export const AIConfigProvider: React.FC<{ children: React.ReactNode }> = ({ chil
                         type="button"
                         onClick={() => setShowAdvanced((prev) => !prev)}
                         aria-expanded={showAdvanced}
-                        className="flex items-center gap-1.5 font-mono text-[14px] uppercase tracking-widest text-zinc-500 hover:text-zinc-300 tabular-nums transition-colors cursor-pointer"
+                        className="flex items-center gap-1.5 font-mono text-[11px] uppercase tracking-widest text-zinc-500 hover:text-zinc-300 tabular-nums transition-colors cursor-pointer"
                       >
                         {showAdvanced ? (
                           <ChevronDown className="w-3.5 h-3.5 stroke-[1.75]" />
@@ -710,7 +710,7 @@ export const AIConfigProvider: React.FC<{ children: React.ReactNode }> = ({ chil
                               }))
                             }
                             placeholder={isPt ? 'Padrão' : 'Default'}
-                            className="w-full surface-recessed rounded-md px-3 py-2 text-zinc-100 placeholder-zinc-600 font-mono tabular-nums focus:outline-none focus:border-white/[0.14]"
+                            className="w-full h-10 surface-recessed rounded-md px-3.5 text-sm text-zinc-100 placeholder-zinc-600 font-mono tabular-nums focus:outline-none focus:border-white/[0.14]"
                           />
                         </div>
                       )}
@@ -746,7 +746,7 @@ export const AIConfigProvider: React.FC<{ children: React.ReactNode }> = ({ chil
                               }))
                             }
                             placeholder={support.maxTokensRequired ? '2048' : isPt ? 'Padrão' : 'Default'}
-                            className="w-full surface-recessed rounded-md px-3 py-2 text-zinc-100 placeholder-zinc-600 font-mono tabular-nums focus:outline-none focus:border-white/[0.14]"
+                            className="w-full h-10 surface-recessed rounded-md px-3.5 text-sm text-zinc-100 placeholder-zinc-600 font-mono tabular-nums focus:outline-none focus:border-white/[0.14]"
                           />
                         </div>
                       )}
@@ -774,7 +774,7 @@ export const AIConfigProvider: React.FC<{ children: React.ReactNode }> = ({ chil
                               }))
                             }
                             placeholder={isPt ? 'Padrão' : 'Default'}
-                            className="w-full surface-recessed rounded-md px-3 py-2 text-zinc-100 placeholder-zinc-600 font-mono tabular-nums focus:outline-none focus:border-white/[0.14]"
+                            className="w-full h-10 surface-recessed rounded-md px-3.5 text-sm text-zinc-100 placeholder-zinc-600 font-mono tabular-nums focus:outline-none focus:border-white/[0.14]"
                           />
                         </div>
                       )}
@@ -801,7 +801,7 @@ export const AIConfigProvider: React.FC<{ children: React.ReactNode }> = ({ chil
                               }))
                             }
                             placeholder={isPt ? 'Padrão' : 'Default'}
-                            className="w-full surface-recessed rounded-md px-3 py-2 text-zinc-100 placeholder-zinc-600 font-mono tabular-nums focus:outline-none focus:border-white/[0.14]"
+                            className="w-full h-10 surface-recessed rounded-md px-3.5 text-sm text-zinc-100 placeholder-zinc-600 font-mono tabular-nums focus:outline-none focus:border-white/[0.14]"
                           />
                         </div>
                       )}
@@ -829,7 +829,7 @@ export const AIConfigProvider: React.FC<{ children: React.ReactNode }> = ({ chil
                               }))
                             }
                             placeholder={isPt ? 'Padrão' : 'Default'}
-                            className="w-full surface-recessed rounded-md px-3 py-2 text-zinc-100 placeholder-zinc-600 font-mono tabular-nums focus:outline-none focus:border-white/[0.14]"
+                            className="w-full h-10 surface-recessed rounded-md px-3.5 text-sm text-zinc-100 placeholder-zinc-600 font-mono tabular-nums focus:outline-none focus:border-white/[0.14]"
                           />
                         </div>
                       )}
@@ -857,7 +857,7 @@ export const AIConfigProvider: React.FC<{ children: React.ReactNode }> = ({ chil
                               }))
                             }
                             placeholder={isPt ? 'Padrão' : 'Default'}
-                            className="w-full surface-recessed rounded-md px-3 py-2 text-zinc-100 placeholder-zinc-600 font-mono tabular-nums focus:outline-none focus:border-white/[0.14]"
+                            className="w-full h-10 surface-recessed rounded-md px-3.5 text-sm text-zinc-100 placeholder-zinc-600 font-mono tabular-nums focus:outline-none focus:border-white/[0.14]"
                           />
                         </div>
                       )}
@@ -884,7 +884,7 @@ export const AIConfigProvider: React.FC<{ children: React.ReactNode }> = ({ chil
                               }));
                             }}
                           >
-                            <SelectTrigger className="w-full h-9 surface-recessed rounded-md px-3 text-xs text-zinc-100 font-mono hover:border-white/[0.14] focus-visible:ring-0">
+                            <SelectTrigger className="w-full h-10 surface-recessed rounded-md px-3.5 text-sm text-zinc-100 font-mono hover:border-white/[0.14] focus-visible:ring-0">
                               <SelectValue>
                                 {reasoningEffortLabels[draft.reasoningEffort || 'default']}
                               </SelectValue>
@@ -936,7 +936,7 @@ export const AIConfigProvider: React.FC<{ children: React.ReactNode }> = ({ chil
                               }))
                             }
                             placeholder={isPt ? 'Padrão' : 'Default'}
-                            className="w-full surface-recessed rounded-md px-3 py-2 text-zinc-100 placeholder-zinc-600 font-mono tabular-nums focus:outline-none focus:border-white/[0.14]"
+                            className="w-full h-10 surface-recessed rounded-md px-3.5 text-sm text-zinc-100 placeholder-zinc-600 font-mono tabular-nums focus:outline-none focus:border-white/[0.14]"
                           />
                         </div>
                       )}
@@ -963,7 +963,7 @@ export const AIConfigProvider: React.FC<{ children: React.ReactNode }> = ({ chil
                               }))
                             }
                             placeholder="4096"
-                            className="w-full surface-recessed rounded-md px-3 py-2 text-zinc-100 placeholder-zinc-600 font-mono tabular-nums focus:outline-none focus:border-white/[0.14]"
+                            className="w-full h-10 surface-recessed rounded-md px-3.5 text-sm text-zinc-100 placeholder-zinc-600 font-mono tabular-nums focus:outline-none focus:border-white/[0.14]"
                           />
                         </div>
                       )}
@@ -991,7 +991,7 @@ export const AIConfigProvider: React.FC<{ children: React.ReactNode }> = ({ chil
                               }))
                             }
                             placeholder="1.1"
-                            className="w-full surface-recessed rounded-md px-3 py-2 text-zinc-100 placeholder-zinc-600 font-mono tabular-nums focus:outline-none focus:border-white/[0.14]"
+                            className="w-full h-10 surface-recessed rounded-md px-3.5 text-sm text-zinc-100 placeholder-zinc-600 font-mono tabular-nums focus:outline-none focus:border-white/[0.14]"
                           />
                         </div>
                       )}
@@ -1001,11 +1001,11 @@ export const AIConfigProvider: React.FC<{ children: React.ReactNode }> = ({ chil
                 </fieldset>
 
                 {/* Right Column: Live Request Preview & Manual Override */}
-                <div className="lg:col-span-5 bg-[#0f0f12] p-5 flex flex-col justify-between gap-3.5 lg:h-[490px] overflow-hidden">
+                <div className="lg:col-span-5 bg-[#0f0f12] p-5 sm:p-6 flex flex-col justify-between gap-3.5 lg:h-[520px] overflow-hidden">
                   <div className="space-y-3.5 flex-1 flex flex-col min-h-0">
                     {/* Preview Header & Manual Edit Toggle */}
                     <div className="h-6 flex items-center justify-between gap-2 shrink-0">
-                      <span className="font-mono text-[14px] uppercase tracking-widest text-zinc-500 tabular-nums">
+                      <span className="font-mono text-[11px] uppercase tracking-widest text-zinc-500 tabular-nums">
                         {isPt ? 'PREVIEW DA REQUISIÇÃO' : 'REQUEST PREVIEW'}
                       </span>
 
@@ -1113,14 +1113,14 @@ export const AIConfigProvider: React.FC<{ children: React.ReactNode }> = ({ chil
                   <button
                     type="button"
                     onClick={closeModal}
-                    className="px-3.5 py-1.5 rounded-md surface-recessed text-zinc-300 hover:bg-[#16161a] transition-colors cursor-pointer"
+                    className="h-9 px-4 rounded-md surface-recessed text-zinc-300 hover:bg-[#16161a] text-[13px] font-medium transition-colors cursor-pointer"
                   >
                     {isPt ? 'Cancelar' : 'Cancel'}
                   </button>
                   <button
                     type="submit"
                     disabled={Boolean(draft.manualEditEnabled && manualJsonError)}
-                    className="px-4 py-1.5 rounded-md bg-zinc-100 hover:bg-white disabled:opacity-40 disabled:pointer-events-none text-zinc-950 font-medium transition-colors cursor-pointer"
+                    className="h-9 px-4 rounded-md bg-zinc-100 hover:bg-white disabled:opacity-40 disabled:pointer-events-none text-zinc-950 text-[13px] font-medium transition-colors cursor-pointer"
                   >
                     {isPt ? 'Salvar Configuração' : 'Save Configuration'}
                   </button>
