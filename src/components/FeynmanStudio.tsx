@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   AlertTriangle,
   CheckCircle,
@@ -26,24 +26,50 @@ import {
 } from '@/components/ui/select';
 
 interface FeynmanStudioProps {
-  currentTopic: string;
-  onTopicChange?: (newTopic: string) => void;
   onIncrementStats: (type: 'socratic' | 'retrieval' | 'feynman') => void;
   onOpenSocraticWithPrompt?: (prompt: string) => void;
 }
 
 export const FeynmanStudio: React.FC<FeynmanStudioProps> = ({
-  currentTopic,
-  onTopicChange,
   onIncrementStats,
   onOpenSocraticWithPrompt,
 }) => {
   const { t, language } = useLanguage();
-  const [audience, setAudience] = useState<string>('child');
-  const [explanation, setExplanation] = useState('');
+  const [audience, setAudience] = useState<string>(() => {
+    return localStorage.getItem('synapse_feynman_audience') || 'child';
+  });
+  const [explanation, setExplanation] = useState<string>(() => {
+    return localStorage.getItem('synapse_feynman_explanation') || '';
+  });
+  const [evaluation, setEvaluation] = useState<FeynmanEvaluation | null>(() => {
+    const saved = localStorage.getItem('synapse_feynman_evaluation');
+    if (saved) {
+      try {
+        return JSON.parse(saved);
+      } catch (e) {
+        console.error(e);
+      }
+    }
+    return null;
+  });
   const [isAnalyzing, setIsAnalyzing] = useState(false);
-  const [evaluation, setEvaluation] = useState<FeynmanEvaluation | null>(null);
   const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    localStorage.setItem('synapse_feynman_audience', audience);
+  }, [audience]);
+
+  useEffect(() => {
+    localStorage.setItem('synapse_feynman_explanation', explanation);
+  }, [explanation]);
+
+  useEffect(() => {
+    if (evaluation) {
+      localStorage.setItem('synapse_feynman_evaluation', JSON.stringify(evaluation));
+    } else {
+      localStorage.removeItem('synapse_feynman_evaluation');
+    }
+  }, [evaluation]);
 
   const audienceLabelMap: Record<string, string> = {
     child: t.feynman.audienceOptions.child,
@@ -53,8 +79,7 @@ export const FeynmanStudio: React.FC<FeynmanStudioProps> = ({
 
   const handleEvaluate = async (e?: React.FormEvent) => {
     if (e) e.preventDefault();
-    const activeConcept = currentTopic.trim();
-    if (!activeConcept || !explanation.trim() || isAnalyzing) return;
+    if (!explanation.trim() || isAnalyzing) return;
 
     setIsAnalyzing(true);
     setError(null);
@@ -62,7 +87,6 @@ export const FeynmanStudio: React.FC<FeynmanStudioProps> = ({
     try {
       const response = await api.api['feynman-evaluate'].$post({
         json: {
-          topic: activeConcept,
           explanation,
           targetAudience: audienceLabelMap[audience] || audience,
           language,
@@ -85,19 +109,19 @@ export const FeynmanStudio: React.FC<FeynmanStudioProps> = ({
     }
   };
 
-  const loadSample = (sample: { topic: string; text: string }) => {
-    onTopicChange?.(sample.topic);
-    setExplanation(sample.text);
-    setEvaluation(null);
-  };
-
   const wordCount = explanation.trim().split(/\s+/).filter(Boolean).length;
+  const analyzedConcept = evaluation?.topic?.trim() || t.feynman.inferredConceptFallback;
 
   return (
     <div className="w-full grid grid-cols-1 lg:grid-cols-12 gap-5 items-stretch">
       {/* Left Column: Editor Workspace - 5 Columns */}
       <div className="lg:col-span-5 surface-panel rounded-xl overflow-hidden flex flex-col">
-        <div className="px-5 py-3.5 border-b border-white/[0.07] bg-[#09090b]/60 flex items-center gap-2"><Sparkles className="w-3.5 h-3.5 text-zinc-400 stroke-[1.75] shrink-0" /><span className="font-mono text-[11px] uppercase tracking-widest text-zinc-400 truncate">{t.feynman.bannerTitle}</span></div>
+        <div className="px-5 py-3.5 border-b border-white/[0.07] bg-[#09090b]/60 flex items-center gap-2">
+          <Sparkles className="w-3.5 h-3.5 text-zinc-400 stroke-[1.75] shrink-0" />
+          <span className="font-mono text-[11px] uppercase tracking-widest text-zinc-400 truncate">
+            {t.feynman.bannerTitle}
+          </span>
+        </div>
 
         <form onSubmit={handleEvaluate} className="p-5 sm:p-6 flex-1 flex flex-col gap-5">
           {/* Target Audience Select */}
@@ -164,7 +188,7 @@ export const FeynmanStudio: React.FC<FeynmanStudioProps> = ({
 
           <Button
             type="submit"
-            disabled={isAnalyzing || !currentTopic.trim() || !explanation.trim()}
+            disabled={isAnalyzing || !explanation.trim()}
             className="w-full h-10 bg-zinc-100 hover:bg-white disabled:bg-zinc-900 disabled:text-zinc-600 text-zinc-950 font-medium text-sm rounded-md transition-colors flex items-center justify-center gap-2 cursor-pointer"
           >
             {isAnalyzing ? (
@@ -210,7 +234,7 @@ export const FeynmanStudio: React.FC<FeynmanStudioProps> = ({
                 {t.feynman.diagnosisTitle}
               </span>
               <h3 className="text-lg font-semibold text-zinc-100 tracking-tight">
-                {t.feynman.evaluationOf} "{currentTopic}"
+                {t.feynman.evaluationOf} "{analyzedConcept}"
               </h3>
               <p className="text-sm text-zinc-400 leading-relaxed">
                 {evaluation.clarityAssessment}
@@ -337,7 +361,7 @@ export const FeynmanStudio: React.FC<FeynmanStudioProps> = ({
                   type="button"
                   onClick={() =>
                     onOpenSocraticWithPrompt(
-                      `${t.feynman.discussPromptPrefix} ${currentTopic} ${t.feynman.discussPromptSuffix} "${evaluation.followUpQuestion}"`
+                      `${t.feynman.discussPromptPrefix} ${analyzedConcept} ${t.feynman.discussPromptSuffix} "${evaluation.followUpQuestion}"`
                     )
                   }
                   className="h-9 px-4 rounded-md bg-zinc-100 hover:bg-white text-[13px] font-medium text-zinc-950 transition-colors shrink-0 flex items-center gap-1.5 cursor-pointer"

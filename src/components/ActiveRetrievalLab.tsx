@@ -11,12 +11,14 @@ import {
   Eye,
   AlertCircle,
   Bookmark,
+  X,
 } from 'lucide-react';
 import { api } from '../api';
 import { Flashcard } from '../types';
 import { getInitialPresetFlashcards } from '../data/neurosciencePillars';
 import { useLanguage } from '../i18n/LanguageContext';
 import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import {
   Select,
@@ -27,7 +29,6 @@ import {
 } from '@/components/ui/select';
 
 interface ActiveRetrievalLabProps {
-  currentTopic: string;
   onIncrementStats: (type: 'socratic' | 'retrieval' | 'feynman') => void;
 }
 
@@ -45,7 +46,6 @@ export function previewNextInterval(card: Flashcard, quality: 0 | 1 | 2 | 3): nu
 }
 
 export const ActiveRetrievalLab: React.FC<ActiveRetrievalLabProps> = ({
-  currentTopic,
   onIncrementStats,
 }) => {
   const { t, language } = useLanguage();
@@ -62,16 +62,37 @@ export const ActiveRetrievalLab: React.FC<ActiveRetrievalLabProps> = ({
     return getInitialPresetFlashcards(language);
   });
 
+  const [deckTopic, setDeckTopic] = useState<string>(() => {
+    return localStorage.getItem('synapse_retrieval_topic') || '';
+  });
+  const [deckCount, setDeckCount] = useState<string>(() => {
+    return localStorage.getItem('synapse_retrieval_count') || '4';
+  });
+  const [deckDifficulty, setDeckDifficulty] = useState<string>(() => {
+    return localStorage.getItem('synapse_retrieval_difficulty') || 'intermediario';
+  });
+
   const [currentIndex, setCurrentIndex] = useState(0);
   const [isFlipped, setIsFlipped] = useState(false);
   const [userDraftAnswer, setUserDraftAnswer] = useState('');
   const [isGeneratingDeck, setIsGeneratingDeck] = useState(false);
-  const [deckDifficulty, setDeckDifficulty] = useState('intermediario');
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     localStorage.setItem(`synapse_flashcards_${language}`, JSON.stringify(cards));
   }, [cards, language]);
+
+  useEffect(() => {
+    localStorage.setItem('synapse_retrieval_topic', deckTopic);
+  }, [deckTopic]);
+
+  useEffect(() => {
+    localStorage.setItem('synapse_retrieval_count', deckCount);
+  }, [deckCount]);
+
+  useEffect(() => {
+    localStorage.setItem('synapse_retrieval_difficulty', deckDifficulty);
+  }, [deckDifficulty]);
 
   const currentCard = cards[currentIndex] || null;
 
@@ -80,6 +101,8 @@ export const ActiveRetrievalLab: React.FC<ActiveRetrievalLabProps> = ({
     intermediario: t.retrieval.diffIntermediate,
     avancado: t.retrieval.diffAdvanced,
   };
+
+  const countOptions = ['4', '6', '8'] as const;
 
   const handleNextCard = () => {
     setIsFlipped(false);
@@ -140,7 +163,7 @@ export const ActiveRetrievalLab: React.FC<ActiveRetrievalLabProps> = ({
 
   const handleGenerateDeck = async (e?: React.FormEvent) => {
     if (e) e.preventDefault();
-    const activeConcept = currentTopic.trim();
+    const activeConcept = deckTopic.trim();
     if (!activeConcept || isGeneratingDeck) return;
 
     setIsGeneratingDeck(true);
@@ -151,7 +174,7 @@ export const ActiveRetrievalLab: React.FC<ActiveRetrievalLabProps> = ({
         json: {
           topic: activeConcept,
           difficulty: deckDifficulty,
-          count: 4,
+          count: Number(deckCount) || 4,
           language,
         },
       });
@@ -416,15 +439,74 @@ export const ActiveRetrievalLab: React.FC<ActiveRetrievalLabProps> = ({
           </span>
 
           <form onSubmit={handleGenerateDeck} className="space-y-3.5">
-            <div className="space-y-1">
-              <span className="font-mono text-[11px] uppercase tracking-wider text-zinc-500 block">
+            {/* Dedicated Topic Input */}
+            <div className="space-y-1.5">
+              <label
+                htmlFor="retrieval-topic-input"
+                className="font-mono text-[11px] uppercase tracking-wider text-zinc-500 block"
+              >
                 {t.retrieval.targetConceptLabel}
-              </span>
-              <p className="font-medium text-zinc-100 text-sm truncate">
-                {currentTopic || t.feynman.defineConceptPrompt}
-              </p>
+              </label>
+              <div className="relative flex items-center">
+                <Input
+                  id="retrieval-topic-input"
+                  type="text"
+                  value={deckTopic}
+                  onChange={(e) => setDeckTopic(e.target.value)}
+                  placeholder={t.retrieval.topicPlaceholder}
+                  disabled={isGeneratingDeck}
+                  className="h-10 w-full surface-recessed rounded-md px-3.5 pr-8 text-sm text-zinc-100 placeholder:text-zinc-600 focus-visible:border-white/[0.14] focus-visible:ring-0"
+                />
+                {deckTopic && !isGeneratingDeck && (
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="icon-xs"
+                    onClick={() => setDeckTopic('')}
+                    className="absolute right-1.5 text-zinc-500 hover:text-zinc-200 hover:bg-[#16161a] rounded-md cursor-pointer"
+                  >
+                    <X className="w-3.5 h-3.5" />
+                  </Button>
+                )}
+              </div>
             </div>
 
+            {/* Card Count Select */}
+            <div className="space-y-1.5">
+              <label className="font-mono text-[11px] uppercase tracking-wider text-zinc-500 block">
+                {t.retrieval.cardCountLabel}
+              </label>
+              <Select
+                value={deckCount}
+                onValueChange={(val) => {
+                  if (val) setDeckCount(val);
+                }}
+              >
+                <SelectTrigger className="w-full h-10 rounded-md surface-recessed px-3.5 text-sm font-mono tabular-nums text-zinc-200 hover:border-white/[0.14] focus-visible:ring-0">
+                  <SelectValue>
+                    {deckCount} {t.retrieval.cardsUnit}
+                  </SelectValue>
+                </SelectTrigger>
+                <SelectContent
+                  align="start"
+                  sideOffset={6}
+                  alignItemWithTrigger={false}
+                  className="surface-panel rounded-lg p-1 text-zinc-200 ring-0"
+                >
+                  {countOptions.map((cnt) => (
+                    <SelectItem
+                      key={cnt}
+                      value={cnt}
+                      className="rounded-md text-sm font-mono tabular-nums text-zinc-300 hover:bg-[#16161a] hover:text-zinc-100 focus:bg-[#16161a] focus:text-zinc-100 data-[highlighted]:bg-[#16161a] data-[highlighted]:text-zinc-100 cursor-pointer"
+                    >
+                      {cnt} {t.retrieval.cardsUnit}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
+            {/* Difficulty Select */}
             <div className="space-y-1.5">
               <label className="font-mono text-[11px] uppercase tracking-wider text-zinc-500 block">
                 {t.retrieval.difficultyLabel}
@@ -468,7 +550,7 @@ export const ActiveRetrievalLab: React.FC<ActiveRetrievalLabProps> = ({
 
             <Button
               type="submit"
-              disabled={isGeneratingDeck || !currentTopic.trim()}
+              disabled={isGeneratingDeck || !deckTopic.trim()}
               className="w-full h-10 bg-zinc-100 hover:bg-white disabled:bg-zinc-900 disabled:text-zinc-600 text-zinc-950 text-sm font-medium rounded-md transition-colors flex items-center justify-center gap-2 cursor-pointer"
             >
               {isGeneratingDeck ? (

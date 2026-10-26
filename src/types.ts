@@ -29,6 +29,7 @@ export interface ChatMessage {
 }
 
 export interface FeynmanEvaluation {
+  topic?: string;
   score: number;
   clarityAssessment: string;
   jargonIdentified: string[];
@@ -98,8 +99,3 @@ export interface AIProviderConfig {
   manualEditEnabled?: boolean;
   customBodyOverride?: Record<string, unknown>;
 }
-
-
-
-
-

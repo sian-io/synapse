@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   Layers,
   AlertTriangle,
@@ -9,29 +9,57 @@ import {
   ArrowRight,
   ShieldCheck,
   RotateCw,
+  X,
 } from 'lucide-react';
 import { api } from '../api';
 import { ConceptBreakdown } from '../types';
 import { useLanguage } from '../i18n/LanguageContext';
 import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
 
 interface CognitiveMapProps {
-  currentTopic: string;
   onOpenSocraticWithPrompt?: (prompt: string) => void;
 }
 
 export const CognitiveMap: React.FC<CognitiveMapProps> = ({
-  currentTopic,
   onOpenSocraticWithPrompt,
 }) => {
   const { t, language } = useLanguage();
+
+  const [topic, setTopic] = useState<string>(() => {
+    return localStorage.getItem('synapse_cognitive_map_topic') || '';
+  });
+
+  const [breakdown, setBreakdown] = useState<ConceptBreakdown | null>(() => {
+    const saved = localStorage.getItem('synapse_cognitive_map_breakdown');
+    if (saved) {
+      try {
+        return JSON.parse(saved);
+      } catch (e) {
+        console.error(e);
+      }
+    }
+    return null;
+  });
+
   const [isLoading, setIsLoading] = useState(false);
-  const [breakdown, setBreakdown] = useState<ConceptBreakdown | null>(null);
   const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    localStorage.setItem('synapse_cognitive_map_topic', topic);
+  }, [topic]);
+
+  useEffect(() => {
+    if (breakdown) {
+      localStorage.setItem('synapse_cognitive_map_breakdown', JSON.stringify(breakdown));
+    } else {
+      localStorage.removeItem('synapse_cognitive_map_breakdown');
+    }
+  }, [breakdown]);
 
   const handleDeconstruct = async (e?: React.FormEvent) => {
     if (e) e.preventDefault();
-    const activeConcept = currentTopic.trim();
+    const activeConcept = topic.trim();
     if (!activeConcept || isLoading) return;
 
     setIsLoading(true);
@@ -62,30 +90,50 @@ export const CognitiveMap: React.FC<CognitiveMapProps> = ({
 
   return (
     <div className="space-y-5 w-full">
-      {/* Compact Single-Line Technical Header */}
-      <div className="surface-panel rounded-lg px-5 py-3 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-        <div className="flex flex-wrap items-center gap-2.5 min-w-0">
-          <div className="flex items-center gap-2 min-w-0">
-            <Layers className="w-3.5 h-3.5 text-zinc-500 stroke-[1.75] shrink-0" />
-            <h2 className="font-mono text-[11px] uppercase tracking-widest text-zinc-500 truncate">
-              {t.cognitiveMap.bannerTitle}
-            </h2>
-          </div>
+      {/* Integrated Command Bar for Cognitive Load Deconstruction */}
+      <form
+        onSubmit={handleDeconstruct}
+        className="surface-panel rounded-lg px-4 py-3 flex flex-col sm:flex-row sm:items-center gap-3"
+      >
+        <div className="flex items-center gap-2 shrink-0">
+          <Layers className="w-3.5 h-3.5 text-zinc-500 stroke-[1.75] shrink-0" />
+          <label
+            htmlFor="cognitive-map-topic-input"
+            className="font-mono text-[11px] uppercase tracking-widest text-zinc-500 truncate cursor-pointer"
+          >
+            {t.cognitiveMap.conceptToMap}
+          </label>
+        </div>
 
-          <div className="hidden sm:block h-3.5 w-px bg-white/[0.08] shrink-0" />
+        <div className="hidden sm:block h-4 w-px bg-white/[0.08] shrink-0" />
 
-          <div className="flex items-center gap-2 text-sm min-w-0">
-            <span className="text-zinc-500 shrink-0">{t.cognitiveMap.conceptToMap}</span>
-            <span className="font-medium text-zinc-100 truncate max-w-[420px]">
-              {currentTopic || t.feynman.defineConceptPrompt}
-            </span>
-          </div>
+        <div className="relative flex-1 flex items-center min-w-0">
+          <Input
+            id="cognitive-map-topic-input"
+            type="text"
+            value={topic}
+            onChange={(e) => setTopic(e.target.value)}
+            placeholder={t.cognitiveMap.inputPlaceholder}
+            disabled={isLoading}
+            className="h-9 w-full surface-recessed rounded-md px-3 pr-8 text-sm text-zinc-100 placeholder:text-zinc-600 focus-visible:border-white/[0.14] focus-visible:ring-0"
+          />
+          {topic && !isLoading && (
+            <Button
+              type="button"
+              variant="ghost"
+              size="icon-xs"
+              onClick={() => setTopic('')}
+              className="absolute right-1.5 text-zinc-500 hover:text-zinc-200 hover:bg-[#16161a] rounded-md cursor-pointer"
+              title={t.cognitiveMap.clearTooltip}
+            >
+              <X className="w-3.5 h-3.5" />
+            </Button>
+          )}
         </div>
 
         <Button
-          type="button"
-          onClick={() => handleDeconstruct()}
-          disabled={isLoading || !currentTopic.trim()}
+          type="submit"
+          disabled={isLoading || !topic.trim()}
           className="h-9 px-4 bg-zinc-100 hover:bg-white disabled:bg-zinc-900 disabled:text-zinc-600 text-zinc-950 font-medium text-[13px] rounded-md transition-colors flex items-center justify-center gap-2 shrink-0 cursor-pointer"
         >
           {isLoading ? (
@@ -100,7 +148,7 @@ export const CognitiveMap: React.FC<CognitiveMapProps> = ({
             </>
           )}
         </Button>
-      </div>
+      </form>
 
       {error && (
         <div className="px-5 py-3.5 rounded-lg surface-panel flex items-center justify-between gap-3 text-sm text-zinc-300">

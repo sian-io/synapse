@@ -178,7 +178,7 @@ You are **Synapse**, an Elite Pedagogical AI Agent grounded strictly in **Cognit
 6. **Metacognition (Flavell)**: Prompt reflection on the student's own reasoning process and certainty verification.
 
 Current Pedagogical Mode: ${mode || 'socratic'}
-Topic of Study: ${currentTopic || (isPt ? 'Geral' : 'General')}
+${currentTopic ? `Topic of Study: ${currentTopic}` : `Topic of Study: Inferred organically from the student's conversation`}
 ${studentCalibration ? `Student Metacognitive Certainty Level: ${studentCalibration}/5` : ''}
 Output Language: ${isPt ? 'Portuguese (pt-BR)' : 'English (en)'}
 
@@ -271,7 +271,7 @@ SuggestedNextSteps: [${isPt ? 'Ação 1 | Ação 2' : 'Action 1 | Action 2'}]
   .post(
     '/api/feynman-evaluate',
     jsonBody<{
-      topic: string;
+      topic?: string;
       explanation: string;
       targetAudience?: string;
       language?: 'en' | 'pt';
@@ -281,8 +281,8 @@ SuggestedNextSteps: [${isPt ? 'Ação 1 | Ação 2' : 'Action 1 | Action 2'}]
       const { topic, explanation, targetAudience = 'a curious 10-year-old child', language = 'en', aiConfig } = c.req.valid('json');
       const isPt = language === 'pt';
 
-      if (!topic || !explanation) {
-        return c.json({ error: isPt ? 'Tópico e explicação são obrigatórios.' : 'Topic and explanation are required.' }, 400);
+      if (!explanation?.trim()) {
+        return c.json({ error: isPt ? 'A explicação é obrigatória.' : 'Explanation is required.' }, 400);
       }
 
       try {
@@ -290,21 +290,22 @@ SuggestedNextSteps: [${isPt ? 'Ação 1 | Ação 2' : 'Action 1 | Action 2'}]
 
         const prompt = `
 Evaluate the following student explanation using the **Feynman Technique** and neurocognitive principles of deep comprehension:
-- Topic: "${topic}"
+${topic?.trim() ? `- Topic: "${topic.trim()}"` : `- Topic: Infer the central concept, phenomenon, or mechanism being explained directly from the student's text (concise title, 2-6 words).`}
 - Target Audience: "${targetAudience}"
 - Student Explanation:
 """${explanation}"""
 - Language of Output: ${isPt ? 'Portuguese' : 'English'}
 
 Analyze critically:
-1. Clarity and scientific fidelity (no severe distortions).
-2. Detection of unexplained technical jargon (pompous terms concealing lack of mechanical understanding).
-3. Reasoning gaps missing the "how" or "why".
-4. Quality and accuracy of analogies used.
-5. A hyper-simplified, elegant alternative explanation.
-6. A surgical Socratic question for the student to repair their primary gap.
+1. Identify the central concept/topic being explained ("topic").
+2. Clarity and scientific fidelity (no severe distortions).
+3. Detection of unexplained technical jargon (pompous terms concealing lack of mechanical understanding).
+4. Reasoning gaps missing the "how" or "why".
+5. Quality and accuracy of analogies used.
+6. A hyper-simplified, elegant alternative explanation.
+7. A surgical Socratic question for the student to repair their primary gap.
 
-Return JSON with keys: score (0-100 integer), clarityAssessment (string), jargonIdentified (string[]), conceptualGaps (string[]), strengths (string[]), analogiesEvaluation (string), suggestedAnalogy (string), simplifiedAlternative (string), followUpQuestion (string).
+Return JSON with keys: topic (string, the inferred or provided concept name), score (0-100 integer), clarityAssessment (string), jargonIdentified (string[]), conceptualGaps (string[]), strengths (string[]), analogiesEvaluation (string), suggestedAnalogy (string), simplifiedAlternative (string), followUpQuestion (string).
 `.trim();
 
         const responseText = await runInference(cfg, {
@@ -313,6 +314,9 @@ Return JSON with keys: score (0-100 integer), clarityAssessment (string), jargon
         });
 
         const parsed: FeynmanEvaluation = JSON.parse(responseText);
+        if (topic?.trim() && !parsed.topic) {
+          parsed.topic = topic.trim();
+        }
         return c.json(parsed, 200);
       } catch (error: any) {
         console.error('Error in /api/feynman-evaluate:', error.message);

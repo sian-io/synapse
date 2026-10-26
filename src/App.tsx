@@ -6,7 +6,6 @@ import {
   Zap,
   Layers,
   BookOpen,
-  Flame,
   Globe,
   Settings,
   AlertTriangle,
@@ -16,7 +15,6 @@ import { FeynmanStudio } from './components/FeynmanStudio';
 import { ActiveRetrievalLab } from './components/ActiveRetrievalLab';
 import { CognitiveMap } from './components/CognitiveMap';
 import { NeuroscienceGuide } from './components/NeuroscienceGuide';
-import { UnifiedConceptBar } from './components/UnifiedConceptBar';
 import { CognitiveStats } from './types';
 import { LanguageProvider, useLanguage } from './i18n/LanguageContext';
 import { AIConfigProvider } from './context/AIConfigContext';
@@ -28,15 +26,8 @@ function AppContent() {
   const { t, language, setLanguage } = useLanguage();
   const { isConfigured, openModal } = useAIConfig();
   const isPt = language === 'pt';
-  const [activeTab, setActiveTab] = useState<ActiveTab>('socratic');
-  const [currentTopic, setCurrentTopic] = useState<string>(() => {
-    return localStorage.getItem('synapse_current_topic') || t.conceptBar.defaultTopic;
-  });
+  const [activeTab, setActiveTab] = useState<ActiveTab>('cognitive_map');
   const [socraticPromptOverride, setSocraticPromptOverride] = useState<string | null>(null);
-
-  useEffect(() => {
-    localStorage.setItem('synapse_current_topic', currentTopic);
-  }, [currentTopic]);
 
   const [stats, setStats] = useState<CognitiveStats>(() => {
     const saved = localStorage.getItem('synapse_stats');
@@ -73,7 +64,7 @@ function AppContent() {
 
   const handleOpenSocraticWithPrompt = (prompt: string) => {
     setSocraticPromptOverride(prompt);
-    setActiveTab('cognitive_map');
+    setActiveTab('socratic');
   };
 
   const navItems = [
@@ -145,7 +136,7 @@ function AppContent() {
             })}
           </nav>
 
-          {/* Right Controls: Metrics, Language Selector & AI Settings */}
+          {/* Right Controls: Language Selector & AI Settings */}
           <div className="flex items-center gap-1.5 sm:gap-2.5 shrink-0">
             {/* Language Switcher */}
             <div className="flex items-center rounded-md surface-recessed p-0.5 text-xs text-zinc-300 font-medium">
@@ -219,15 +210,8 @@ function AppContent() {
           </div>
         )}
 
-        {/* Unified Concept Definition Bar - Persistent Across All Pages */}
-        <UnifiedConceptBar
-          currentTopic={currentTopic}
-          onTopicChange={setCurrentTopic}
-        />
-
         {activeTab === 'socratic' && (
           <SocraticTutor
-            currentTopic={currentTopic}
             onIncrementStats={handleIncrementStats}
             initialPrompt={socraticPromptOverride}
             onClearInitialPrompt={() => setSocraticPromptOverride(null)}
@@ -236,8 +220,6 @@ function AppContent() {
 
         {activeTab === 'feynman' && (
           <FeynmanStudio
-            currentTopic={currentTopic}
-            onTopicChange={setCurrentTopic}
             onIncrementStats={handleIncrementStats}
             onOpenSocraticWithPrompt={handleOpenSocraticWithPrompt}
           />
@@ -245,14 +227,12 @@ function AppContent() {
 
         {activeTab === 'retrieval' && (
           <ActiveRetrievalLab
-            currentTopic={currentTopic}
             onIncrementStats={handleIncrementStats}
           />
         )}
 
         {activeTab === 'cognitive_map' && (
           <CognitiveMap
-            currentTopic={currentTopic}
             onOpenSocraticWithPrompt={handleOpenSocraticWithPrompt}
           />
         )}
@@ -272,4 +252,3 @@ export default function App() {
     </LanguageProvider>
   );
 }
-

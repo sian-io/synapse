@@ -176,14 +176,12 @@ const createMarkdownComponents = (isPt: boolean): Components => ({
 });
 
 interface SocraticTutorProps {
-  currentTopic: string;
   onIncrementStats: (type: 'socratic' | 'retrieval' | 'feynman') => void;
   initialPrompt?: string | null;
   onClearInitialPrompt?: () => void;
 }
 
 export const SocraticTutor: React.FC<SocraticTutorProps> = ({
-  currentTopic,
   onIncrementStats,
   initialPrompt,
   onClearInitialPrompt,
@@ -267,7 +265,6 @@ export const SocraticTutor: React.FC<SocraticTutorProps> = ({
         json: {
           messages: historyToSend.map((m) => ({ role: m.role, content: m.content })),
           mode: 'socratic',
-          currentTopic: currentTopic || (language === 'pt' ? 'Aprendizado Ativo' : 'Active Learning'),
           studentCalibration: metacognitiveCertainty,
           language,
         },
@@ -404,33 +401,33 @@ export const SocraticTutor: React.FC<SocraticTutorProps> = ({
               }`}
             >
               <div className="max-w-3xl mx-auto">
-              {/* Entry Metadata Bar */}
-              <div className="flex flex-wrap items-center justify-between gap-2 mb-3">
-                <span className="font-mono text-[11px] uppercase tracking-widest text-zinc-500">
-                  {isUser ? t.socratic.you : t.socratic.assistant}
-                </span>
-                <span className="text-[11px] text-zinc-500 font-mono tabular-nums">
-                  {new Date(message.timestamp).toLocaleTimeString([], {
-                    hour: '2-digit',
-                    minute: '2-digit',
-                  })}
-                </span>
-              </div>
-
-              {/* Entry Body */}
-              {isUser ? (
-                <p className="whitespace-pre-wrap text-[15px] text-zinc-100 leading-relaxed pl-3 border-l border-zinc-600">
-                  {message.content}
-                </p>
-              ) : (
-                <div className="space-y-4">
-                  <div className="max-w-none text-[15px] text-zinc-200 leading-relaxed">
-                    <Markdown components={markdownComponents}>
-                      {message.content.replace(/(?:[\r\n]+\s*(?:[-*_]\s*){3,})+$/, '').trim()}
-                    </Markdown>
-                  </div>
+                {/* Entry Metadata Bar */}
+                <div className="flex flex-wrap items-center justify-between gap-2 mb-3">
+                  <span className="font-mono text-[11px] uppercase tracking-widest text-zinc-500">
+                    {isUser ? t.socratic.you : t.socratic.assistant}
+                  </span>
+                  <span className="text-[11px] text-zinc-500 font-mono tabular-nums">
+                    {new Date(message.timestamp).toLocaleTimeString([], {
+                      hour: '2-digit',
+                      minute: '2-digit',
+                    })}
+                  </span>
                 </div>
-              )}
+
+                {/* Entry Body */}
+                {isUser ? (
+                  <p className="whitespace-pre-wrap text-[15px] text-zinc-100 leading-relaxed pl-3 border-l border-zinc-600">
+                    {message.content}
+                  </p>
+                ) : (
+                  <div className="space-y-4">
+                    <div className="max-w-none text-[15px] text-zinc-200 leading-relaxed">
+                      <Markdown components={markdownComponents}>
+                        {message.content.replace(/(?:[\r\n]+\s*(?:[-*_]\s*){3,})+$/, '').trim()}
+                      </Markdown>
+                    </div>
+                  </div>
+                )}
               </div>
             </div>
           );
