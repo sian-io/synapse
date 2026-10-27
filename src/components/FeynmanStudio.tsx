@@ -262,9 +262,9 @@ export const FeynmanStudio: React.FC<FeynmanStudioProps> = ({
                 <AlertTriangle className="w-3.5 h-3.5 text-zinc-500 stroke-[1.75]" />
                 <span>{t.feynman.jargonTitle}</span>
               </div>
-              {evaluation.jargonIdentified.length > 0 ? (
+              {(evaluation.jargonIdentified ?? []).length > 0 ? (
                 <ul className="divide-y divide-white/[0.05] text-sm text-zinc-300 leading-relaxed">
-                  {evaluation.jargonIdentified.map((jargon, i) => (
+                  {(evaluation.jargonIdentified ?? []).map((jargon, i) => (
                     <li key={i} className="py-2.5 first:pt-0 last:pb-0">
                       <strong className="text-zinc-100 font-medium">"{jargon}"</strong> —{' '}
                       {t.feynman.jargonItemSuffix}
@@ -285,9 +285,9 @@ export const FeynmanStudio: React.FC<FeynmanStudioProps> = ({
                 <Brain className="w-3.5 h-3.5 text-zinc-500 stroke-[1.75]" />
                 <span>{t.feynman.gapsTitle}</span>
               </div>
-              {evaluation.conceptualGaps.length > 0 ? (
+              {(evaluation.conceptualGaps ?? []).length > 0 ? (
                 <ul className="divide-y divide-white/[0.05] text-sm text-zinc-300 leading-relaxed">
-                  {evaluation.conceptualGaps.map((gap, i) => (
+                  {(evaluation.conceptualGaps ?? []).map((gap, i) => (
                     <li key={i} className="py-2.5 first:pt-0 last:pb-0">
                       {gap}
                     </li>
@@ -308,7 +308,7 @@ export const FeynmanStudio: React.FC<FeynmanStudioProps> = ({
                 {t.feynman.strengthsTitle}
               </span>
               <div className="flex flex-wrap gap-1.5">
-                {evaluation.strengths.map((str, i) => (
+                {(evaluation.strengths ?? []).map((str, i) => (
                   <span
                     key={i}
                     className="px-2.5 py-1 rounded-md text-[13px] surface-recessed text-zinc-200"

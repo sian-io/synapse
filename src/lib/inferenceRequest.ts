@@ -196,7 +196,14 @@ export function sanitizeConfigForEndpoint(cfg: AIProviderConfig): AIProviderConf
   }
 
   if (support.thinkingBudget && isFiniteNum(cfg.thinkingBudget) && cfg.thinkingBudget >= 0) {
-    sanitized.thinkingBudget = Math.round(cfg.thinkingBudget);
+    if (cfg.apiStandard === 'anthropic') {
+      if (cfg.thinkingBudget >= 1) {
+        sanitized.thinkingBudget = Math.max(1024, Math.round(cfg.thinkingBudget));
+        sanitized.maxTokens = Math.max(sanitized.maxTokens ?? 2048, sanitized.thinkingBudget + 1024);
+      }
+    } else {
+      sanitized.thinkingBudget = Math.round(cfg.thinkingBudget);
+    }
   }
 
   if (support.numCtx && isPosInt(cfg.numCtx)) {
@@ -447,7 +454,11 @@ export function buildInferenceRequest(
         ? `${baseUrl}/messages`
         : `${baseUrl}/v1/messages`;
 
-    const maxTokens = isPosInt(cfg.maxTokens) ? cfg.maxTokens : 2048;
+    const thinkingBudget = isPosInt(cfg.thinkingBudget) ? Math.max(1024, cfg.thinkingBudget) : undefined;
+    const maxTokens = Math.max(
+      isPosInt(cfg.maxTokens) ? cfg.maxTokens : 2048,
+      thinkingBudget ? thinkingBudget + 1024 : 0
+    );
 
     const baseBody: Record<string, unknown> = {
       model,
@@ -456,8 +467,8 @@ export function buildInferenceRequest(
       ...(isFiniteNum(cfg.temperature) ? { temperature: cfg.temperature } : {}),
       ...(isFiniteNum(cfg.topP) ? { top_p: cfg.topP } : {}),
       ...(isPosInt(cfg.topK) ? { top_k: cfg.topK } : {}),
-      ...(isPosInt(cfg.thinkingBudget)
-        ? { thinking: { type: 'enabled', budget_tokens: cfg.thinkingBudget } }
+      ...(thinkingBudget
+        ? { thinking: { type: 'enabled', budget_tokens: thinkingBudget } }
         : {}),
       messages: options.messages.map((m) => ({
         role: m.role === 'assistant' ? 'assistant' : 'user',

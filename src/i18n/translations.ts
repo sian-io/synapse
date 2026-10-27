@@ -414,7 +414,7 @@ Diferente de assistentes convencionais que entregam respostas prontas (o que ger
       ratingHard: 'Muito Difícil',
       ratingHardSub: '+1 dia',
       ratingGood: 'Bom Esforço',
-      ratingGoodSub: 'days',
+      ratingGoodSub: 'dias',
       ratingPerfect: 'Perfeito / Fácil',
       ratingPerfectSub: 'dias',
       prevCard: '← Cartão Anterior',

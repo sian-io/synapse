@@ -33,7 +33,8 @@ function resolveAIConfig(c: Context, bodyConfig?: AIProviderConfig, isPt = false
     const rawHeader = c.req.header('x-ai-config');
     if (rawHeader) {
       try {
-        cfg = JSON.parse(rawHeader);
+        const decoded = rawHeader.trim().startsWith('{') ? rawHeader : decodeURIComponent(rawHeader);
+        cfg = JSON.parse(decoded);
       } catch {
         // ignore invalid header JSON
       }
@@ -64,8 +65,39 @@ function resolveAIConfig(c: Context, bodyConfig?: AIProviderConfig, isPt = false
   return cfg;
 }
 
-function cleanJsonText(text: string): string {
-  return text.replace(/^```(?:json)?\s*/i, '').replace(/\s*```$/i, '').trim();
+export function cleanJsonText(text: string): string {
+  const fenced = text.match(/```(?:json)?\s*([\s\S]*?)\s*```/i);
+  if (fenced) return fenced[1].trim();
+  const objectOrArray = text.match(/(\{[\s\S]*\}|\[[\s\S]*\])/);
+  return (objectOrArray ? objectOrArray[1] : text).trim();
+}
+
+export function assertSafeInferenceUrl(rawUrl: string): void {
+  let parsed: URL;
+  try {
+    parsed = new URL(rawUrl);
+  } catch {
+    throw new Error('Invalid inference URL.');
+  }
+  if (parsed.protocol !== 'http:' && parsed.protocol !== 'https:') {
+    throw new Error(`Unsupported URL protocol: ${parsed.protocol}`);
+  }
+  // shortcut: allows localhost/LAN for self-hosted Ollama, block RFC1918 if multi-tenant
+  const host = parsed.hostname.toLowerCase().replace(/^\[|\]$/g, '');
+  if (
+    host === 'metadata.google.internal' ||
+    host === 'metadata' ||
+    host === '100.100.100.200' ||
+    host === 'fd00:ec2::254' ||
+    host.startsWith('169.254.') ||
+    host.startsWith('fe80:')
+  ) {
+    throw new Error('Blocked unsafe inference URL host.');
+  }
+}
+
+function toStringArray(val: unknown): string[] {
+  return Array.isArray(val) ? val.filter((item) => item != null).map(String) : [];
 }
 
 async function runInference(
@@ -77,6 +109,7 @@ async function runInference(
   }
 ): Promise<string> {
   const req = buildInferenceRequest(cfg, options);
+  assertSafeInferenceUrl(req.url);
 
   const res = await fetch(req.url, {
     method: req.method,
@@ -326,10 +359,19 @@ Return JSON with keys: topic (string, the inferred or provided concept name), sc
           jsonMode: true,
         });
 
-        const parsed: FeynmanEvaluation = JSON.parse(responseText);
-        if (topic?.trim() && !parsed.topic) {
-          parsed.topic = topic.trim();
-        }
+        const raw = JSON.parse(responseText);
+        const parsed: FeynmanEvaluation = {
+          topic: String(raw?.topic || topic || '').trim() || undefined,
+          score: typeof raw?.score === 'number' && Number.isFinite(raw.score) ? raw.score : 0,
+          clarityAssessment: String(raw?.clarityAssessment ?? ''),
+          jargonIdentified: toStringArray(raw?.jargonIdentified),
+          conceptualGaps: toStringArray(raw?.conceptualGaps),
+          strengths: toStringArray(raw?.strengths),
+          analogiesEvaluation: String(raw?.analogiesEvaluation ?? ''),
+          suggestedAnalogy: String(raw?.suggestedAnalogy ?? ''),
+          simplifiedAlternative: String(raw?.simplifiedAlternative ?? ''),
+          followUpQuestion: String(raw?.followUpQuestion ?? ''),
+        };
         return c.json(parsed, 200);
       } catch (error: any) {
         console.error('Error in /api/feynman-evaluate:', error.message);
@@ -459,7 +501,17 @@ Return JSON with keys: topic (string), overview (string), prerequisites (string[
           jsonMode: true,
         });
 
-        const parsed: ConceptBreakdown = JSON.parse(responseText);
+        const raw = JSON.parse(responseText);
+        const parsed: ConceptBreakdown = {
+          topic: String(raw?.topic || topic).trim(),
+          overview: String(raw?.overview ?? ''),
+          prerequisites: toStringArray(raw?.prerequisites),
+          coreMechanism: String(raw?.coreMechanism ?? ''),
+          commonMisconceptions: toStringArray(raw?.commonMisconceptions),
+          elaborativeQuestions: toStringArray(raw?.elaborativeQuestions),
+          realWorldAnalogy: String(raw?.realWorldAnalogy ?? ''),
+          neuroscienceRationale: String(raw?.neuroscienceRationale ?? ''),
+        };
         return c.json(parsed, 200);
       } catch (error: any) {
         console.error('Error in /api/generate-concept-breakdown:', error.message);

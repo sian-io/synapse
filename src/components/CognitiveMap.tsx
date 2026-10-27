@@ -271,7 +271,7 @@ export const CognitiveMap: React.FC<CognitiveMapProps> = ({
             </span>
 
             <ul className="divide-y divide-white/[0.05] text-sm text-zinc-300">
-              {breakdown.prerequisites.map((p, idx) => (
+              {(breakdown.prerequisites ?? []).map((p, idx) => (
                 <li
                   key={idx}
                   className="py-3 first:pt-0 last:pb-0 leading-relaxed"
@@ -290,7 +290,7 @@ export const CognitiveMap: React.FC<CognitiveMapProps> = ({
             </span>
 
             <ul className="divide-y divide-white/[0.05] text-sm text-zinc-300">
-              {breakdown.commonMisconceptions.map((m, idx) => (
+              {(breakdown.commonMisconceptions ?? []).map((m, idx) => (
                 <li
                   key={idx}
                   className="py-3 first:pt-0 last:pb-0 leading-relaxed"
@@ -314,7 +314,7 @@ export const CognitiveMap: React.FC<CognitiveMapProps> = ({
             </div>
 
             <div className="divide-y divide-white/[0.05]">
-              {breakdown.elaborativeQuestions.map((q, idx) => (
+              {(breakdown.elaborativeQuestions ?? []).map((q, idx) => (
                 <div
                   key={idx}
                   className="py-3.5 first:pt-0 last:pb-0 flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-sm text-zinc-200"

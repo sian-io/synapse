@@ -203,7 +203,7 @@ export const SocraticTutor: React.FC<SocraticTutorProps> = ({
   });
 
   const [messages, setMessages] = useState<ChatMessage[]>(() => {
-    const saved = localStorage.getItem(`synapse_chat_history_${language}`) || localStorage.getItem('synapse_chat_history');
+    const saved = localStorage.getItem('synapse_chat_history') || localStorage.getItem(`synapse_chat_history_${language}`);
     if (saved) {
       try {
         const parsed = JSON.parse(saved);
@@ -250,11 +250,11 @@ export const SocraticTutor: React.FC<SocraticTutorProps> = ({
   }, [initialPrompt]);
 
   useEffect(() => {
-    localStorage.setItem(`synapse_chat_history_${language}`, JSON.stringify(messages));
+    localStorage.setItem('synapse_chat_history', JSON.stringify(messages));
     if (messages.length > 1 || error) {
       messagesEndRef.current?.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
     }
-  }, [messages, error, language]);
+  }, [messages, error]);
 
   const requestAssistantResponse = async (historyToSend: ChatMessage[]) => {
     setIsLoading(true);
@@ -324,7 +324,8 @@ export const SocraticTutor: React.FC<SocraticTutorProps> = ({
   const handleConfirmClearHistory = () => {
     setMessages([getWelcomeMessage()]);
     setError(null);
-    localStorage.removeItem(`synapse_chat_history_${language}`);
+    localStorage.removeItem('synapse_chat_history_en');
+    localStorage.removeItem('synapse_chat_history_pt');
     localStorage.removeItem('synapse_chat_history');
     setIsResetDialogOpen(false);
   };

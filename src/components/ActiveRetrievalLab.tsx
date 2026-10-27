@@ -51,7 +51,7 @@ export const ActiveRetrievalLab: React.FC<ActiveRetrievalLabProps> = ({
   const { t, language } = useLanguage();
 
   const [cards, setCards] = useState<Flashcard[]>(() => {
-    const saved = localStorage.getItem(`synapse_flashcards_${language}`) || localStorage.getItem('synapse_flashcards');
+    const saved = localStorage.getItem('synapse_flashcards') || localStorage.getItem(`synapse_flashcards_${language}`);
     if (saved) {
       try {
         return JSON.parse(saved);
@@ -79,8 +79,14 @@ export const ActiveRetrievalLab: React.FC<ActiveRetrievalLabProps> = ({
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    localStorage.setItem(`synapse_flashcards_${language}`, JSON.stringify(cards));
-  }, [cards, language]);
+    if (cards.length > 0 && cards.every((c) => c.id.startsWith('fc_demo_') && !c.lastReviewed)) {
+      setCards(getInitialPresetFlashcards(language));
+    }
+  }, [language]);
+
+  useEffect(() => {
+    localStorage.setItem('synapse_flashcards', JSON.stringify(cards));
+  }, [cards]);
 
   useEffect(() => {
     localStorage.setItem('synapse_retrieval_topic', deckTopic);
@@ -95,6 +101,8 @@ export const ActiveRetrievalLab: React.FC<ActiveRetrievalLabProps> = ({
   }, [deckDifficulty]);
 
   const currentCard = cards[currentIndex] || null;
+  const formatIntervalLabel = (days: number) =>
+    days === 1 ? t.retrieval.ratingHardSub : `+${days} ${t.retrieval.ratingGoodSub}`;
 
   const difficultyLabels: Record<string, string> = {
     fundamentos: t.retrieval.diffFundamentals,
@@ -353,7 +361,7 @@ export const ActiveRetrievalLab: React.FC<ActiveRetrievalLabProps> = ({
                         <XCircle className="w-3.5 h-3.5 text-zinc-500 stroke-[1.75]" />
                         <span>{t.retrieval.ratingForgot}</span>
                         <span className="text-[11px] text-zinc-500 font-mono tabular-nums">
-                          +{previewNextInterval(currentCard, 0)}d
+                          {formatIntervalLabel(previewNextInterval(currentCard, 0))}
                         </span>
                       </button>
 
@@ -365,7 +373,7 @@ export const ActiveRetrievalLab: React.FC<ActiveRetrievalLabProps> = ({
                         <AlertCircle className="w-3.5 h-3.5 text-zinc-400 stroke-[1.75]" />
                         <span>{t.retrieval.ratingHard}</span>
                         <span className="text-[11px] text-zinc-500 font-mono tabular-nums">
-                          +{previewNextInterval(currentCard, 1)} {t.retrieval.ratingGoodSub}
+                          {formatIntervalLabel(previewNextInterval(currentCard, 1))}
                         </span>
                       </button>
 
@@ -377,7 +385,7 @@ export const ActiveRetrievalLab: React.FC<ActiveRetrievalLabProps> = ({
                         <CheckCircle2 className="w-3.5 h-3.5 text-zinc-300 stroke-[1.75]" />
                         <span>{t.retrieval.ratingGood}</span>
                         <span className="text-[11px] text-zinc-400 font-mono tabular-nums">
-                          +{previewNextInterval(currentCard, 2)} {t.retrieval.ratingGoodSub}
+                          {formatIntervalLabel(previewNextInterval(currentCard, 2))}
                         </span>
                       </button>
 
@@ -389,7 +397,7 @@ export const ActiveRetrievalLab: React.FC<ActiveRetrievalLabProps> = ({
                         <Sparkles className="w-3.5 h-3.5 text-zinc-950 stroke-[1.75]" />
                         <span>{t.retrieval.ratingPerfect}</span>
                         <span className="text-[11px] text-zinc-700 font-mono tabular-nums">
-                          +{previewNextInterval(currentCard, 3)} {t.retrieval.ratingPerfectSub}
+                          {formatIntervalLabel(previewNextInterval(currentCard, 3))}
                         </span>
                       </button>
                     </div>
