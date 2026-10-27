@@ -176,13 +176,11 @@ const createMarkdownComponents = (isPt: boolean): Components => ({
 });
 
 interface SocraticTutorProps {
-  onIncrementStats: (type: 'socratic' | 'retrieval' | 'feynman') => void;
   initialPrompt?: string | null;
   onClearInitialPrompt?: () => void;
 }
 
 export const SocraticTutor: React.FC<SocraticTutorProps> = ({
-  onIncrementStats,
   initialPrompt,
   onClearInitialPrompt,
 }) => {
@@ -195,11 +193,6 @@ export const SocraticTutor: React.FC<SocraticTutorProps> = ({
     role: 'assistant',
     content: t.socratic.defaultWelcome,
     timestamp: Date.now(),
-    pedagogicalMeta: {
-      cognitivePhase: t.socratic.welcomePhase,
-      desirableDifficultyNote: t.socratic.welcomeNeuroTip,
-      suggestedActions: [...t.socratic.welcomeActions],
-    },
   });
 
   const [messages, setMessages] = useState<ChatMessage[]>(() => {
@@ -282,11 +275,9 @@ export const SocraticTutor: React.FC<SocraticTutorProps> = ({
         role: 'assistant',
         content: data.content,
         timestamp: Date.now(),
-        pedagogicalMeta: data.meta,
       };
 
       setMessages((prev) => [...prev, assistantMessage]);
-      onIncrementStats('socratic');
     } catch (err: any) {
       console.error(err);
       setError(err.message || t.socratic.connectionError);

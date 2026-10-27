@@ -1,7 +1,6 @@
 import { Hono, Context } from 'hono';
 import { validator } from 'hono/validator';
-import { translateCognitivePhase } from './src/i18n/translations';
-import { buildInferenceRequest } from './src/lib/inferenceRequest';
+import { buildInferenceRequest, isAIConfigValid } from './src/lib/inferenceRequest';
 import type {
   AIProviderConfig,
   ChatMessage,
@@ -41,20 +40,7 @@ function resolveAIConfig(c: Context, bodyConfig?: AIProviderConfig, isPt = false
     }
   }
 
-  const isManualValid = Boolean(
-    cfg?.manualEditEnabled &&
-      typeof cfg?.customUrlOverride === 'string' &&
-      cfg.customUrlOverride.trim().length > 0 &&
-      cfg?.customBodyOverride &&
-      typeof cfg.customBodyOverride === 'object' &&
-      !Array.isArray(cfg.customBodyOverride)
-  );
-
-  const isMenuValid = Boolean(
-    cfg && !cfg.manualEditEnabled && cfg.apiStandard && cfg.baseUrl?.trim() && cfg.model?.trim()
-  );
-
-  if (!cfg || (!isManualValid && !isMenuValid)) {
+  if (!isAIConfigValid(cfg)) {
     throw new Error(
       isPt
         ? 'Configure sua API nas Configurações de IA (ícone de engrenagem no topo).'
@@ -235,12 +221,6 @@ Specific Mode Guidelines:
 - **metacognition**: Challenge the student to audit how they reached their conclusion, which premises they assumed, and where they feel their grasp is most fragile.
 
 Format your response in clean, direct, empathetic Markdown focused on student action.
-Always conclude your response with a special section formatted as:
-\`\`\`meta
-CognitivePhase: [${isPt ? 'em português, ex: Recuperação Ativa | Diagnóstico de Ilusão | Interrogação Elaborativa | Consolidação' : 'in English, e.g., Active Retrieval | Illusion Diagnosis | Elaborative Interrogation | Consolidation'}]
-NeuroTip: [${isPt ? 'Uma frase concisa em português explicando o mecanismo neurobiológico' : 'One concise sentence explaining the neurobiological mechanism behind what is being trained'}]
-SuggestedNextSteps: [${isPt ? 'Ação 1 | Ação 2' : 'Action 1 | Action 2'}]
-\`\`\`
 `.trim();
 
         const responseText = await runInference(cfg, {
@@ -248,56 +228,12 @@ SuggestedNextSteps: [${isPt ? 'Ação 1 | Ação 2' : 'Action 1 | Action 2'}]
           messages: messages || [],
         });
 
-        // Extract meta block if present
-        let cleanedText = responseText;
-        let cognitivePhase = isPt ? 'Recuperação Ativa' : 'Active Retrieval';
-        let neuroTip = isPt
-          ? 'A recuperação ativa estimula a síntese de proteínas sinápticas, consolidando memórias duradouras.'
-          : 'Active retrieval stimulates synaptic protein synthesis, consolidating durable memories.';
-        let suggestedActions: string[] = [];
+        const cleanedText = responseText
+          .replace(/```meta\s*[\s\S]*?\s*```/, '')
+          .replace(/(?:[\r\n]+\s*(?:[-*_]\s*){3,})+$/, '')
+          .trim();
 
-        const metaMatch = responseText.match(/```meta\s*([\s\S]*?)\s*```/);
-        if (metaMatch) {
-          cleanedText = responseText.replace(/```meta\s*[\s\S]*?\s*```/, '').trim();
-          const metaContent = metaMatch[1];
-          const phaseMatch = metaContent.match(/CognitivePhase:\s*(.*)/i);
-          const tipMatch = metaContent.match(/NeuroTip:\s*(.*)/i);
-          const stepsMatch = metaContent.match(/SuggestedNextSteps:\s*(.*)/i);
-
-          if (phaseMatch) {
-            cognitivePhase = translateCognitivePhase(phaseMatch[1].trim(), isPt ? 'pt' : 'en');
-          }
-          if (tipMatch) neuroTip = tipMatch[1].trim();
-          if (stepsMatch) {
-            suggestedActions = stepsMatch[1].split('|').map((s) => s.trim()).filter(Boolean);
-          }
-        }
-
-        cleanedText = cleanedText.replace(/(?:[\r\n]+\s*(?:[-*_]\s*){3,})+$/, '').trim();
-
-        const defaultActions = isPt
-          ? [
-              'Tentar explicar com uma analogia simples',
-              'Identificar a premissa mais frágil do raciocínio',
-              'Pedir um contra-exemplo desafiador',
-            ]
-          : [
-              'Try explaining with a simple analogy',
-              'Identify the weakest premise of this reasoning',
-              'Ask for a challenging counterexample',
-            ];
-
-        return c.json(
-          {
-            content: cleanedText,
-            meta: {
-              cognitivePhase,
-              desirableDifficultyNote: neuroTip,
-              suggestedActions: suggestedActions.length > 0 ? suggestedActions : defaultActions,
-            },
-          },
-          200
-        );
+        return c.json({ content: cleanedText }, 200);
       } catch (error: any) {
         console.error('Error in /api/chat:', error.message);
         return c.json(

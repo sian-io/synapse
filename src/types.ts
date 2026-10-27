@@ -19,13 +19,6 @@ export interface ChatMessage {
   role: 'user' | 'assistant' | 'system';
   content: string;
   timestamp: number;
-  pedagogicalMeta?: {
-    mode?: PedagogicalMode;
-    cognitivePhase?: string;
-    metacognitivePrompt?: string;
-    desirableDifficultyNote?: string;
-    suggestedActions?: string[];
-  };
 }
 
 export interface FeynmanEvaluation {
@@ -65,15 +58,6 @@ export interface ConceptBreakdown {
   elaborativeQuestions: string[];
   realWorldAnalogy: string;
   neuroscienceRationale: string;
-}
-
-export interface CognitiveStats {
-  retrievalAttempts: number;
-  feynmanExplanations: number;
-  socraticQuestionsAnswered: number;
-  retentionStreakDays: number;
-  averageCalibration: number; // 0-100%
-  totalActiveMinutes: number;
 }
 
 export type APIStandard = 'openai' | 'anthropic' | 'google' | 'ollama';

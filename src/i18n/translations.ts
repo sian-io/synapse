@@ -11,31 +11,13 @@ export const translations = {
         cognitive_map: 'Cognitive Load',
         neuroscience: 'Neuroscience Guide',
       },
-      stats: {
-        retentionStreak: 'stimulus days',
-        retentionStreakShort: 'd',
-        retentionStreakTooltip: 'Consecutive days of active retrieval practice',
-        recallsLTP: 'LTP recalls',
-        recallsLTPShort: 'LTP',
-        recallsLTPTooltip: 'Total active recalls and Socratic dialogues',
-      },
     },
     socratic: {
       headerTitle: 'Socratic Tutor & Elaborative Interrogation',
-      modes: {
-        socratic: 'Socratic Method (Scaffolding & Questions)',
-        active_retrieval: 'Retrieval Challenge (Active Recall)',
-        feynman: 'Feynman Audit (Simplification & Jargon)',
-        metacognition: 'Metacognitive Audit (Certainty)',
-      },
-      modeTooltip: 'Change pedagogical tutor stance',
       resetTooltip: 'Restart Socratic dialogue',
       resetConfirm: 'Do you want to restart the Socratic session? Current history will be cleared.',
       you: 'You',
       assistant: 'Synapse',
-      phase: 'Phase',
-      neuroBasis: 'Neuroscientific Basis:',
-      recommendedActions: 'Recommended Cognitive Actions:',
       loadingText: 'Building cognitive scaffold and formulating Socratic question...',
       inputPlaceholder: 'Respond to the tutor or propose a topic/hypothesis to explore...',
       sendButton: 'Send',
@@ -44,34 +26,6 @@ export const translations = {
       guess: '1: Guess',
       partial: '3: Partial',
       conviction: '5: Conviction',
-      dunningKrugerTitle: 'Combating Dunning-Kruger:',
-      dunningKrugerDesc: "Reporting your self-perception calibrates the depth of the tutor's questions, increasing rigor if overconfident or offering gradual scaffolding if in doubt.",
-      quickPromptsTitle: 'Quick Socratic Provocations',
-      quickPromptsDesc: 'Trigger a conceptual challenge with one click to deepen your mental model:',
-      quickPrompts: [
-        {
-          label: 'Socratic Question',
-          desc: 'Challenges finding the core mechanism',
-          prompt: 'Ask a Socratic question that challenges me to find the nuclear mechanism of this topic.',
-        },
-        {
-          label: 'Challenge Premise',
-          desc: 'Overlooked contradictions and exceptions',
-          prompt: 'Point out a common contradiction or exception that people ignore about this topic and ask me how to explain it.',
-        },
-        {
-          label: 'Elaborative Interrogation',
-          desc: 'Why does it operate this way and not another?',
-          prompt: 'Why does this mechanism work exactly this way and not in an alternative way?',
-        },
-        {
-          label: 'Quick Retrieval Test',
-          desc: 'Practical application to test understanding',
-          prompt: 'Ask me a practical application question to test whether I truly understand the mental model or merely memorized it.',
-        },
-      ],
-      whySocraticTitle: 'Why the Socratic Method?',
-      whySocraticDesc: 'When the brain receives a pre-digested answer, germane cognitive load is near zero. When stimulated by guided questions, the hippocampus conducts deep semantic searches, sealing the memory into the definitive neural network.',
       defaultWelcome: `Hello! I am **Synapse**, your active learning pedagogical tutor grounded in **Cognitive Neuroscience**.
 
 Unlike conventional assistants that hand out ready-made answers (which causes the illusion of fluency and rapid forgetting), we prioritize **Long-Term Potentiation (LTP)** and **active retrieval**:
@@ -80,23 +34,11 @@ Unlike conventional assistants that hand out ready-made answers (which causes th
 - You build neural pathways through productive cognitive struggle (*desirable difficulty*).
 
 **Which concept, topic, or subject would you like to dissect today?**`,
-      welcomePhase: 'Initial Engagement',
-      welcomeNeuroTip: 'Conscious prefrontal cortex activation at the start of a session primes dopaminergic receptors for novelty focus.',
-      welcomeActions: [
-        'Understand how Long-Term Memory works',
-        'Demystify Quantum Mechanics without jargon',
-        'Master Dijkstra Algorithm and Graphs',
-        'Understand Inflation and Monetary Policy',
-      ],
       connectionError: 'Could not reach the inference API to generate a response.',
-      checkConnection: 'Please check your connection and try again.',
       retry: 'Try again',
     },
     feynman: {
       bannerTitle: 'Feynman Deconstruction Studio',
-      bannerQuote: '"If you cannot explain something in simple terms, you have not understood the mechanism." —',
-      bannerNeuroBasis: 'Neuroscientific Basis',
-      bannerNeuroDesc: 'Combats the illusion of explanatory depth, forcing the brain to dismantle memorized jargon and anchor logical representations into durable semantic memory.',
       audienceLabel: 'Target Audience for the Explanation:',
       audienceOptions: {
         child: '10-year-old child (Maximum simplicity, zero jargon)',
@@ -106,7 +48,6 @@ Unlike conventional assistants that hand out ready-made answers (which causes th
       yourExplanation: 'Your Active Explanation:',
       words: 'words',
       placeholder: "Explain any concept, phenomenon, or mechanism in your own words. Describe the 'why' and 'how' step by step — the AI will infer the concept and audit your understanding...",
-      loadSample: 'Load sample:',
       auditButton: 'Audit with Feynman Technique',
       auditingButton: 'Auditing Illusions of Understanding...',
       retry: 'Try again',
@@ -140,8 +81,6 @@ Unlike conventional assistants that hand out ready-made answers (which causes th
       discussPromptSuffix: 'using the Feynman technique. Help me answer this question to fix my gap:',
     },
     retrieval: {
-      bannerTitle: 'Active Retrieval Lab & Spaced Repetition',
-      bannerSubtitle: 'Roediger & Karpicke (2006): Deliberate memory recall from scratch consolidates synapses up to 3x faster than rereading. Do not flip the card before actively formulating the answer in your mind or in writing.',
       cardCount: 'Card',
       of: 'of',
       nextReview: 'Next review:',
@@ -158,13 +97,11 @@ Unlike conventional assistants that hand out ready-made answers (which causes th
       neuroTipHeader: 'Mnemonic Anchor / NeuroTip:',
       calibrateRating: 'Calibrate recall effort for the spaced repetition algorithm:',
       ratingForgot: 'Forgot / Blank',
-      ratingForgotSub: 'Review today',
       ratingHard: 'Very Hard',
       ratingHardSub: '+1 day',
       ratingGood: 'Good Effort',
       ratingGoodSub: 'days',
       ratingPerfect: 'Perfect / Easy',
-      ratingPerfectSub: 'days',
       prevCard: '← Previous Card',
       nextCard: 'Next Card',
       noCards: 'No cards registered at the moment. Enter a topic in the panel beside to generate your challenges!',
@@ -183,7 +120,6 @@ Unlike conventional assistants that hand out ready-made answers (which causes th
       errorFallback: 'Could not reach the inference API to generate the deck.',
     },
     cognitiveMap: {
-      bannerTitle: 'Cognitive Load Mapping & Management',
       bannerDesc: 'Working memory manages only 4 to 7 elements simultaneously. By deconstructing the topic into prerequisites, core mechanism, physical world analogies, and mental traps, we eliminate extraneous load to build lasting schemas in the cortex.',
       conceptToMap: 'Concept to map:',
       inputPlaceholder: 'Enter the complex concept or mechanism to deconstruct (e.g., Transformers, Krebs Cycle, Entropy...)',
@@ -191,8 +127,6 @@ Unlike conventional assistants that hand out ready-made answers (which causes th
       deconstructButton: 'Deconstruct Cognitive Load',
       mappingButton: 'Mapping Neural Schemas...',
       tryAgain: 'Try again',
-      synthesizedNotice: 'Cognitive schema structurally synthesized.',
-      updateAI: 'Update via AI',
       essentialCore: 'Essential Core (Germane Load)',
       topicLabel: 'Topic:',
       coreMechanismTitle: 'The Core Mechanism in One Sentence:',
@@ -263,31 +197,13 @@ Unlike conventional assistants that hand out ready-made answers (which causes th
         cognitive_map: 'Carga Cognitiva',
         neuroscience: 'Base Neurocientífica',
       },
-      stats: {
-        retentionStreak: 'dias de estímulo',
-        retentionStreakShort: 'd',
-        retentionStreakTooltip: 'Dias consecutivos de prática de recuperação ativa',
-        recallsLTP: 'evocações LTP',
-        recallsLTPShort: 'LTP',
-        recallsLTPTooltip: 'Total de recuperações ativas e diálogos socráticos',
-      },
     },
     socratic: {
       headerTitle: 'Tutor Socrático & Interrogação Elaborativa',
-      modes: {
-        socratic: 'Método Socrático (Andaimes & Perguntas)',
-        active_retrieval: 'Desafio de Recuperação (Active Recall)',
-        feynman: 'Auditoria Feynman (Simplificação & Jargões)',
-        metacognition: 'Auditoria Metacognitiva (Certeza)',
-      },
-      modeTooltip: 'Alterar postura do tutor pedagógico',
       resetTooltip: 'Reiniciar diálogo socrático',
       resetConfirm: 'Deseja reiniciar a sessão socrática? O histórico atual será limpo.',
       you: 'Você',
       assistant: 'Synapse',
-      phase: 'Fase',
-      neuroBasis: 'Fundamento Neurocientífico:',
-      recommendedActions: 'Ações Cognitivas Recomendadas:',
       loadingText: 'Construindo andaime cognitivo e formulando pergunta socrática...',
       inputPlaceholder: 'Responda ao tutor ou proponha um tema/hipótese para explorar...',
       sendButton: 'Enviar',
@@ -296,34 +212,6 @@ Unlike conventional assistants that hand out ready-made answers (which causes th
       guess: '1: Chute',
       partial: '3: Parcial',
       conviction: '5: Convicção',
-      dunningKrugerTitle: 'Combate ao Dunning-Kruger:',
-      dunningKrugerDesc: 'Informar sua autopercepção calibra a profundidade das perguntas do tutor, aumentando o rigor se houver excesso de confiança ou oferecendo andaimes graduais se houver dúvida.',
-      quickPromptsTitle: 'Provocações Socráticas Rápidas',
-      quickPromptsDesc: 'Dispare um desafio conceitual com um clique para aprofundar seu modelo mental:',
-      quickPrompts: [
-        {
-          label: 'Pergunta Socrática',
-          desc: 'Desafia a encontrar o mecanismo central',
-          prompt: 'Faça uma pergunta socrática que me desafie a encontrar o mecanismo nuclear desse tópico.',
-        },
-        {
-          label: 'Desafiar Premissa',
-          desc: 'Contradições e exceções esquecidas',
-          prompt: 'Aponte uma contradição ou exceção comum que as pessoas ignoram sobre esse tema e me pergunte como explicá-la.',
-        },
-        {
-          label: 'Interrogação Elaborativa',
-          desc: 'Por que opera dessa forma e não de outra?',
-          prompt: 'Por que esse mecanismo funciona exatamente dessa forma e não de outra maneira alternativa?',
-        },
-        {
-          label: 'Teste de Recuperação Rápida',
-          desc: 'Aplicação prática para testar compreensão',
-          prompt: 'Faça-me uma pergunta de aplicação prática para testar se eu realmente compreendi o modelo mental ou apenas decorei.',
-        },
-      ],
-      whySocraticTitle: 'Por que o Método Socrático?',
-      whySocraticDesc: 'Quando o cérebro recebe uma resposta pronta, a carga cognitiva germana é quase nula. Quando estimulado por perguntas guiadas, o hipocampo realiza buscas semânticas profundas, selando a memória na rede neural definitiva.',
       defaultWelcome: `Olá! Eu sou o **Synapse**, seu tutor pedagógico de aprendizagem ativa fundamentado em **Neurociência Cognitiva**.
 
 Diferente de assistentes convencionais que entregam respostas prontas (o que gera a ilusão de fluência e rápido esquecimento), nós priorizamos **Potenciação de Longa Duração (LTP)** e **recuperação ativa**:
@@ -332,23 +220,11 @@ Diferente de assistentes convencionais que entregam respostas prontas (o que ger
 - Você constrói os caminhos neurais através do esforço cognitivo produtivo (*dificuldade desejável*).
 
 **Qual conceito, tema ou matéria você gostaria de dissecar hoje?**`,
-      welcomePhase: 'Engajamento Inicial',
-      welcomeNeuroTip: 'A ativação consciente do córtex pré-frontal no início de uma sessão prepara receptores dopaminérgicos para foco na novidade.',
-      welcomeActions: [
-        'Entender Como funciona a Memória de Longo Prazo',
-        'Desvendar a Mecânica Quântica sem jargões',
-        'Dominar o Algoritmo de Dijkstra e Grafos',
-        'Compreender a Inflação e Política Monetária',
-      ],
       connectionError: 'Não foi possível alcançar a API de inferência para gerar a resposta.',
-      checkConnection: 'Verifique a conexão e tente novamente.',
       retry: 'Tentar novamente',
     },
     feynman: {
       bannerTitle: 'Estúdio de Desconstrução de Feynman',
-      bannerQuote: '"Se você não consegue explicar algo em termos simples, você não compreendeu o mecanismo." —',
-      bannerNeuroBasis: 'Fundamento Neurocientífico',
-      bannerNeuroDesc: 'Combate a ilusão de profundidade explicativa, forçando o cérebro a desmontar jargões decorados e ancorar representações lógicas na memória semântica duradoura.',
       audienceLabel: 'Público-Alvo da Explicação:',
       audienceOptions: {
         child: 'Criança de 10 anos (Simplicidade máxima, zero jargão)',
@@ -358,7 +234,6 @@ Diferente de assistentes convencionais que entregam respostas prontas (o que ger
       yourExplanation: 'Sua Explicação Ativa:',
       words: 'palavras',
       placeholder: "Explique qualquer conceito, fenômeno ou mecanismo com suas próprias palavras. Descreva o 'porquê' e o 'como' passo a passo — a IA identificará o tema e auditará sua compreensão...",
-      loadSample: 'Carregar exemplo:',
       auditButton: 'Auditar com Técnica de Feynman',
       auditingButton: 'Auditando Ilusões de Compreensão...',
       retry: 'Tentar novamente',
@@ -392,8 +267,6 @@ Diferente de assistentes convencionais que entregam respostas prontas (o que ger
       discussPromptSuffix: 'pela técnica de Feynman. Ajude-me a responder a esta pergunta para consertar minha lacuna:',
     },
     retrieval: {
-      bannerTitle: 'Laboratório de Recuperação Ativa & Repetição Espaçada',
-      bannerSubtitle: 'Roediger & Karpicke (2006): A evocação deliberada da memória a partir do zero consolida sinapses até 3x mais rápido do que a releitura. Não vire o cartão antes de formular ativamente a resposta na sua mente ou por escrito.',
       cardCount: 'Cartão',
       of: 'de',
       nextReview: 'Próxima revisão:',
@@ -410,13 +283,11 @@ Diferente de assistentes convencionais que entregam respostas prontas (o que ger
       neuroTipHeader: 'Âncora Mnemônica / NeuroDica:',
       calibrateRating: 'Calibre o esforço de evocação para o algoritmo de repetição espaçada:',
       ratingForgot: 'Errei / Branco',
-      ratingForgotSub: 'Rever hoje',
       ratingHard: 'Muito Difícil',
       ratingHardSub: '+1 dia',
       ratingGood: 'Bom Esforço',
       ratingGoodSub: 'dias',
       ratingPerfect: 'Perfeito / Fácil',
-      ratingPerfectSub: 'dias',
       prevCard: '← Cartão Anterior',
       nextCard: 'Próximo Cartão',
       noCards: 'Nenhum cartão cadastrado no momento. Digite um tema no painel ao lado para gerar seus desafios!',
@@ -435,7 +306,6 @@ Diferente de assistentes convencionais que entregam respostas prontas (o que ger
       errorFallback: 'Não foi possível alcançar a API de inferência para gerar o baralho.',
     },
     cognitiveMap: {
-      bannerTitle: 'Mapeamento & Gestão de Carga Cognitiva',
       bannerDesc: 'A memória de trabalho gerencia apenas 4 a 7 elementos simultâneos. Ao desconstruir o tema em pré-requisitos, mecanismo nuclear, analogias do mundo físico e armadilhas mentais, eliminamos a carga extrínseca para construir esquemas duradouros no córtex.',
       conceptToMap: 'Conceito a mapear:',
       inputPlaceholder: 'Digite o conceito ou mecanismo complexo para desconstruir (ex: Transformers, Ciclo de Krebs, Entropia...)',
@@ -443,8 +313,6 @@ Diferente de assistentes convencionais que entregam respostas prontas (o que ger
       deconstructButton: 'Desconstruir Carga Cognitiva',
       mappingButton: 'Mapeando Esquemas Neurais...',
       tryAgain: 'Tentar novamente',
-      synthesizedNotice: 'Esquema cognitivo sintetizado estruturalmente.',
-      updateAI: 'Atualizar via IA',
       essentialCore: 'Núcleo Essencial (Carga Germana)',
       topicLabel: 'Tópico:',
       coreMechanismTitle: 'O Mecanismo Central em Uma Frase:',
@@ -508,113 +376,3 @@ Diferente de assistentes convencionais que entregam respostas prontas (o que ger
 } as const;
 
 export type TranslationKeys = typeof translations.en;
-
-const phaseMapEnToPt: Record<string, string> = {
-  'active retrieval': 'Recuperação Ativa',
-  'retrieval practice': 'Prática de Recuperação',
-  'illusion diagnosis': 'Diagnóstico de Ilusão',
-  'elaborative interrogation': 'Interrogação Elaborativa',
-  'consolidation': 'Consolidação',
-  'initial engagement': 'Engajamento Inicial',
-  'metacognitive calibration': 'Calibração Metacognitiva',
-  'metacognition': 'Metacognição',
-  'desirable difficulty': 'Dificuldade Desejável',
-  'desirable difficulties': 'Dificuldades Desejáveis',
-  'scaffolding': 'Andaime Cognitivo',
-  'feynman technique': 'Técnica de Feynman',
-  'feynman audit': 'Auditoria Feynman',
-  'feynman deconstruction': 'Desconstrução Feynman',
-  'concept breakdown': 'Mapeamento Conceitual',
-  'guided inquiry': 'Investigação Guiada',
-  'socratic dialogue': 'Diálogo Socrático',
-  'deep questioning': 'Questionamento Profundo',
-  'boundary exploration': 'Exploração de Limites',
-  'causal analysis': 'Análise Causal',
-  'self-explanation': 'Autoexplicação',
-  'cognitive restructuring': 'Reestruturação Cognitiva',
-  'conceptual clarification': 'Clarificação Conceitual',
-  'knowledge integration': 'Integração de Conhecimento',
-};
-
-const phaseMapPtToEn: Record<string, string> = {
-  'recuperação ativa': 'Active Retrieval',
-  'prática de recuperação': 'Retrieval Practice',
-  'diagnóstico de ilusão': 'Illusion Diagnosis',
-  'interrogação elaborativa': 'Elaborative Interrogation',
-  'consolidação': 'Consolidation',
-  'engajamento inicial': 'Initial Engagement',
-  'calibração metacognitiva': 'Metacognitive Calibration',
-  'metacognição': 'Metacognition',
-  'dificuldade desejável': 'Desirable Difficulty',
-  'dificuldades desejáveis': 'Desirable Difficulties',
-  'andaime cognitivo': 'Scaffolding',
-  'técnica de feynman': 'Feynman Technique',
-  'auditoria feynman': 'Feynman Audit',
-  'desconstrução feynman': 'Feynman Deconstruction',
-  'mapeamento conceitual': 'Concept Breakdown',
-  'investigação guiada': 'Guided Inquiry',
-  'diálogo socrático': 'Socratic Dialogue',
-  'questionamento profundo': 'Deep Questioning',
-  'exploração de limites': 'Boundary Exploration',
-  'análise causal': 'Causal Analysis',
-  'autoexplicação': 'Self-Explanation',
-  'reestruturação cognitiva': 'Cognitive Restructuring',
-  'clarificação conceitual': 'Conceptual Clarification',
-  'integração de conhecimento': 'Knowledge Integration',
-};
-
-function normalizePhaseString(str: string): string {
-  return str
-    .toLowerCase()
-    .normalize('NFD')
-    .replace(/[\u0300-\u036f]/g, '')
-    .trim();
-}
-
-export function translateCognitivePhase(phase: string | undefined, targetLanguage: Language): string {
-  if (!phase) return '';
-  const cleaned = normalizePhaseString(phase);
-
-  if (targetLanguage === 'pt') {
-    for (const [k, v] of Object.entries(phaseMapEnToPt)) {
-      if (normalizePhaseString(k) === cleaned) return v;
-    }
-    for (const v of Object.values(phaseMapEnToPt)) {
-      if (normalizePhaseString(v) === cleaned) return v;
-    }
-    if (cleaned.includes('retrieval')) return 'Recuperação Ativa';
-    if (cleaned.includes('interrogat')) return 'Interrogação Elaborativa';
-    if (cleaned.includes('illusion')) return 'Diagnóstico de Ilusão';
-    if (cleaned.includes('consolidat')) return 'Consolidação';
-    if (cleaned.includes('engagement')) return 'Engajamento Inicial';
-    if (cleaned.includes('metacognit')) return 'Calibração Metacognitiva';
-    if (cleaned.includes('scaffold')) return 'Andaime Cognitivo';
-    if (cleaned.includes('feynman')) return 'Técnica de Feynman';
-    if (cleaned.includes('difficult')) return 'Dificuldade Desejável';
-    if (cleaned.includes('boundary')) return 'Exploração de Limites';
-    if (cleaned.includes('causal')) return 'Análise Causal';
-    if (cleaned.includes('breakdown')) return 'Mapeamento Conceitual';
-    if (cleaned.includes('inquiry')) return 'Investigação Guiada';
-    return phase;
-  } else {
-    for (const [k, v] of Object.entries(phaseMapPtToEn)) {
-      if (normalizePhaseString(k) === cleaned) return v;
-    }
-    for (const v of Object.values(phaseMapPtToEn)) {
-      if (normalizePhaseString(v) === cleaned) return v;
-    }
-    if (cleaned.includes('recupera')) return 'Active Retrieval';
-    if (cleaned.includes('interroga')) return 'Elaborative Interrogation';
-    if (cleaned.includes('ilusa')) return 'Illusion Diagnosis';
-    if (cleaned.includes('consolida')) return 'Consolidation';
-    if (cleaned.includes('engaja')) return 'Initial Engagement';
-    if (cleaned.includes('metacogni')) return 'Metacognitive Calibration';
-    if (cleaned.includes('andaime')) return 'Scaffolding';
-    if (cleaned.includes('feynman')) return 'Feynman Technique';
-    if (cleaned.includes('dificuldade')) return 'Desirable Difficulty';
-    if (cleaned.includes('limite')) return 'Boundary Exploration';
-    if (cleaned.includes('causal')) return 'Causal Analysis';
-    if (cleaned.includes('mapeamento')) return 'Concept Breakdown';
-    return phase;
-  }
-}

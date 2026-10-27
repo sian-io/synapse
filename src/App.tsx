@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import {
   Brain,
   MessageSquareText,
@@ -15,7 +15,6 @@ import { FeynmanStudio } from './components/FeynmanStudio';
 import { ActiveRetrievalLab } from './components/ActiveRetrievalLab';
 import { CognitiveMap } from './components/CognitiveMap';
 import { NeuroscienceGuide } from './components/NeuroscienceGuide';
-import { CognitiveStats } from './types';
 import { LanguageProvider, useLanguage } from './i18n/LanguageContext';
 import { AIConfigProvider } from './context/AIConfigContext';
 import { useAIConfig } from './context/useAIConfig';
@@ -28,39 +27,6 @@ function AppContent() {
   const isPt = language === 'pt';
   const [activeTab, setActiveTab] = useState<ActiveTab>('cognitive_map');
   const [socraticPromptOverride, setSocraticPromptOverride] = useState<string | null>(null);
-
-  const [stats, setStats] = useState<CognitiveStats>(() => {
-    const saved = localStorage.getItem('synapse_stats');
-    if (saved) {
-      try {
-        return JSON.parse(saved);
-      } catch (e) {
-        console.error(e);
-      }
-    }
-    return {
-      retrievalAttempts: 7,
-      feynmanExplanations: 2,
-      socraticQuestionsAnswered: 5,
-      retentionStreakDays: 3,
-      averageCalibration: 85,
-      totalActiveMinutes: 38,
-    };
-  });
-
-  useEffect(() => {
-    localStorage.setItem('synapse_stats', JSON.stringify(stats));
-  }, [stats]);
-
-  const handleIncrementStats = (type: 'socratic' | 'retrieval' | 'feynman') => {
-    setStats((prev) => ({
-      ...prev,
-      retrievalAttempts: type === 'retrieval' ? prev.retrievalAttempts + 1 : prev.retrievalAttempts,
-      feynmanExplanations: type === 'feynman' ? prev.feynmanExplanations + 1 : prev.feynmanExplanations,
-      socraticQuestionsAnswered: type === 'socratic' ? prev.socraticQuestionsAnswered + 1 : prev.socraticQuestionsAnswered,
-      totalActiveMinutes: prev.totalActiveMinutes + 2,
-    }));
-  };
 
   const handleOpenSocraticWithPrompt = (prompt: string) => {
     setSocraticPromptOverride(prompt);
@@ -212,7 +178,6 @@ function AppContent() {
 
         {activeTab === 'socratic' && (
           <SocraticTutor
-            onIncrementStats={handleIncrementStats}
             initialPrompt={socraticPromptOverride}
             onClearInitialPrompt={() => setSocraticPromptOverride(null)}
           />
@@ -220,16 +185,11 @@ function AppContent() {
 
         {activeTab === 'feynman' && (
           <FeynmanStudio
-            onIncrementStats={handleIncrementStats}
             onOpenSocraticWithPrompt={handleOpenSocraticWithPrompt}
           />
         )}
 
-        {activeTab === 'retrieval' && (
-          <ActiveRetrievalLab
-            onIncrementStats={handleIncrementStats}
-          />
-        )}
+        {activeTab === 'retrieval' && <ActiveRetrievalLab />}
 
         {activeTab === 'cognitive_map' && (
           <CognitiveMap

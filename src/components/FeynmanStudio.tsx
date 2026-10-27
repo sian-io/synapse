@@ -26,12 +26,10 @@ import {
 } from '@/components/ui/select';
 
 interface FeynmanStudioProps {
-  onIncrementStats: (type: 'socratic' | 'retrieval' | 'feynman') => void;
   onOpenSocraticWithPrompt?: (prompt: string) => void;
 }
 
 export const FeynmanStudio: React.FC<FeynmanStudioProps> = ({
-  onIncrementStats,
   onOpenSocraticWithPrompt,
 }) => {
   const { t, language } = useLanguage();
@@ -100,7 +98,6 @@ export const FeynmanStudio: React.FC<FeynmanStudioProps> = ({
 
       const data = await response.json();
       setEvaluation(data);
-      onIncrementStats('feynman');
     } catch (err: any) {
       console.error(err);
       setError(err.message || t.feynman.errorFallback);

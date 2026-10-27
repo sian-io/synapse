@@ -49,6 +49,20 @@ function isPosInt(val: unknown): val is number {
   return typeof val === 'number' && Number.isInteger(val) && val >= 1;
 }
 
+export function isAIConfigValid(cfg: AIProviderConfig | null | undefined): cfg is AIProviderConfig {
+  if (!cfg) return false;
+  if (cfg.manualEditEnabled) {
+    return Boolean(
+      typeof cfg.customUrlOverride === 'string' &&
+        cfg.customUrlOverride.trim().length > 0 &&
+        cfg.customBodyOverride &&
+        typeof cfg.customBodyOverride === 'object' &&
+        !Array.isArray(cfg.customBodyOverride)
+    );
+  }
+  return Boolean(cfg.apiStandard && cfg.baseUrl?.trim() && cfg.model?.trim());
+}
+
 export function getEndpointParameterSupport(
   apiStandard: APIStandard,
   openaiApiType: OpenAIApiType = 'completions'

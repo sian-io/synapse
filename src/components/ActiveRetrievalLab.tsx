@@ -28,10 +28,6 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 
-interface ActiveRetrievalLabProps {
-  onIncrementStats: (type: 'socratic' | 'retrieval' | 'feynman') => void;
-}
-
 export function previewNextInterval(card: Flashcard, quality: 0 | 1 | 2 | 3): number {
   if (quality === 0) {
     return 1;
@@ -45,9 +41,7 @@ export function previewNextInterval(card: Flashcard, quality: 0 | 1 | 2 | 3): nu
   return Math.max(3, Math.round(card.intervalDays * card.easeFactor * 1.3));
 }
 
-export const ActiveRetrievalLab: React.FC<ActiveRetrievalLabProps> = ({
-  onIncrementStats,
-}) => {
+export const ActiveRetrievalLab: React.FC = () => {
   const { t, language } = useLanguage();
 
   const [cards, setCards] = useState<Flashcard[]>(() => {
@@ -165,7 +159,6 @@ export const ActiveRetrievalLab: React.FC<ActiveRetrievalLabProps> = ({
     );
 
     setCards(updatedCards);
-    onIncrementStats('retrieval');
     handleNextCard();
   };
 
