@@ -327,9 +327,6 @@ export const ActiveRetrievalLab: React.FC = () => {
                   </div>
 
                   <div className="pt-4 border-t border-white/[0.05] flex items-start gap-2.5 text-sm">
-                    <span className="font-mono text-[11px] uppercase tracking-widest text-zinc-500 shrink-0 mt-0.5">
-                      LTP //
-                    </span>
                     <div className="space-y-0.5">
                       <span className="font-medium text-zinc-300 block">
                         {t.retrieval.neuroTipHeader}

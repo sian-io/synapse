@@ -28,7 +28,7 @@ export const translations = {
       conviction: '5: Conviction',
       defaultWelcome: `Hello! I am **Synapse**, your active learning pedagogical tutor grounded in **Cognitive Neuroscience**.
 
-Unlike conventional assistants that hand out ready-made answers (which causes the illusion of fluency and rapid forgetting), we prioritize **Long-Term Potentiation (LTP)** and **active retrieval**:
+Unlike conventional assistants that hand out ready-made answers (which causes the illusion of fluency and rapid forgetting), we prioritize **Long-Term Potentiation** and **active retrieval**:
 - We do not hand out pre-digested answers.
 - We deconstruct complex problems via the **Socratic Method** and **Elaborative Interrogation**.
 - You build neural pathways through productive cognitive struggle (*desirable difficulty*).
@@ -127,15 +127,15 @@ Unlike conventional assistants that hand out ready-made answers (which causes th
       deconstructButton: 'Deconstruct Cognitive Load',
       mappingButton: 'Mapping Neural Schemas...',
       tryAgain: 'Try again',
-      essentialCore: 'Essential Core (Germane Load)',
+      essentialCore: 'Essential Core',
       topicLabel: 'Topic:',
       coreMechanismTitle: 'The Core Mechanism in One Sentence:',
-      prerequisitesTitle: 'Prior Schemas (Scaffolding):',
+      prerequisitesTitle: 'Prior Schemas:',
       physicalAnalogyTitle: 'Physical World Analogy:',
       dualCoding: "Paivio's Dual-Coding Theory",
       whyOverloadTitle: 'Why it causes overload:',
       misconceptionsTitle: 'Cognitive Traps & Misconceptions:',
-      elaborativeTitle: 'Elaborative Interrogation Questions (Reflection Triggers):',
+      elaborativeTitle: 'Elaborative Interrogation Questions:',
       clickToDebate: 'Click to debate with Tutor',
       investigateButton: 'Investigate',
       investigatePromptPrefix: 'I am exploring this elaborative question about',
@@ -150,7 +150,7 @@ Unlike conventional assistants that hand out ready-made answers (which causes th
     },
     neuroscience: {
       heroTitle: 'How the Brain Really Consolidates Lasting Knowledge:',
-      heroDesc: 'Over a century of cognitive science proves that widespread study habits—such as passive rereading, linear summaries, and colorful highlighting—produce an illusion of competence with near-zero retention. Lasting memory (LTP) depends on deliberate cognitive effort: recalling, simplifying, and connecting.',
+      heroDesc: 'Over a century of cognitive science proves that widespread study habits—such as passive rereading, linear summaries, and colorful highlighting—produce an illusion of competence with near-zero retention. Lasting memory depends on deliberate cognitive effort: recalling, simplifying, and connecting.',
       metricRetentionTitle: 'Retention Efficiency',
       metricRetentionValue: '3x Superior',
       metricRetentionDesc: 'Active recall vs passive rereading in tests conducted after 7 days (Roediger & Karpicke).',
@@ -167,7 +167,7 @@ Unlike conventional assistants that hand out ready-made answers (which causes th
       passivePoint3Desc: 'The student can only answer when the original text is directly in front of them to provide recognition cues.',
       activeTitle: 'The Synapse Method (Active Synaptic Potentiation)',
       activePoint1Title: 'Retrieval Practice:',
-      activePoint1Desc: 'Forcing the recall of a memory trace from scratch triggers the synthesis of permanent synaptic proteins (LTP).',
+      activePoint1Desc: 'Forcing the recall of a memory trace from scratch triggers the synthesis of permanent synaptic proteins.',
       activePoint2Title: 'Feynman Technique:',
       activePoint2Desc: 'Deconstructs technical jargon into elementary language and anchors abstract concepts into semantic and dual-coded memory.',
       activePoint3Title: 'Desirable Difficulties:',
@@ -181,7 +181,7 @@ Unlike conventional assistants that hand out ready-made answers (which causes th
       step1Desc: 'Sensory and prefrontal cortex process the new idea. Working memory requires focus to retain the initial 4 to 7 elements.',
       step2Name: '2. Feynman Deconstruction',
       step2Desc: 'Translating complex terms into elementary language forces the activation of deep semantic networks and mnemonic connections.',
-      step3Name: '3. Active Retrieval (LTP)',
+      step3Name: '3. Active Retrieval',
       step3Desc: 'Recalling the concept without consulting notes stimulates the hippocampus to synthesize proteins and increase synaptic receptor density.',
       step4Name: '4. Spacing & Sleep',
       step4Desc: 'Reviewing at optimal Ebbinghaus intervals and deep sleep cycles transfers knowledge from the hippocampus to the permanent neocortex.',
@@ -214,7 +214,7 @@ Unlike conventional assistants that hand out ready-made answers (which causes th
       conviction: '5: Convicção',
       defaultWelcome: `Olá! Eu sou o **Synapse**, seu tutor pedagógico de aprendizagem ativa fundamentado em **Neurociência Cognitiva**.
 
-Diferente de assistentes convencionais que entregam respostas prontas (o que gera a ilusão de fluência e rápido esquecimento), nós priorizamos **Potenciação de Longa Duração (LTP)** e **recuperação ativa**:
+Diferente de assistentes convencionais que entregam respostas prontas (o que gera a ilusão de fluência e rápido esquecimento), nós priorizamos **Potenciação de Longa Duração** e **recuperação ativa**:
 - Não entregamos respostas mastigadas.
 - Desmontamos problemas complexos via **Método Socrático** e **Interrogação Elaborativa**.
 - Você constrói os caminhos neurais através do esforço cognitivo produtivo (*dificuldade desejável*).
@@ -313,15 +313,15 @@ Diferente de assistentes convencionais que entregam respostas prontas (o que ger
       deconstructButton: 'Desconstruir Carga Cognitiva',
       mappingButton: 'Mapeando Esquemas Neurais...',
       tryAgain: 'Tentar novamente',
-      essentialCore: 'Núcleo Essencial (Carga Germana)',
+      essentialCore: 'Núcleo Essencial',
       topicLabel: 'Tópico:',
       coreMechanismTitle: 'O Mecanismo Central em Uma Frase:',
-      prerequisitesTitle: 'Esquemas Prévios (Andaime):',
+      prerequisitesTitle: 'Esquemas Prévios:',
       physicalAnalogyTitle: 'Analogia do Mundo Físico:',
       dualCoding: 'Teoria do Duplo Código de Paivio',
       whyOverloadTitle: 'Por que gera sobrecarga:',
       misconceptionsTitle: 'Armadilhas Cognitivas & Mitos:',
-      elaborativeTitle: 'Perguntas de Interrogação Elaborativa (Gatilhos de Reflexão):',
+      elaborativeTitle: 'Perguntas de Interrogação Elaborativa:',
       clickToDebate: 'Clique para debater no Tutor',
       investigateButton: 'Investigar',
       investigatePromptPrefix: 'Estou explorando a pergunta elaborativa sobre',
@@ -336,7 +336,7 @@ Diferente de assistentes convencionais que entregam respostas prontas (o que ger
     },
     neuroscience: {
       heroTitle: 'Como o Cérebro Realmente Consolida Conhecimento Duradouro:',
-      heroDesc: 'Mais de um século de ciência cognitiva comprova que as práticas de estudo mais difundidas — como releitura passiva, resumos lineares e grifos coloridos — produzem ilusão de competência com retenção quase nula. A memória duradoura (LTP) depende de esforço cognitivo deliberado: evocar, simplificar e conectar.',
+      heroDesc: 'Mais de um século de ciência cognitiva comprova que as práticas de estudo mais difundidas — como releitura passiva, resumos lineares e grifos coloridos — produzem ilusão de competência com retenção quase nula. A memória duradoura depende de esforço cognitivo deliberado: evocar, simplificar e conectar.',
       metricRetentionTitle: 'Eficiência de Retenção',
       metricRetentionValue: '3x Superior',
       metricRetentionDesc: 'Evocação ativa vs releitura passiva em testes aplicados após 7 dias (Roediger & Karpicke).',
@@ -353,7 +353,7 @@ Diferente de assistentes convencionais que entregam respostas prontas (o que ger
       passivePoint3Desc: 'O estudante só consegue responder se tiver o texto original à sua frente para fornecer gatilhos de reconhecimento.',
       activeTitle: 'O Método Synapse (Potenciação Sináptica Ativa)',
       activePoint1Title: 'Prática de Recuperação:',
-      activePoint1Desc: 'Forçar a evocação do traço de memória a partir do zero desencadeia a síntese de proteínas sinápticas permanentes (LTP).',
+      activePoint1Desc: 'Forçar a evocação do traço de memória a partir do zero desencadeia a síntese de proteínas sinápticas permanentes.',
       activePoint2Title: 'Técnica de Feynman:',
       activePoint2Desc: 'Desconstrói jargões técnicos em linguagem elementar e ancora conceitos abstratos na memória semântica e do duplo código.',
       activePoint3Title: 'Dificuldades Desejáveis:',
@@ -367,7 +367,7 @@ Diferente de assistentes convencionais que entregam respostas prontas (o que ger
       step1Desc: 'Córtex sensorial e pré-frontal processam a nova ideia. A memória de trabalho requer foco para reter os primeiros 4 a 7 elementos.',
       step2Name: '2. Desconstrução Feynman',
       step2Desc: 'Traduzir termos complexos em linguagem elementar força a ativação de redes semânticas e conexões mnemônicas profundas.',
-      step3Name: '3. Recuperação Ativa (LTP)',
+      step3Name: '3. Recuperação Ativa',
       step3Desc: 'Evocar o conceito sem consulta estimula o hipocampo a sintetizar proteínas e aumentar a densidade de receptores sinápticos.',
       step4Name: '4. Espaçamento & Sono',
       step4Desc: 'Revisar nos intervalos ótimos de Ebbinghaus e ciclos de sono profundo transfere o conhecimento do hipocampo para o neocórtex permanente.',

@@ -174,7 +174,7 @@ export const CognitiveMap: React.FC<CognitiveMapProps> = ({
           <div className="sm:col-span-2 lg:col-span-6 bg-[#0f0f12] p-6 sm:p-8 space-y-3">
             <span className="font-mono text-[11px] uppercase tracking-widest text-zinc-500 tabular-nums flex items-center gap-1.5">
               <Layers className="w-3.5 h-3.5 text-zinc-500 stroke-[1.75]" />
-              00 // {t.cognitiveMap.emptyTitle}
+              {t.cognitiveMap.emptyTitle}
             </span>
             <p className="text-sm sm:text-[15px] text-zinc-400 leading-relaxed max-w-3xl">
               {t.cognitiveMap.bannerDesc}
@@ -187,14 +187,14 @@ export const CognitiveMap: React.FC<CognitiveMapProps> = ({
             { icon: ShieldCheck, title: t.cognitiveMap.prerequisitesTitle, desc: t.cognitiveMap.previewPrereqDesc, span: 'lg:col-span-2' },
             { icon: AlertTriangle, title: t.cognitiveMap.misconceptionsTitle, desc: t.cognitiveMap.previewTrapsDesc, span: 'lg:col-span-2' },
             { icon: HelpCircle, title: t.cognitiveMap.elaborativeTitle, desc: t.cognitiveMap.previewQuestionsDesc, span: 'sm:col-span-2 lg:col-span-2' },
-          ].map((cell, idx) => {
+          ].map((cell) => {
             const Icon = cell.icon;
             return (
-              <div key={idx} className={`${cell.span} bg-[#0f0f12] p-6 space-y-2.5`}>
+              <div className={`${cell.span} bg-[#0f0f12] p-6 space-y-2.5`}>
                 <span className="font-mono text-[11px] uppercase tracking-widest text-zinc-500 tabular-nums flex items-start gap-1.5 leading-relaxed">
                   <Icon className="w-3.5 h-3.5 text-zinc-500 stroke-[1.75] shrink-0 mt-0.5" />
                   <span>
-                    {String(idx + 1).padStart(2, '0')} // {cell.title.replace(/:\s*$/, '')}
+                    {cell.title.replace(/:\s*$/, '')}
                   </span>
                 </span>
                 <p className="text-sm text-zinc-400 leading-relaxed">{cell.desc}</p>
