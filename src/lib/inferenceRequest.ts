@@ -1,5 +1,12 @@
 import { AIProviderConfig, APIStandard, OpenAIApiType, ReasoningEffort } from '../types';
 
+export type InferenceProtocol =
+  | 'openai-completions'
+  | 'openai-responses'
+  | 'anthropic'
+  | 'google'
+  | 'ollama';
+
 export interface EndpointParameterSupport {
   temperature: boolean;
   maxTemperature: number;
@@ -29,6 +36,7 @@ export interface BuiltInferenceRequest {
   url: string;
   headers: Record<string, string>;
   body: Record<string, unknown>;
+  protocol: InferenceProtocol;
 }
 
 const VALID_REASONING_EFFORTS: ReasoningEffort[] = ['low', 'medium', 'high'];
@@ -206,6 +214,22 @@ export function sanitizeConfigForEndpoint(cfg: AIProviderConfig): AIProviderConf
     !Array.isArray(cfg.customBodyOverride)
   ) {
     sanitized.manualEditEnabled = true;
+    if (typeof cfg.customUrlOverride === 'string' && cfg.customUrlOverride.trim()) {
+      sanitized.customUrlOverride = cfg.customUrlOverride.trim();
+    }
+    if (
+      cfg.customHeadersOverride &&
+      typeof cfg.customHeadersOverride === 'object' &&
+      !Array.isArray(cfg.customHeadersOverride)
+    ) {
+      const cleanHeaders: Record<string, string> = {};
+      for (const [k, v] of Object.entries(cfg.customHeadersOverride)) {
+        if (v !== undefined && v !== null) {
+          cleanHeaders[k] = String(v);
+        }
+      }
+      sanitized.customHeadersOverride = cleanHeaders;
+    }
     sanitized.customBodyOverride = cfg.customBodyOverride;
   }
 
@@ -213,54 +237,178 @@ export function sanitizeConfigForEndpoint(cfg: AIProviderConfig): AIProviderConf
 }
 
 function formatDisplayApiKey(rawKey: string, mask?: boolean): string {
-  if (!rawKey) return mask ? '<YOUR_API_KEY>' : '';
+  if (!rawKey) return '<YOUR_API_KEY>';
   if (!mask) return rawKey;
   if (rawKey.length <= 8) return '••••••••';
   return `${rawKey.slice(0, 4)}••••••••${rawKey.slice(-2)}`;
 }
 
-function mergeManualBodyOverride(
-  baseBody: Record<string, unknown>,
-  override: Record<string, unknown>,
-  preserveOverrideMessages?: boolean
-): Record<string, unknown> {
-  if (preserveOverrideMessages) {
-    return { ...override };
+export function detectManualProtocol(
+  url: string,
+  headers: Record<string, string>,
+  body: Record<string, unknown>
+): InferenceProtocol {
+  const lowerUrl = url.toLowerCase().trim();
+  const lowerHeaderKeys = Object.keys(headers).map((k) => k.toLowerCase());
+
+  if (
+    lowerUrl.includes(':generatecontent') ||
+    lowerUrl.includes('generativelanguage.googleapis.com') ||
+    lowerHeaderKeys.includes('x-goog-api-key') ||
+    'contents' in body ||
+    'systemInstruction' in body ||
+    'generationConfig' in body
+  ) {
+    return 'google';
   }
 
-  const merged: Record<string, unknown> = {
-    ...baseBody,
-    ...override,
+  if (
+    lowerUrl.includes('anthropic.com') ||
+    lowerUrl.endsWith('/messages') ||
+    lowerHeaderKeys.includes('anthropic-version') ||
+    lowerHeaderKeys.includes('x-api-key') ||
+    ('system' in body && typeof body.system === 'string')
+  ) {
+    return 'anthropic';
+  }
+
+  if (
+    lowerUrl.endsWith('/responses') ||
+    lowerUrl.includes('/v1/responses') ||
+    'input' in body ||
+    'instructions' in body ||
+    'max_output_tokens' in body
+  ) {
+    return 'openai-responses';
+  }
+
+  if (
+    lowerUrl.endsWith('/api/chat') ||
+    lowerUrl.includes(':11434') ||
+    ('options' in body && typeof body.options === 'object' && body.options !== null) ||
+    'num_ctx' in body ||
+    'format' in body
+  ) {
+    return 'ollama';
+  }
+
+  return 'openai-completions';
+}
+
+function buildManualRequest(
+  cfg: AIProviderConfig,
+  options: BuildInferenceOptions,
+  systemPrompt: string
+): BuiltInferenceRequest {
+  const url = (cfg.customUrlOverride || '').trim();
+  const headers: Record<string, string> = { ...(cfg.customHeadersOverride || {}) };
+  const rawBody: Record<string, unknown> = { ...(cfg.customBodyOverride || {}) };
+  const protocol = detectManualProtocol(url, headers, rawBody);
+
+  if (options.preserveOverrideMessages) {
+    return {
+      method: 'POST',
+      url,
+      headers,
+      body: rawBody,
+      protocol,
+    };
+  }
+
+  const body: Record<string, unknown> = { ...rawBody };
+
+  if (protocol === 'anthropic') {
+    if (systemPrompt) {
+      if (typeof body.system === 'string' && body.system.trim()) {
+        body.system = `${body.system.trim()}\n\n${systemPrompt}`;
+      } else {
+        body.system = systemPrompt;
+      }
+    }
+    body.messages = options.messages.map((m) => ({
+      role: m.role === 'assistant' ? 'assistant' : 'user',
+      content: m.content,
+    }));
+  } else if (protocol === 'google') {
+    if (systemPrompt) {
+      if (body.systemInstruction === undefined) {
+        body.systemInstruction = { parts: [{ text: systemPrompt }] };
+      }
+    }
+    body.contents = options.messages.map((m) => ({
+      role: m.role === 'assistant' ? 'model' : 'user',
+      parts: [{ text: m.content }],
+    }));
+    if (options.jsonMode) {
+      const existingGenCfg =
+        body.generationConfig &&
+        typeof body.generationConfig === 'object' &&
+        !Array.isArray(body.generationConfig)
+          ? (body.generationConfig as Record<string, unknown>)
+          : {};
+      if (existingGenCfg.responseMimeType === undefined) {
+        body.generationConfig = {
+          ...existingGenCfg,
+          responseMimeType: 'application/json',
+        };
+      }
+    }
+  } else if (protocol === 'openai-responses') {
+    if (systemPrompt) {
+      if (typeof body.instructions === 'string' && body.instructions.trim()) {
+        body.instructions = `${body.instructions.trim()}\n\n${systemPrompt}`;
+      } else {
+        body.instructions = systemPrompt;
+      }
+    }
+    body.input = options.messages.map((m) => ({
+      role: m.role === 'assistant' ? 'assistant' : 'user',
+      content: m.content,
+    }));
+    if (options.jsonMode) {
+      const existingText =
+        body.text && typeof body.text === 'object' && !Array.isArray(body.text)
+          ? (body.text as Record<string, unknown>)
+          : {};
+      if (existingText.format === undefined) {
+        body.text = {
+          ...existingText,
+          format: { type: 'json_object' },
+        };
+      }
+    }
+  } else if (protocol === 'ollama') {
+    body.messages = [
+      ...(systemPrompt ? [{ role: 'system', content: systemPrompt }] : []),
+      ...options.messages.map((m) => ({
+        role: m.role === 'assistant' ? 'assistant' : 'user',
+        content: m.content,
+      })),
+    ];
+    if (options.jsonMode && body.format === undefined) {
+      body.format = 'json';
+    }
+  } else {
+    // openai-completions
+    body.messages = [
+      ...(systemPrompt ? [{ role: 'system', content: systemPrompt }] : []),
+      ...options.messages.map((m) => ({
+        role: m.role === 'assistant' ? 'assistant' : 'user',
+        content: m.content,
+      })),
+    ];
+    if (options.jsonMode && body.response_format === undefined) {
+      body.response_format = { type: 'json_object' };
+    }
+  }
+
+  return {
+    method: 'POST',
+    url,
+    headers,
+    body,
+    protocol,
   };
-
-  // Preserve dynamic runtime conversation payload keys generated by each tool
-  const dynamicKeys = ['messages', 'system', 'contents', 'systemInstruction', 'input', 'instructions'];
-  for (const key of dynamicKeys) {
-    if (key in baseBody) {
-      merged[key] = baseBody[key];
-    }
-  }
-
-  // Deep merge nested config objects when present in both
-  for (const nestedKey of ['generationConfig', 'options', 'reasoning', 'thinking', 'text', 'response_format']) {
-    const baseNested = baseBody[nestedKey];
-    const overrideNested = override[nestedKey];
-    if (
-      baseNested &&
-      typeof baseNested === 'object' &&
-      !Array.isArray(baseNested) &&
-      overrideNested &&
-      typeof overrideNested === 'object' &&
-      !Array.isArray(overrideNested)
-    ) {
-      merged[nestedKey] = {
-        ...(baseNested as Record<string, unknown>),
-        ...(overrideNested as Record<string, unknown>),
-      };
-    }
-  }
-
-  return merged;
 }
 
 export function buildInferenceRequest(
@@ -268,10 +416,6 @@ export function buildInferenceRequest(
   options: BuildInferenceOptions
 ): BuiltInferenceRequest {
   const cfg = sanitizeConfigForEndpoint(rawCfg);
-  const baseUrl = (cfg.baseUrl || 'https://api.openai.com/v1').trim().replace(/\/+$/, '');
-  const model = (cfg.model || 'gpt-4o-mini').trim();
-  const rawApiKey = cfg.apiKey?.trim() || '';
-  const displayKey = formatDisplayApiKey(rawApiKey, options.maskApiKey);
 
   const systemPrompt = [
     options.systemInstruction || '',
@@ -280,12 +424,21 @@ export function buildInferenceRequest(
     .filter(Boolean)
     .join('\n\n');
 
-  const finalizeBody = (baseBody: Record<string, unknown>): Record<string, unknown> => {
-    if (cfg.manualEditEnabled && cfg.customBodyOverride) {
-      return mergeManualBodyOverride(baseBody, cfg.customBodyOverride, options.preserveOverrideMessages);
-    }
-    return baseBody;
-  };
+  // When Manual Edit is enabled, ignore all left-hand form fields and build directly from the manual override
+  if (
+    cfg.manualEditEnabled &&
+    cfg.customUrlOverride &&
+    cfg.customBodyOverride &&
+    typeof cfg.customBodyOverride === 'object' &&
+    !Array.isArray(cfg.customBodyOverride)
+  ) {
+    return buildManualRequest(cfg, options, systemPrompt);
+  }
+
+  const baseUrl = (cfg.baseUrl || 'https://api.openai.com/v1').trim().replace(/\/+$/, '');
+  const model = (cfg.model || 'gpt-4o-mini').trim();
+  const rawApiKey = cfg.apiKey?.trim() || '';
+  const displayKey = formatDisplayApiKey(rawApiKey, options.maskApiKey);
 
   if (cfg.apiStandard === 'anthropic') {
     const url = baseUrl.endsWith('/messages')
@@ -320,7 +473,8 @@ export function buildInferenceRequest(
         'x-api-key': displayKey,
         'anthropic-version': '2023-06-01',
       },
-      body: finalizeBody(baseBody),
+      body: baseBody,
+      protocol: 'anthropic',
     };
   }
 
@@ -332,10 +486,10 @@ export function buildInferenceRequest(
         ? `${baseUrl}/${modelPath}:generateContent`
         : `${baseUrl}/v1beta/${modelPath}:generateContent`;
 
-    const headers: Record<string, string> = { 'content-type': 'application/json' };
-    if (rawApiKey || options.maskApiKey) {
-      headers['x-goog-api-key'] = displayKey;
-    }
+    const headers: Record<string, string> = {
+      'content-type': 'application/json',
+      'x-goog-api-key': displayKey,
+    };
 
     const generationConfig: Record<string, unknown> = {
       ...(options.jsonMode ? { responseMimeType: 'application/json' } : {}),
@@ -361,7 +515,8 @@ export function buildInferenceRequest(
       method: 'POST',
       url,
       headers,
-      body: finalizeBody(baseBody),
+      body: baseBody,
+      protocol: 'google',
     };
   }
 
@@ -406,15 +561,16 @@ export function buildInferenceRequest(
       method: 'POST',
       url,
       headers,
-      body: finalizeBody(baseBody),
+      body: baseBody,
+      protocol: 'ollama',
     };
   }
 
   // OpenAI standard (Chat Completions or Responses API)
-  const headers: Record<string, string> = { 'content-type': 'application/json' };
-  if (rawApiKey || options.maskApiKey) {
-    headers['authorization'] = `Bearer ${displayKey}`;
-  }
+  const headers: Record<string, string> = {
+    'content-type': 'application/json',
+    authorization: `Bearer ${displayKey}`,
+  };
 
   if (cfg.openaiApiType === 'responses') {
     const url = baseUrl.endsWith('/responses')
@@ -441,7 +597,8 @@ export function buildInferenceRequest(
       method: 'POST',
       url,
       headers,
-      body: finalizeBody(baseBody),
+      body: baseBody,
+      protocol: 'openai-responses',
     };
   }
 
@@ -475,6 +632,7 @@ export function buildInferenceRequest(
     method: 'POST',
     url,
     headers,
-    body: finalizeBody(baseBody),
+    body: baseBody,
+    protocol: 'openai-completions',
   };
 }

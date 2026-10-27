@@ -119,7 +119,7 @@ export const AIConfigProvider: React.FC<{ children: React.ReactNode }> = ({ chil
     setConfigState(next);
   };
 
-  // Build effective config for preview (using provider defaults as fallback when inputs are empty)
+  // Build effective config for preview when Manual Edit is disabled (using provider defaults as fallback when inputs are empty)
   const previewConfig = useMemo<AIProviderConfig>(() => {
     const defaults = PROVIDER_DEFAULTS[draft.apiStandard];
     return {
@@ -129,11 +129,17 @@ export const AIConfigProvider: React.FC<{ children: React.ReactNode }> = ({ chil
     };
   }, [draft]);
 
-  // Request built strictly from menu fields (without manual override)
-  const fieldGeneratedRequest = useMemo(
+  // Active request for preview display when Manual Edit is disabled (apiKey masked according to showKey)
+  const activePreviewRequest = useMemo(
     () =>
       buildInferenceRequest(
-        { ...previewConfig, manualEditEnabled: false, customBodyOverride: undefined },
+        {
+          ...previewConfig,
+          manualEditEnabled: false,
+          customUrlOverride: undefined,
+          customHeadersOverride: undefined,
+          customBodyOverride: undefined,
+        },
         {
           messages: [],
           maskApiKey: !showKey,
@@ -142,24 +148,21 @@ export const AIConfigProvider: React.FC<{ children: React.ReactNode }> = ({ chil
     [previewConfig, showKey]
   );
 
-  // Active request for preview display (apiKey masked according to showKey)
-  const activePreviewRequest = useMemo(
-    () =>
-      buildInferenceRequest(previewConfig, {
-        messages: [],
-        maskApiKey: !showKey,
-        preserveOverrideMessages: true,
-      }),
-    [previewConfig, showKey]
-  );
-
-  // Unmasked request payload for clipboard copy (always contains full real API key)
+  // Unmasked request payload for clipboard copy when Manual Edit is disabled (always contains full real API key)
   const activeUnmaskedPayload = useMemo(() => {
-    const unmaskedReq = buildInferenceRequest(previewConfig, {
-      messages: [],
-      maskApiKey: false,
-      preserveOverrideMessages: true,
-    });
+    const unmaskedReq = buildInferenceRequest(
+      {
+        ...previewConfig,
+        manualEditEnabled: false,
+        customUrlOverride: undefined,
+        customHeadersOverride: undefined,
+        customBodyOverride: undefined,
+      },
+      {
+        messages: [],
+        maskApiKey: false,
+      }
+    );
     return {
       url: unmaskedReq.url,
       headers: unmaskedReq.headers,
@@ -183,30 +186,44 @@ export const AIConfigProvider: React.FC<{ children: React.ReactNode }> = ({ chil
     setShowAdvanced(false);
     setManualJsonError(null);
     if (initial.manualEditEnabled && initial.customBodyOverride) {
-      const defaults = PROVIDER_DEFAULTS[initial.apiStandard];
-      const initialReq = buildInferenceRequest(
-        {
-          ...initial,
-          baseUrl: initial.baseUrl?.trim() || defaults.baseUrl,
-          model: initial.model?.trim() || defaults.model,
-        },
-        {
-          messages: [],
-          maskApiKey: false,
-          preserveOverrideMessages: true,
-        }
-      );
-      setManualBodyText(
-        JSON.stringify(
+      if (initial.customUrlOverride) {
+        setManualBodyText(
+          JSON.stringify(
+            {
+              url: initial.customUrlOverride,
+              headers: initial.customHeadersOverride || {},
+              body: initial.customBodyOverride,
+            },
+            null,
+            2
+          )
+        );
+      } else {
+        const defaults = PROVIDER_DEFAULTS[initial.apiStandard];
+        const fallbackReq = buildInferenceRequest(
           {
-            url: initialReq.url,
-            headers: initialReq.headers,
-            body: initialReq.body,
+            ...initial,
+            baseUrl: initial.baseUrl?.trim() || defaults.baseUrl,
+            model: initial.model?.trim() || defaults.model,
+            manualEditEnabled: false,
           },
-          null,
-          2
-        )
-      );
+          {
+            messages: [],
+            maskApiKey: false,
+          }
+        );
+        setManualBodyText(
+          JSON.stringify(
+            {
+              url: fallbackReq.url,
+              headers: fallbackReq.headers,
+              body: initial.customBodyOverride,
+            },
+            null,
+            2
+          )
+        );
+      }
     } else {
       setManualBodyText('');
     }
@@ -216,39 +233,7 @@ export const AIConfigProvider: React.FC<{ children: React.ReactNode }> = ({ chil
   const closeModal = () => setIsModalOpen(false);
 
   const updateDraftFromMenu = (updater: (prev: AIProviderConfig) => AIProviderConfig) => {
-    setDraft((prev) => {
-      const updated = updater(prev);
-      if (updated.manualEditEnabled) {
-        const defaults = PROVIDER_DEFAULTS[updated.apiStandard];
-        const nextReq = buildInferenceRequest(
-          {
-            ...updated,
-            baseUrl: updated.baseUrl?.trim() || defaults.baseUrl,
-            model: updated.model?.trim() || defaults.model,
-            manualEditEnabled: false,
-            customBodyOverride: undefined,
-          },
-          {
-            messages: [],
-            maskApiKey: false,
-          }
-        );
-        updated.customBodyOverride = nextReq.body;
-        setManualBodyText(
-          JSON.stringify(
-            {
-              url: nextReq.url,
-              headers: nextReq.headers,
-              body: nextReq.body,
-            },
-            null,
-            2
-          )
-        );
-        setManualJsonError(null);
-      }
-      return updated;
-    });
+    setDraft((prev) => updater(prev));
   };
 
   const handleToggleManualEdit = (enabled: boolean) => {
@@ -260,6 +245,8 @@ export const AIConfigProvider: React.FC<{ children: React.ReactNode }> = ({ chil
           baseUrl: draft.baseUrl?.trim() || defaults.baseUrl,
           model: draft.model?.trim() || defaults.model,
           manualEditEnabled: false,
+          customUrlOverride: undefined,
+          customHeadersOverride: undefined,
           customBodyOverride: undefined,
         },
         {
@@ -277,6 +264,8 @@ export const AIConfigProvider: React.FC<{ children: React.ReactNode }> = ({ chil
       setDraft((prev) => ({
         ...prev,
         manualEditEnabled: true,
+        customUrlOverride: unmaskedReq.url,
+        customHeadersOverride: unmaskedReq.headers,
         customBodyOverride: unmaskedReq.body,
       }));
     } else {
@@ -284,7 +273,13 @@ export const AIConfigProvider: React.FC<{ children: React.ReactNode }> = ({ chil
       setManualBodyText('');
       setManualJsonError(null);
       setDraft((prev) => {
-        const cleaned = { ...prev, manualEditEnabled: false, customBodyOverride: undefined };
+        const cleaned: AIProviderConfig = {
+          ...prev,
+          manualEditEnabled: false,
+          customUrlOverride: undefined,
+          customHeadersOverride: undefined,
+          customBodyOverride: undefined,
+        };
         return sanitizeConfigForEndpoint(cleaned);
       });
     }
@@ -296,19 +291,60 @@ export const AIConfigProvider: React.FC<{ children: React.ReactNode }> = ({ chil
       const parsed = JSON.parse(rawText);
       if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) {
         setManualJsonError(
-          isPt ? 'O payload deve ser um objeto JSON válido.' : 'Payload must be a valid JSON object.'
+          isPt
+            ? 'O payload deve ser um objeto JSON válido contendo { "url", "headers", "body" }.'
+            : 'Payload must be a valid JSON object containing { "url", "headers", "body" }.'
         );
         return;
       }
-      const bodyObj =
-        parsed.body && typeof parsed.body === 'object' && !Array.isArray(parsed.body)
-          ? (parsed.body as Record<string, unknown>)
-          : (parsed as Record<string, unknown>);
+
+      const rawUrl = typeof parsed.url === 'string' ? parsed.url.trim() : '';
+      if (!rawUrl) {
+        setManualJsonError(
+          isPt
+            ? 'O JSON deve conter uma propriedade "url" (string não vazia).'
+            : 'JSON must include a non-empty "url" string.'
+        );
+        return;
+      }
+
+      if (
+        parsed.headers !== undefined &&
+        (!parsed.headers || typeof parsed.headers !== 'object' || Array.isArray(parsed.headers))
+      ) {
+        setManualJsonError(
+          isPt
+            ? 'A propriedade "headers" deve ser um objeto JSON válido.'
+            : 'The "headers" property must be a valid JSON object.'
+        );
+        return;
+      }
+
+      if (!parsed.body || typeof parsed.body !== 'object' || Array.isArray(parsed.body)) {
+        setManualJsonError(
+          isPt
+            ? 'O JSON deve conter uma propriedade "body" (objeto JSON).'
+            : 'JSON must include a valid "body" JSON object.'
+        );
+        return;
+      }
+
+      const normalizedHeaders: Record<string, string> = {};
+      if (parsed.headers) {
+        for (const [k, v] of Object.entries(parsed.headers as Record<string, unknown>)) {
+          if (v !== undefined && v !== null) {
+            normalizedHeaders[k] = String(v);
+          }
+        }
+      }
+
       setManualJsonError(null);
       setDraft((prev) => ({
         ...prev,
         manualEditEnabled: true,
-        customBodyOverride: bodyObj,
+        customUrlOverride: rawUrl,
+        customHeadersOverride: normalizedHeaders,
+        customBodyOverride: parsed.body as Record<string, unknown>,
       }));
     } catch {
       setManualJsonError(
@@ -355,6 +391,8 @@ export const AIConfigProvider: React.FC<{ children: React.ReactNode }> = ({ chil
       model: prev.model,
       maxTokens: prev.apiStandard === 'anthropic' ? 2048 : undefined,
       manualEditEnabled: prev.manualEditEnabled,
+      customUrlOverride: prev.customUrlOverride,
+      customHeadersOverride: prev.customHeadersOverride,
       customBodyOverride: prev.customBodyOverride,
     }));
   };
@@ -362,20 +400,7 @@ export const AIConfigProvider: React.FC<{ children: React.ReactNode }> = ({ chil
   const handleCopyPreview = async () => {
     let textToCopy = '';
     if (draft.manualEditEnabled) {
-      if (draft.apiKey?.trim()) {
-        const maskedKey = '<YOUR_API_KEY>';
-        const bulletMask = '••••••••';
-        let replaced = manualBodyText;
-        if (replaced.includes(maskedKey)) {
-          replaced = replaced.replaceAll(maskedKey, draft.apiKey.trim());
-        }
-        if (replaced.includes(bulletMask)) {
-          replaced = replaced.replaceAll(bulletMask, draft.apiKey.trim());
-        }
-        textToCopy = replaced;
-      } else {
-        textToCopy = manualBodyText;
-      }
+      textToCopy = manualBodyText;
     } else {
       textToCopy = JSON.stringify(activeUnmaskedPayload, null, 2);
     }
@@ -631,7 +656,7 @@ export const AIConfigProvider: React.FC<{ children: React.ReactNode }> = ({ chil
                           onChange={(e) =>
                             updateDraftFromMenu((prev) => ({ ...prev, baseUrl: e.target.value }))
                           }
-                          required
+                          required={!draft.manualEditEnabled}
                           placeholder={providerDefaults.baseUrl}
                           className="w-full h-10 surface-recessed rounded-md px-3.5 text-sm text-zinc-100 placeholder-zinc-600 font-mono focus:outline-none focus:border-white/[0.14]"
                         />
@@ -647,7 +672,7 @@ export const AIConfigProvider: React.FC<{ children: React.ReactNode }> = ({ chil
                           onChange={(e) =>
                             updateDraftFromMenu((prev) => ({ ...prev, model: e.target.value }))
                           }
-                          required
+                          required={!draft.manualEditEnabled}
                           placeholder={providerDefaults.modelHint}
                           className="w-full h-10 surface-recessed rounded-md px-3.5 text-sm text-zinc-100 placeholder-zinc-600 font-mono focus:outline-none focus:border-white/[0.14]"
                         />
@@ -733,7 +758,7 @@ export const AIConfigProvider: React.FC<{ children: React.ReactNode }> = ({ chil
                             type="number"
                             min={1}
                             step={1}
-                            required={support.maxTokensRequired}
+                            required={!draft.manualEditEnabled && support.maxTokensRequired}
                             value={
                               support.maxTokensRequired
                                 ? (draft.maxTokens ?? 2048)

@@ -97,5 +97,7 @@ export interface AIProviderConfig {
   numCtx?: number;
   repeatPenalty?: number;
   manualEditEnabled?: boolean;
+  customUrlOverride?: string;
+  customHeadersOverride?: Record<string, string>;
   customBodyOverride?: Record<string, unknown>;
 }

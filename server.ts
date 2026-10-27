@@ -40,7 +40,20 @@ function resolveAIConfig(c: Context, bodyConfig?: AIProviderConfig, isPt = false
     }
   }
 
-  if (!cfg || !cfg.apiStandard || !cfg.baseUrl?.trim() || !cfg.model?.trim()) {
+  const isManualValid = Boolean(
+    cfg?.manualEditEnabled &&
+      typeof cfg?.customUrlOverride === 'string' &&
+      cfg.customUrlOverride.trim().length > 0 &&
+      cfg?.customBodyOverride &&
+      typeof cfg.customBodyOverride === 'object' &&
+      !Array.isArray(cfg.customBodyOverride)
+  );
+
+  const isMenuValid = Boolean(
+    cfg && !cfg.manualEditEnabled && cfg.apiStandard && cfg.baseUrl?.trim() && cfg.model?.trim()
+  );
+
+  if (!cfg || (!isManualValid && !isMenuValid)) {
     throw new Error(
       isPt
         ? 'Configure sua API nas Configurações de IA (ícone de engrenagem no topo).'
@@ -71,7 +84,7 @@ async function runInference(
     body: JSON.stringify(req.body),
   });
 
-  if (cfg.apiStandard === 'anthropic') {
+  if (req.protocol === 'anthropic') {
     if (!res.ok) {
       const errBody = await res.text().catch(() => '');
       throw new Error(`Anthropic API error (${res.status}): ${errBody.slice(0, 200)}`);
@@ -83,7 +96,7 @@ async function runInference(
     return options.jsonMode ? cleanJsonText(text) : text;
   }
 
-  if (cfg.apiStandard === 'google') {
+  if (req.protocol === 'google') {
     if (!res.ok) {
       const errBody = await res.text().catch(() => '');
       throw new Error(`Google API error (${res.status}): ${errBody.slice(0, 200)}`);
@@ -97,7 +110,7 @@ async function runInference(
     return options.jsonMode ? cleanJsonText(text) : text;
   }
 
-  if (cfg.apiStandard === 'ollama') {
+  if (req.protocol === 'ollama') {
     if (!res.ok) {
       const errBody = await res.text().catch(() => '');
       throw new Error(`Ollama API error (${res.status}): ${errBody.slice(0, 200)}`);
@@ -109,7 +122,7 @@ async function runInference(
     return options.jsonMode ? cleanJsonText(text) : text;
   }
 
-  if (cfg.openaiApiType === 'responses') {
+  if (req.protocol === 'openai-responses') {
     if (!res.ok) {
       const errBody = await res.text().catch(() => '');
       throw new Error(`OpenAI Responses API error (${res.status}): ${errBody.slice(0, 200)}`);
