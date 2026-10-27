@@ -106,13 +106,13 @@ function AppContent() {
           <div className="flex items-center gap-1.5 sm:gap-2.5 shrink-0">
             {/* Language Switcher */}
             <div className="flex items-center rounded-md surface-recessed p-0.5 text-xs text-zinc-300 font-medium">
-              <div className="hidden sm:flex items-center px-1.5 text-zinc-500">
-                <Globe className="w-3 h-3 stroke-[1.75]" />
+              <div className="hidden sm:flex items-center px-2 text-zinc-500">
+                <Globe className="w-4 h-4 stroke-[1.75]" />
               </div>
               <button
                 type="button"
                 onClick={() => setLanguage('en')}
-                className={`h-6 px-2 rounded-md text-[11px] font-mono tabular-nums font-medium transition-colors cursor-pointer ${
+                className={`h-6 px-2 rounded-md text-[12px] font-mono tabular-nums font-medium transition-colors cursor-pointer ${
                   language === 'en'
                     ? 'bg-zinc-100 text-zinc-950'
                     : 'text-zinc-400 hover:text-zinc-200'
@@ -124,7 +124,7 @@ function AppContent() {
               <button
                 type="button"
                 onClick={() => setLanguage('pt')}
-                className={`h-6 px-2 rounded-md text-[11px] font-mono tabular-nums font-medium transition-colors cursor-pointer ${
+                className={`h-6 px-2 rounded-md text-[12px] font-mono tabular-nums font-medium transition-colors cursor-pointer ${
                   language === 'pt'
                     ? 'bg-zinc-100 text-zinc-950'
                     : 'text-zinc-400 hover:text-zinc-200'

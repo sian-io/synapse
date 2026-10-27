@@ -4,7 +4,6 @@ import {
   Sparkles,
   CheckCircle2,
   XCircle,
-  Brain,
   Layers,
   ChevronRight,
   ChevronLeft,
@@ -211,7 +210,7 @@ export const ActiveRetrievalLab: React.FC = () => {
               {/* Unified Card Header */}
               <div className="flex flex-wrap items-center justify-between gap-3 pb-4 border-b border-white/[0.06]">
                 <div className="flex flex-wrap items-center gap-2.5">
-                  <span className="flex items-center gap-2 font-mono text-[11px] uppercase tracking-widest text-zinc-500 tabular-nums">
+                  <span className="flex items-center gap-2 font-mono text-[13px] uppercase tracking-widest text-zinc-500 tabular-nums">
                     <Layers className="w-3.5 h-3.5 text-zinc-500 stroke-[1.75]" />
                     <span>
                       {t.retrieval.cardCount}{' '}
@@ -221,26 +220,20 @@ export const ActiveRetrievalLab: React.FC = () => {
                     </span>
                   </span>
 
-                  <span className="text-white/[0.12] select-none">•</span>
-
-                  <span className="font-mono text-[11px] uppercase tracking-widest text-zinc-500">
-                    {isFlipped ? t.retrieval.solutionHeader : t.retrieval.challengeHeader}
-                  </span>
-
-                  <span className="px-2 py-0.5 rounded-md surface-recessed text-[11px] font-mono text-zinc-300 truncate max-w-[200px]">
+                  <span className="px-2 py-0.5 rounded-md surface-recessed text-[13px] font-mono text-zinc-300 truncate max-w-[240px]">
                     {currentCard.topic}
                   </span>
                 </div>
 
                 <div className="flex flex-wrap items-center gap-3">
-                  <span className="text-[11px] text-zinc-400 font-mono tabular-nums">
+                  <span className="text-[13px] text-zinc-400 font-mono tabular-nums">
                     {t.retrieval.nextReview} +{currentCard.intervalDays}d
                   </span>
 
                   <span className="text-white/[0.12] select-none hidden sm:inline">•</span>
 
                   <div className="flex items-center gap-2">
-                    <span className="font-mono text-[11px] uppercase tracking-widest text-zinc-500">
+                    <span className="font-mono text-[13px] uppercase tracking-widest text-zinc-500">
                       {t.retrieval.masteryLevel}
                     </span>
                     <div className="flex items-center gap-1" aria-label={`${currentCard.masteryLevel || 0}/5`}>
@@ -263,34 +256,25 @@ export const ActiveRetrievalLab: React.FC = () => {
               </div>
 
               {/* Question Section */}
-              <div className="space-y-2.5">
-                <h3 className="text-lg sm:text-xl font-semibold text-zinc-100 leading-snug">
+              <div className="space-y-3">
+                <h2 className="text-xl sm:text-2xl font-semibold text-zinc-100 tracking-tight leading-snug">
                   {currentCard.question}
-                </h3>
-                <p className="text-[13px] text-zinc-500 font-mono">
+                </h2>
+                <p className="text-sm text-zinc-400">
                   {t.retrieval.targetConcept}{' '}
-                  <span className="text-zinc-300">{currentCard.keyConcept}</span>
+                  <span className="text-zinc-200 font-medium">{currentCard.keyConcept}</span>
                 </p>
               </div>
 
               {/* Draft Answer Area (Generation Effect) */}
               {!isFlipped && (
                 <div className="pt-5 border-t border-white/[0.06] space-y-3.5">
-                  <div className="flex items-center justify-between text-xs">
-                    <label className="font-mono text-[11px] uppercase tracking-widest text-zinc-400 flex items-center gap-1.5">
-                      <Brain className="w-3.5 h-3.5 text-zinc-500 stroke-[1.75]" />
-                      {t.retrieval.forceGeneration}
-                    </label>
-                    <span className="font-mono text-[11px] uppercase tracking-wider text-zinc-500 hidden sm:inline">
-                      {t.retrieval.avoidsHindsight}
-                    </span>
-                  </div>
-
                   <Textarea
                     rows={4}
                     value={userDraftAnswer}
                     onChange={(e) => setUserDraftAnswer(e.target.value)}
                     placeholder={t.retrieval.draftPlaceholder}
+                    aria-label={t.retrieval.forceGeneration}
                     className="w-full min-h-[120px] surface-recessed rounded-lg p-4 text-[15px] text-zinc-100 placeholder:text-zinc-600 focus-visible:border-white/[0.14] focus-visible:ring-0 leading-relaxed"
                   />
 
@@ -312,9 +296,9 @@ export const ActiveRetrievalLab: React.FC = () => {
                 <div className="pt-5 border-t border-white/[0.06] space-y-5 animate-fade-in">
                   {userDraftAnswer && (
                     <div className="space-y-1.5 pb-4 border-b border-white/[0.05]">
-                      <span className="font-mono text-[11px] uppercase tracking-widest text-zinc-500 block">
-                        {t.retrieval.yourAttempt}
-                      </span>
+                      <h3 className="text-sm font-semibold text-zinc-300">
+                        {t.retrieval.yourAttempt.replace(/:\s*$/, '')}
+                      </h3>
                       <p className="text-sm text-zinc-300 border-l-2 border-zinc-600 pl-3 leading-relaxed">
                         {userDraftAnswer}
                       </p>
@@ -322,30 +306,25 @@ export const ActiveRetrievalLab: React.FC = () => {
                   )}
 
                   <div className="space-y-2">
-                    <span className="font-mono text-[11px] uppercase tracking-widest text-zinc-500 block">
-                      {t.retrieval.benchmarkAnswer}
-                    </span>
+                    <h3 className="text-base font-semibold text-zinc-100">
+                      {t.retrieval.benchmarkAnswer.replace(/:\s*$/, '')}
+                    </h3>
                     <p className="text-sm sm:text-base text-zinc-100 leading-relaxed border-l-2 border-zinc-200 pl-3.5">
                       {currentCard.answer}
                     </p>
                   </div>
 
-                  <div className="pt-4 border-t border-white/[0.05] flex items-start gap-2.5 text-sm">
-                    <div className="space-y-0.5">
-                      <span className="font-medium text-zinc-300 block">
-                        {t.retrieval.neuroTipHeader}
-                      </span>
-                      <p className="text-zinc-400 leading-relaxed">
-                        {currentCard.neuroTip}
-                      </p>
-                    </div>
+                  <div className="pt-4 border-t border-white/[0.05] space-y-1 text-sm">
+                    <h4 className="font-semibold text-zinc-200">
+                      {t.retrieval.neuroTipHeader.replace(/:\s*$/, '')}
+                    </h4>
+                    <p className="text-zinc-400 leading-relaxed">
+                      {currentCard.neuroTip}
+                    </p>
                   </div>
 
                   {/* SM-2 Rating Buttons */}
-                  <div className="pt-4 border-t border-white/[0.06] space-y-3">
-                    <span className="font-mono text-[11px] uppercase tracking-widest text-zinc-500 block">
-                      {t.retrieval.calibrateRating}
-                    </span>
+                  <div className="pt-4 border-t border-white/[0.06]">
                     <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
                       <button
                         type="button"
@@ -435,19 +414,19 @@ export const ActiveRetrievalLab: React.FC = () => {
       <div className="lg:col-span-4 lg:sticky lg:top-24 grid grid-cols-1 gap-px bg-white/[0.07] border border-white/[0.07] rounded-xl overflow-hidden">
         {/* Cell 1: Deck Synthesizer */}
         <div className="bg-[#0f0f12] p-6 space-y-4">
-          <span className="font-mono text-[11px] uppercase tracking-widest text-zinc-500 flex items-center gap-1.5">
-            <Sparkles className="w-3.5 h-3.5 text-zinc-500 stroke-[1.75]" />
-            {t.retrieval.synthesizeTitle}
-          </span>
+          <h3 className="text-base font-semibold text-zinc-100 tracking-tight flex items-center gap-2">
+            <Sparkles className="w-4 h-4 text-zinc-400 stroke-[1.75] shrink-0" />
+            <span>{t.retrieval.synthesizeTitle}</span>
+          </h3>
 
           <form onSubmit={handleGenerateDeck} className="space-y-3.5">
             {/* Dedicated Topic Input */}
             <div className="space-y-1.5">
               <label
                 htmlFor="retrieval-topic-input"
-                className="font-mono text-[11px] uppercase tracking-wider text-zinc-500 block"
+                className="text-xs font-medium text-zinc-400 block"
               >
-                {t.retrieval.targetConceptLabel}
+                {t.retrieval.targetConceptLabel.replace(/:\s*$/, '')}
               </label>
               <div className="relative flex items-center">
                 <Input
@@ -475,8 +454,8 @@ export const ActiveRetrievalLab: React.FC = () => {
 
             {/* Card Count Select */}
             <div className="space-y-1.5">
-              <label className="font-mono text-[11px] uppercase tracking-wider text-zinc-500 block">
-                {t.retrieval.cardCountLabel}
+              <label className="text-xs font-medium text-zinc-400 block">
+                {t.retrieval.cardCountLabel.replace(/:\s*$/, '')}
               </label>
               <Select
                 value={deckCount}
@@ -510,8 +489,8 @@ export const ActiveRetrievalLab: React.FC = () => {
 
             {/* Difficulty Select */}
             <div className="space-y-1.5">
-              <label className="font-mono text-[11px] uppercase tracking-wider text-zinc-500 block">
-                {t.retrieval.difficultyLabel}
+              <label className="text-xs font-medium text-zinc-400 block">
+                {t.retrieval.difficultyLabel.replace(/:\s*$/, '')}
               </label>
               <Select
                 value={deckDifficulty}
@@ -591,10 +570,10 @@ export const ActiveRetrievalLab: React.FC = () => {
         {/* Cell 2: Deck Overview & Question Jump List */}
         <div className="bg-[#0f0f12] p-6 space-y-3">
           <div className="flex items-center justify-between">
-            <span className="font-mono text-[11px] uppercase tracking-widest text-zinc-500 flex items-center gap-1.5">
-              <Bookmark className="w-3.5 h-3.5 text-zinc-500 stroke-[1.75]" />
-              {t.retrieval.deckCardsTitle}
-            </span>
+            <h3 className="text-base font-semibold text-zinc-100 tracking-tight flex items-center gap-2">
+              <Bookmark className="w-4 h-4 text-zinc-400 stroke-[1.75]" />
+              <span>{t.retrieval.deckCardsTitle}</span>
+            </h3>
             <span className="text-[11px] font-mono tabular-nums text-zinc-400">
               {cards.length} {t.retrieval.cardsUnit}
             </span>

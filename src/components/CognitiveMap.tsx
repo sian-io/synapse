@@ -95,19 +95,8 @@ export const CognitiveMap: React.FC<CognitiveMapProps> = ({
         onSubmit={handleDeconstruct}
         className="surface-panel rounded-lg px-4 py-3 flex flex-col sm:flex-row sm:items-center gap-3"
       >
-        <div className="flex items-center gap-2 shrink-0">
-          <Layers className="w-3.5 h-3.5 text-zinc-500 stroke-[1.75] shrink-0" />
-          <label
-            htmlFor="cognitive-map-topic-input"
-            className="font-mono text-[11px] uppercase tracking-widest text-zinc-500 truncate cursor-pointer"
-          >
-            {t.cognitiveMap.conceptToMap}
-          </label>
-        </div>
-
-        <div className="hidden sm:block h-4 w-px bg-white/[0.08] shrink-0" />
-
         <div className="relative flex-1 flex items-center min-w-0">
+          <Layers className="w-4 h-4 text-zinc-500 stroke-[1.75] absolute left-3 pointer-events-none" />
           <Input
             id="cognitive-map-topic-input"
             type="text"
@@ -115,7 +104,8 @@ export const CognitiveMap: React.FC<CognitiveMapProps> = ({
             onChange={(e) => setTopic(e.target.value)}
             placeholder={t.cognitiveMap.inputPlaceholder}
             disabled={isLoading}
-            className="h-9 w-full surface-recessed rounded-md px-3 pr-8 text-sm text-zinc-100 placeholder:text-zinc-600 focus-visible:border-white/[0.14] focus-visible:ring-0"
+            aria-label={t.cognitiveMap.conceptToMap}
+            className="h-10 w-full surface-recessed rounded-md pl-9 pr-8 text-sm text-zinc-100 placeholder:text-zinc-600 focus-visible:border-white/[0.14] focus-visible:ring-0"
           />
           {topic && !isLoading && (
             <Button
@@ -134,7 +124,7 @@ export const CognitiveMap: React.FC<CognitiveMapProps> = ({
         <Button
           type="submit"
           disabled={isLoading || !topic.trim()}
-          className="h-9 px-4 bg-zinc-100 hover:bg-white disabled:bg-zinc-900 disabled:text-zinc-600 text-zinc-950 font-medium text-[13px] rounded-md transition-colors flex items-center justify-center gap-2 shrink-0 cursor-pointer"
+          className="h-10 px-4 bg-zinc-100 hover:bg-white disabled:bg-zinc-900 disabled:text-zinc-600 text-zinc-950 font-medium text-[13px] rounded-md transition-colors flex items-center justify-center gap-2 shrink-0 cursor-pointer"
         >
           {isLoading ? (
             <>
@@ -171,11 +161,10 @@ export const CognitiveMap: React.FC<CognitiveMapProps> = ({
       {/* Blank State: Preview of the Deconstruction Structure */}
       {!breakdown && !error && (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-6 gap-px bg-white/[0.07] border border-white/[0.07] rounded-xl overflow-hidden">
-          <div className="sm:col-span-2 lg:col-span-6 bg-[#0f0f12] p-6 sm:p-8 space-y-3">
-            <span className="font-mono text-[11px] uppercase tracking-widest text-zinc-500 tabular-nums flex items-center gap-1.5">
-              <Layers className="w-3.5 h-3.5 text-zinc-500 stroke-[1.75]" />
+          <div className="sm:col-span-2 lg:col-span-6 bg-[#0f0f12] p-6 sm:p-8 space-y-2.5">
+            <h2 className="text-xl sm:text-2xl font-semibold text-zinc-100 tracking-tight">
               {t.cognitiveMap.emptyTitle}
-            </span>
+            </h2>
             <p className="text-sm sm:text-[15px] text-zinc-400 leading-relaxed max-w-3xl">
               {t.cognitiveMap.bannerDesc}
             </p>
@@ -190,13 +179,11 @@ export const CognitiveMap: React.FC<CognitiveMapProps> = ({
           ].map((cell) => {
             const Icon = cell.icon;
             return (
-              <div className={`${cell.span} bg-[#0f0f12] p-6 space-y-2.5`}>
-                <span className="font-mono text-[11px] uppercase tracking-widest text-zinc-500 tabular-nums flex items-start gap-1.5 leading-relaxed">
-                  <Icon className="w-3.5 h-3.5 text-zinc-500 stroke-[1.75] shrink-0 mt-0.5" />
-                  <span>
-                    {cell.title.replace(/:\s*$/, '')}
-                  </span>
-                </span>
+              <div key={cell.title} className={`${cell.span} bg-[#0f0f12] p-6 space-y-2`}>
+                <h3 className="text-base font-semibold text-zinc-100 tracking-tight flex items-center gap-2">
+                  <Icon className="w-4 h-4 text-zinc-400 stroke-[1.75] shrink-0" />
+                  <span>{cell.title.replace(/:\s*$/, '')}</span>
+                </h3>
                 <p className="text-sm text-zinc-400 leading-relaxed">{cell.desc}</p>
               </div>
             );
@@ -208,15 +195,15 @@ export const CognitiveMap: React.FC<CognitiveMapProps> = ({
       {breakdown && (
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-px bg-white/[0.07] border border-white/[0.07] rounded-xl overflow-hidden animate-fade-in">
           {/* Core Overview & Mechanism */}
-          <div className="lg:col-span-7 bg-[#0f0f12] p-6 flex flex-col justify-between space-y-5">
+          <div className="lg:col-span-7 bg-[#0f0f12] p-6 sm:p-7 flex flex-col justify-between space-y-5">
             <div className="space-y-3">
               <div className="flex flex-wrap items-center justify-between gap-2">
-                <span className="font-mono text-[11px] uppercase tracking-widest text-zinc-500 flex items-center gap-1.5">
-                  <Brain className="w-3.5 h-3.5 text-zinc-500 stroke-[1.75]" />
+                <h2 className="text-xl sm:text-2xl font-semibold text-zinc-100 tracking-tight flex items-center gap-2.5">
+                  <Brain className="w-5 h-5 text-zinc-400 stroke-[1.75] shrink-0" />
+                  <span>{breakdown.topic}</span>
+                </h2>
+                <span className="font-mono text-[13px] uppercase tracking-widest text-zinc-500">
                   {t.cognitiveMap.essentialCore}
-                </span>
-                <span className="font-mono text-[11px] text-zinc-500">
-                  {t.cognitiveMap.topicLabel} {breakdown.topic}
                 </span>
               </div>
 
@@ -226,9 +213,9 @@ export const CognitiveMap: React.FC<CognitiveMapProps> = ({
             </div>
 
             <div className="pt-4 border-t border-white/[0.05] space-y-2">
-              <span className="font-mono text-[11px] uppercase tracking-widest text-zinc-500 block">
-                {t.cognitiveMap.coreMechanismTitle}
-              </span>
+              <h3 className="text-[15px] font-semibold text-zinc-200 tracking-tight">
+                {t.cognitiveMap.coreMechanismTitle.replace(/:\s*$/, '')}
+              </h3>
               <p className="border-l-2 border-zinc-200 pl-3.5 py-0.5 text-base sm:text-lg text-zinc-100 font-medium leading-relaxed">
                 {breakdown.coreMechanism}
               </p>
@@ -236,17 +223,12 @@ export const CognitiveMap: React.FC<CognitiveMapProps> = ({
           </div>
 
           {/* Dual-Coding Analogy & Overload Rationale */}
-          <div className="lg:col-span-5 bg-[#0f0f12] p-6 flex flex-col justify-between space-y-5">
+          <div className="lg:col-span-5 bg-[#0f0f12] p-6 sm:p-7 flex flex-col justify-between space-y-5">
             <div className="space-y-3">
-              <div className="flex flex-wrap items-center justify-between gap-2">
-                <span className="font-mono text-[11px] uppercase tracking-widest text-zinc-500 flex items-center gap-1.5">
-                  <Lightbulb className="w-3.5 h-3.5 text-zinc-500 stroke-[1.75]" />
-                  {t.cognitiveMap.physicalAnalogyTitle}
-                </span>
-                <span className="font-mono text-[11px] uppercase tracking-widest text-zinc-500">
-                  {t.cognitiveMap.dualCoding}
-                </span>
-              </div>
+              <h3 className="text-lg font-semibold text-zinc-100 tracking-tight flex items-center gap-2">
+                <Lightbulb className="w-4 h-4 text-zinc-400 stroke-[1.75] shrink-0" />
+                <span>{t.cognitiveMap.physicalAnalogyTitle.replace(/:\s*$/, '')}</span>
+              </h3>
 
               <p className="text-[15px] text-zinc-200 leading-relaxed">
                 {breakdown.realWorldAnalogy}
@@ -254,9 +236,9 @@ export const CognitiveMap: React.FC<CognitiveMapProps> = ({
             </div>
 
             <div className="pt-4 border-t border-white/[0.05] space-y-1.5">
-              <span className="font-mono text-[11px] uppercase tracking-widest text-zinc-500 block">
-                {t.cognitiveMap.whyOverloadTitle}
-              </span>
+              <h4 className="text-[15px] font-semibold text-zinc-300 tracking-tight">
+                {t.cognitiveMap.whyOverloadTitle.replace(/:\s*$/, '')}
+              </h4>
               <p className="text-sm text-zinc-400 leading-relaxed">
                 {breakdown.neuroscienceRationale}
               </p>
@@ -264,11 +246,11 @@ export const CognitiveMap: React.FC<CognitiveMapProps> = ({
           </div>
 
           {/* Prior Schemas / Prerequisites */}
-          <div className="lg:col-span-6 bg-[#0f0f12] p-6 space-y-4">
-            <span className="font-mono text-[11px] uppercase tracking-widest text-zinc-500 flex items-center gap-1.5">
-              <ShieldCheck className="w-3.5 h-3.5 text-zinc-500 stroke-[1.75]" />
-              {t.cognitiveMap.prerequisitesTitle}
-            </span>
+          <div className="lg:col-span-6 bg-[#0f0f12] p-6 sm:p-7 space-y-4">
+            <h3 className="text-lg font-semibold text-zinc-100 tracking-tight flex items-center gap-2">
+              <ShieldCheck className="w-4 h-4 text-zinc-400 stroke-[1.75] shrink-0" />
+              <span>{t.cognitiveMap.prerequisitesTitle.replace(/:\s*$/, '')}</span>
+            </h3>
 
             <ul className="divide-y divide-white/[0.05] text-sm text-zinc-300">
               {(breakdown.prerequisites ?? []).map((p, idx) => (
@@ -283,11 +265,11 @@ export const CognitiveMap: React.FC<CognitiveMapProps> = ({
           </div>
 
           {/* Cognitive Traps & Misconceptions */}
-          <div className="lg:col-span-6 bg-[#0f0f12] p-6 space-y-4">
-            <span className="font-mono text-[11px] uppercase tracking-widest text-zinc-500 flex items-center gap-1.5">
-              <AlertTriangle className="w-3.5 h-3.5 text-zinc-500 stroke-[1.75]" />
-              {t.cognitiveMap.misconceptionsTitle}
-            </span>
+          <div className="lg:col-span-6 bg-[#0f0f12] p-6 sm:p-7 space-y-4">
+            <h3 className="text-lg font-semibold text-zinc-100 tracking-tight flex items-center gap-2">
+              <AlertTriangle className="w-4 h-4 text-zinc-400 stroke-[1.75] shrink-0" />
+              <span>{t.cognitiveMap.misconceptionsTitle.replace(/:\s*$/, '')}</span>
+            </h3>
 
             <ul className="divide-y divide-white/[0.05] text-sm text-zinc-300">
               {(breakdown.commonMisconceptions ?? []).map((m, idx) => (
@@ -302,16 +284,11 @@ export const CognitiveMap: React.FC<CognitiveMapProps> = ({
           </div>
 
           {/* Elaborative Interrogation Questions */}
-          <div className="lg:col-span-12 bg-[#0f0f12] p-6 space-y-4">
-            <div className="flex flex-wrap items-center justify-between gap-2">
-              <span className="font-mono text-[11px] uppercase tracking-widest text-zinc-500 flex items-center gap-1.5">
-                <HelpCircle className="w-3.5 h-3.5 text-zinc-500 stroke-[1.75]" />
-                {t.cognitiveMap.elaborativeTitle}
-              </span>
-              <span className="font-mono text-[11px] text-zinc-500 uppercase tracking-wider">
-                {t.cognitiveMap.clickToDebate}
-              </span>
-            </div>
+          <div className="lg:col-span-12 bg-[#0f0f12] p-6 sm:p-7 space-y-4">
+            <h3 className="text-lg font-semibold text-zinc-100 tracking-tight flex items-center gap-2">
+              <HelpCircle className="w-4 h-4 text-zinc-400 stroke-[1.75] shrink-0" />
+              <span>{t.cognitiveMap.elaborativeTitle.replace(/:\s*$/, '')}</span>
+            </h3>
 
             <div className="divide-y divide-white/[0.05]">
               {(breakdown.elaborativeQuestions ?? []).map((q, idx) => (

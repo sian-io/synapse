@@ -1,7 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react';
 import {
   Send,
-  Brain,
   RotateCcw,
   ShieldAlert,
   Plus,
@@ -85,22 +84,22 @@ const createMarkdownComponents = (isPt: boolean): Components => ({
     <p className="text-[15px] text-zinc-200 leading-relaxed mb-3 last:mb-0">{children}</p>
   ),
   h1: ({ children }) => (
-    <h1 className="text-base font-semibold tracking-tight text-zinc-100 mt-4 mb-2 first:mt-0">
+    <h1 className="text-xl sm:text-2xl font-semibold tracking-tight text-zinc-100 mt-5 mb-2.5 first:mt-0">
       {children}
     </h1>
   ),
   h2: ({ children }) => (
-    <h2 className="text-sm font-semibold tracking-tight text-zinc-100 mt-4 mb-2 first:mt-0">
+    <h2 className="text-lg sm:text-xl font-semibold tracking-tight text-zinc-100 mt-4 mb-2 first:mt-0">
       {children}
     </h2>
   ),
   h3: ({ children }) => (
-    <h3 className="text-xs font-mono uppercase tracking-wider text-zinc-200 mt-3.5 mb-1.5 first:mt-0">
+    <h3 className="text-base font-semibold tracking-tight text-zinc-100 mt-4 mb-1.5 first:mt-0">
       {children}
     </h3>
   ),
   h4: ({ children }) => (
-    <h4 className="text-xs font-semibold text-zinc-300 mt-3 mb-1 first:mt-0">
+    <h4 className="text-sm font-semibold text-zinc-200 mt-3 mb-1 first:mt-0">
       {children}
     </h4>
   ),
@@ -323,64 +322,6 @@ export const SocraticTutor: React.FC<SocraticTutorProps> = ({
 
   return (
     <div className="w-full flex flex-col flex-1 min-h-[520px] surface-panel rounded-xl overflow-hidden">
-      {/* Technical Header of Tutor */}
-      <div className="px-5 py-3 border-b border-white/[0.07] bg-[#09090b]/60 flex items-center justify-between gap-3 shrink-0">
-        <div className="flex items-center gap-2.5 min-w-0">
-          <Brain className="w-3.5 h-3.5 text-zinc-400 stroke-[1.75] shrink-0" />
-          <h2 className="font-mono text-[11px] uppercase tracking-widest text-zinc-400 truncate">
-            {t.socratic.headerTitle}
-          </h2>
-        </div>
-
-        <Dialog open={isResetDialogOpen} onOpenChange={setIsResetDialogOpen}>
-          <DialogTrigger
-            render={
-              <Button
-                type="button"
-                variant="ghost"
-                size="icon-sm"
-                className="h-8 w-8 rounded-md surface-recessed text-zinc-400 hover:text-zinc-100 hover:bg-[#16161a] hover:border-white/[0.14] cursor-pointer"
-                title={t.socratic.resetTooltip}
-              />
-            }
-          >
-            <RotateCcw className="w-3.5 h-3.5" />
-          </DialogTrigger>
-          <DialogContent className="surface-panel rounded-xl text-zinc-100 ring-0 sm:max-w-md">
-            <DialogHeader>
-              <DialogTitle className="font-mono text-xs uppercase tracking-widest text-zinc-200">
-                {t.socratic.resetTooltip}
-              </DialogTitle>
-              <DialogDescription className="text-xs text-zinc-400 leading-relaxed">
-                {t.socratic.resetConfirm}
-              </DialogDescription>
-            </DialogHeader>
-            <DialogFooter className="bg-[#050507] border-white/[0.07]">
-              <DialogClose
-                render={
-                  <Button
-                    type="button"
-                    variant="ghost"
-                    size="sm"
-                    className="rounded-md text-xs text-zinc-400 hover:text-zinc-100 hover:bg-[#16161a] cursor-pointer"
-                  />
-                }
-              >
-                {isPt ? 'Cancelar' : 'Cancel'}
-              </DialogClose>
-              <Button
-                type="button"
-                size="sm"
-                onClick={handleConfirmClearHistory}
-                className="rounded-md bg-zinc-100 text-zinc-950 hover:bg-white font-medium text-xs cursor-pointer"
-              >
-                {isPt ? 'Confirmar Reset' : 'Confirm Reset'}
-              </Button>
-            </DialogFooter>
-          </DialogContent>
-        </Dialog>
-      </div>
-
       {/* Editorial Log Stream */}
       <div className="flex-1 overflow-y-auto divide-y divide-white/[0.05]">
         {messages.map((message) => {
@@ -395,10 +336,10 @@ export const SocraticTutor: React.FC<SocraticTutorProps> = ({
               <div className="max-w-3xl mx-auto">
                 {/* Entry Metadata Bar */}
                 <div className="flex flex-wrap items-center justify-between gap-2 mb-3">
-                  <span className="font-mono text-[11px] uppercase tracking-widest text-zinc-500">
+                  <span className="font-mono text-[13px] uppercase tracking-widest text-zinc-500">
                     {isUser ? t.socratic.you : t.socratic.assistant}
                   </span>
-                  <span className="text-[11px] text-zinc-500 font-mono tabular-nums">
+                  <span className="text-[13px] text-zinc-500 font-mono tabular-nums">
                     {new Date(message.timestamp).toLocaleTimeString([], {
                       hour: '2-digit',
                       minute: '2-digit',
@@ -485,7 +426,7 @@ export const SocraticTutor: React.FC<SocraticTutorProps> = ({
               className="w-64 p-3.5 rounded-xl surface-panel text-zinc-100 ring-0 space-y-2.5"
             >
               <div className="flex items-center justify-between">
-                <span className="font-mono text-[10px] uppercase tracking-widest text-zinc-400">
+                <span className="font-mono text-[11px] uppercase tracking-widest text-zinc-400">
                   {t.socratic.metacognitiveTitle}
                 </span>
                 <span className="font-mono text-[11px] tabular-nums font-semibold text-zinc-100 surface-recessed px-1.5 py-0.5 rounded">
@@ -546,6 +487,54 @@ export const SocraticTutor: React.FC<SocraticTutorProps> = ({
             <span className="hidden sm:inline">{t.socratic.sendButton}</span>
             <Send className="w-3.5 h-3.5 stroke-[1.75]" />
           </Button>
+
+          <Dialog open={isResetDialogOpen} onOpenChange={setIsResetDialogOpen}>
+            <DialogTrigger
+              render={
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="icon-sm"
+                  className="h-10 w-10 rounded-md surface-recessed text-zinc-400 hover:text-zinc-100 hover:bg-[#16161a] hover:border-white/[0.14] shrink-0 cursor-pointer"
+                  title={t.socratic.resetTooltip}
+                />
+              }
+            >
+              <RotateCcw className="w-3.5 h-3.5" />
+            </DialogTrigger>
+            <DialogContent className="surface-panel rounded-xl text-zinc-100 ring-0 sm:max-w-md">
+              <DialogHeader>
+                <DialogTitle className="text-base font-semibold text-zinc-100">
+                  {t.socratic.resetTooltip}
+                </DialogTitle>
+                <DialogDescription className="text-sm text-zinc-400 leading-relaxed">
+                  {t.socratic.resetConfirm}
+                </DialogDescription>
+              </DialogHeader>
+              <DialogFooter className="bg-[#050507] border-white/[0.07]">
+                <DialogClose
+                  render={
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="sm"
+                      className="rounded-md text-xs text-zinc-400 hover:text-zinc-100 hover:bg-[#16161a] cursor-pointer"
+                    />
+                  }
+                >
+                  {isPt ? 'Cancelar' : 'Cancel'}
+                </DialogClose>
+                <Button
+                  type="button"
+                  size="sm"
+                  onClick={handleConfirmClearHistory}
+                  className="rounded-md bg-zinc-100 text-zinc-950 hover:bg-white font-medium text-xs cursor-pointer"
+                >
+                  {isPt ? 'Confirmar Reset' : 'Confirm Reset'}
+                </Button>
+              </DialogFooter>
+            </DialogContent>
+          </Dialog>
         </form>
       </div>
     </div>

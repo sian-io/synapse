@@ -9,8 +9,6 @@ import {
   RefreshCw,
   BookOpen,
   Award,
-  FileText,
-  Sparkles,
 } from 'lucide-react';
 import { api } from '../api';
 import { FeynmanEvaluation } from '../types';
@@ -113,18 +111,11 @@ export const FeynmanStudio: React.FC<FeynmanStudioProps> = ({
     <div className="w-full grid grid-cols-1 lg:grid-cols-12 gap-5 items-stretch">
       {/* Left Column: Editor Workspace - 5 Columns */}
       <div className="lg:col-span-5 surface-panel rounded-xl overflow-hidden flex flex-col">
-        <div className="px-5 py-3.5 border-b border-white/[0.07] bg-[#09090b]/60 flex items-center gap-2">
-          <Sparkles className="w-3.5 h-3.5 text-zinc-400 stroke-[1.75] shrink-0" />
-          <span className="font-mono text-[11px] uppercase tracking-widest text-zinc-400 truncate">
-            {t.feynman.bannerTitle}
-          </span>
-        </div>
-
         <form onSubmit={handleEvaluate} className="p-5 sm:p-6 flex-1 flex flex-col gap-5">
           {/* Target Audience Select */}
           <div className="space-y-1.5">
-            <label className="font-mono text-[11px] uppercase tracking-widest text-zinc-500 block">
-              {t.feynman.audienceLabel}
+            <label className="text-sm font-medium text-zinc-300 block">
+              {t.feynman.audienceLabel.replace(/:\s*$/, '')}
             </label>
             <Select
               value={audience}
@@ -166,10 +157,10 @@ export const FeynmanStudio: React.FC<FeynmanStudioProps> = ({
           {/* Explanation Textarea */}
           <div className="flex-1 flex flex-col gap-2">
             <div className="flex items-center justify-between">
-              <label className="font-mono text-[11px] uppercase tracking-widest text-zinc-500">
-                {t.feynman.yourExplanation}
+              <label className="text-sm font-medium text-zinc-300">
+                {t.feynman.yourExplanation.replace(/:\s*$/, '')}
               </label>
-              <span className="font-mono tabular-nums text-[11px] text-zinc-400">
+              <span className="font-mono tabular-nums text-[13px] text-zinc-500">
                 {wordCount} {t.feynman.words}
               </span>
             </div>
@@ -226,39 +217,36 @@ export const FeynmanStudio: React.FC<FeynmanStudioProps> = ({
         {evaluation ? (
           <div className="grid grid-cols-1 md:grid-cols-12 gap-px bg-white/[0.07] border border-white/[0.07] rounded-xl overflow-hidden animate-fade-in">
             {/* Assessment Summary (8 cols) */}
-            <div className="md:col-span-8 bg-[#0f0f12] p-6 space-y-2">
-              <span className="font-mono text-[11px] uppercase tracking-widest text-zinc-500 block">
-                {t.feynman.diagnosisTitle}
-              </span>
-              <h3 className="text-lg font-semibold text-zinc-100 tracking-tight">
-                {t.feynman.evaluationOf} "{analyzedConcept}"
-              </h3>
-              <p className="text-sm text-zinc-400 leading-relaxed">
+            <div className="md:col-span-8 bg-[#0f0f12] p-6 sm:p-7 space-y-2.5">
+              <h2 className="text-xl sm:text-2xl font-semibold text-zinc-100 tracking-tight">
+                {analyzedConcept}
+              </h2>
+              <p className="text-sm sm:text-[15px] text-zinc-300 leading-relaxed">
                 {evaluation.clarityAssessment}
               </p>
             </div>
 
             {/* Mastery Score (4 cols) */}
-            <div className="md:col-span-4 bg-[#0f0f12] p-6 flex flex-col justify-between">
-              <span className="font-mono text-[11px] uppercase tracking-widest text-zinc-500">
+            <div className="md:col-span-4 bg-[#0f0f12] p-6 sm:p-7 flex flex-col justify-between">
+              <span className="font-mono text-[15px] uppercase tracking-widest text-zinc-500">
                 {t.feynman.mastery}
               </span>
               <div className="flex items-baseline gap-1.5 pt-2">
                 <span className="font-mono tabular-nums text-4xl tracking-tighter font-bold text-zinc-100">
                   {evaluation.score}
                 </span>
-                <span className="font-mono tabular-nums text-xs text-zinc-500">
+                <span className="font-mono tabular-nums text-[15px] text-zinc-500">
                   / 100
                 </span>
               </div>
             </div>
 
             {/* Jargon Identified (6 cols) */}
-            <div className="md:col-span-6 bg-[#0f0f12] p-6 space-y-3">
-              <div className="font-mono text-[11px] uppercase tracking-widest text-zinc-500 flex items-center gap-1.5">
-                <AlertTriangle className="w-3.5 h-3.5 text-zinc-500 stroke-[1.75]" />
-                <span>{t.feynman.jargonTitle}</span>
-              </div>
+            <div className="md:col-span-6 bg-[#0f0f12] p-6 sm:p-7 space-y-3">
+              <h3 className="text-base font-semibold text-zinc-100 tracking-tight flex items-center gap-2">
+                <AlertTriangle className="w-4 h-4 text-zinc-400 stroke-[1.75] shrink-0" />
+                <span>{t.feynman.jargonTitle.replace(/:\s*$/, '')}</span>
+              </h3>
               {(evaluation.jargonIdentified ?? []).length > 0 ? (
                 <ul className="divide-y divide-white/[0.05] text-sm text-zinc-300 leading-relaxed">
                   {(evaluation.jargonIdentified ?? []).map((jargon, i) => (
@@ -277,11 +265,11 @@ export const FeynmanStudio: React.FC<FeynmanStudioProps> = ({
             </div>
 
             {/* Conceptual Gaps (6 cols) */}
-            <div className="md:col-span-6 bg-[#0f0f12] p-6 space-y-3">
-              <div className="font-mono text-[11px] uppercase tracking-widest text-zinc-500 flex items-center gap-1.5">
-                <Brain className="w-3.5 h-3.5 text-zinc-500 stroke-[1.75]" />
-                <span>{t.feynman.gapsTitle}</span>
-              </div>
+            <div className="md:col-span-6 bg-[#0f0f12] p-6 sm:p-7 space-y-3">
+              <h3 className="text-base font-semibold text-zinc-100 tracking-tight flex items-center gap-2">
+                <Brain className="w-4 h-4 text-zinc-400 stroke-[1.75] shrink-0" />
+                <span>{t.feynman.gapsTitle.replace(/:\s*$/, '')}</span>
+              </h3>
               {(evaluation.conceptualGaps ?? []).length > 0 ? (
                 <ul className="divide-y divide-white/[0.05] text-sm text-zinc-300 leading-relaxed">
                   {(evaluation.conceptualGaps ?? []).map((gap, i) => (
@@ -299,11 +287,11 @@ export const FeynmanStudio: React.FC<FeynmanStudioProps> = ({
             </div>
 
             {/* Strengths (12 cols) */}
-            <div className="md:col-span-12 bg-[#0f0f12] p-6 space-y-3">
-              <span className="font-mono text-[11px] uppercase tracking-widest text-zinc-500 flex items-center gap-1.5">
-                <CheckCircle className="w-3.5 h-3.5 text-zinc-500 stroke-[1.75]" />
-                {t.feynman.strengthsTitle}
-              </span>
+            <div className="md:col-span-12 bg-[#0f0f12] p-6 sm:p-7 space-y-3">
+              <h3 className="text-base font-semibold text-zinc-100 tracking-tight flex items-center gap-2">
+                <CheckCircle className="w-4 h-4 text-zinc-400 stroke-[1.75] shrink-0" />
+                <span>{t.feynman.strengthsTitle.replace(/:\s*$/, '')}</span>
+              </h3>
               <div className="flex flex-wrap gap-1.5">
                 {(evaluation.strengths ?? []).map((str, i) => (
                   <span
@@ -317,11 +305,11 @@ export const FeynmanStudio: React.FC<FeynmanStudioProps> = ({
             </div>
 
             {/* Suggested Analogy (6 cols) */}
-            <div className="md:col-span-6 bg-[#0f0f12] p-6 space-y-2.5">
-              <span className="font-mono text-[11px] uppercase tracking-widest text-zinc-500 flex items-center gap-1.5">
-                <Lightbulb className="w-3.5 h-3.5 text-zinc-500 stroke-[1.75]" />
-                {t.feynman.analogyTitle}
-              </span>
+            <div className="md:col-span-6 bg-[#0f0f12] p-6 sm:p-7 space-y-2.5">
+              <h3 className="text-base font-semibold text-zinc-100 tracking-tight flex items-center gap-2">
+                <Lightbulb className="w-4 h-4 text-zinc-400 stroke-[1.75] shrink-0" />
+                <span>{t.feynman.analogyTitle.replace(/:\s*$/, '')}</span>
+              </h3>
               <p className="text-sm text-zinc-200 leading-relaxed">
                 {evaluation.suggestedAnalogy}
               </p>
@@ -331,24 +319,24 @@ export const FeynmanStudio: React.FC<FeynmanStudioProps> = ({
             </div>
 
             {/* Ideal Feynman Model (6 cols) */}
-            <div className="md:col-span-6 bg-[#0f0f12] p-6 space-y-2.5">
-              <span className="font-mono text-[11px] uppercase tracking-widest text-zinc-500 flex items-center gap-1.5">
-                <BookOpen className="w-3.5 h-3.5 text-zinc-500 stroke-[1.75]" />
-                {t.feynman.feynmanModelTitle}
-              </span>
+            <div className="md:col-span-6 bg-[#0f0f12] p-6 sm:p-7 space-y-2.5">
+              <h3 className="text-base font-semibold text-zinc-100 tracking-tight flex items-center gap-2">
+                <BookOpen className="w-4 h-4 text-zinc-400 stroke-[1.75] shrink-0" />
+                <span>{t.feynman.feynmanModelTitle.replace(/:\s*$/, '')}</span>
+              </h3>
               <p className="text-sm text-zinc-300 leading-relaxed border-l-2 border-zinc-300 pl-3">
                 {evaluation.simplifiedAlternative}
               </p>
             </div>
 
             {/* Follow-up Socratic Challenge (12 cols) */}
-            <div className="md:col-span-12 bg-[#0f0f12] p-6 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+            <div className="md:col-span-12 bg-[#0f0f12] p-6 sm:p-7 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
               <div className="space-y-1.5">
-                <span className="font-mono text-[11px] uppercase tracking-widest text-zinc-500 flex items-center gap-1.5">
-                  <HelpCircle className="w-3.5 h-3.5 text-zinc-500 stroke-[1.75]" />
-                  {t.feynman.challengeTitle}
-                </span>
-                <p className="text-sm font-medium text-zinc-100 leading-relaxed">
+                <h3 className="text-base font-semibold text-zinc-100 tracking-tight flex items-center gap-2">
+                  <HelpCircle className="w-4 h-4 text-zinc-400 stroke-[1.75] shrink-0" />
+                  <span>{t.feynman.challengeTitle.replace(/:\s*$/, '')}</span>
+                </h3>
+                <p className="text-sm font-medium text-zinc-200 leading-relaxed">
                   "{evaluation.followUpQuestion}"
                 </p>
               </div>
@@ -373,49 +361,45 @@ export const FeynmanStudio: React.FC<FeynmanStudioProps> = ({
           /* Blank State: Feynman Protocol Hairline Bento Grid */
           <div className="flex-1 grid grid-cols-1 sm:grid-cols-2 gap-px bg-white/[0.07] border border-white/[0.07] rounded-xl overflow-hidden">
             <div className="sm:col-span-2 bg-[#0f0f12] p-6 sm:p-8 space-y-2.5">
-              <span className="font-mono text-[11px] uppercase tracking-widest text-zinc-500 flex items-center gap-1.5">
-                <FileText className="w-3.5 h-3.5 text-zinc-500 stroke-[1.75]" />
-                {t.feynman.protocolTitle}
-              </span>
-              <h3 className="text-lg font-semibold text-zinc-100 tracking-tight">
+              <h2 className="text-xl sm:text-2xl font-semibold text-zinc-100 tracking-tight">
                 {t.feynman.howItWorksTitle}
-              </h3>
-              <p className="text-sm text-zinc-400 leading-relaxed">
+              </h2>
+              <p className="text-sm sm:text-[15px] text-zinc-400 leading-relaxed">
                 {t.feynman.howItWorksDesc}
               </p>
             </div>
 
             <div className="bg-[#0f0f12] p-6 space-y-2">
-              <span className="font-mono text-[11px] uppercase tracking-widest text-zinc-300 block">
+              <h3 className="text-base font-semibold text-zinc-100 tracking-tight">
                 {t.feynman.step1Title.replace(/^\d+\.\s*/, '')}
-              </span>
+              </h3>
               <p className="text-sm text-zinc-400 leading-relaxed">
                 {t.feynman.step1Desc}
               </p>
             </div>
 
             <div className="bg-[#0f0f12] p-6 space-y-2">
-              <span className="font-mono text-[11px] uppercase tracking-widest text-zinc-300 block">
+              <h3 className="text-base font-semibold text-zinc-100 tracking-tight">
                 {t.feynman.step2Title.replace(/^\d+\.\s*/, '')}
-              </span>
+              </h3>
               <p className="text-sm text-zinc-400 leading-relaxed">
                 {t.feynman.step2Desc}
               </p>
             </div>
 
             <div className="bg-[#0f0f12] p-6 space-y-2">
-              <span className="font-mono text-[11px] uppercase tracking-widest text-zinc-300 block">
+              <h3 className="text-base font-semibold text-zinc-100 tracking-tight">
                 {t.feynman.step3Title.replace(/^\d+\.\s*/, '')}
-              </span>
+              </h3>
               <p className="text-sm text-zinc-400 leading-relaxed">
                 {t.feynman.step3Desc}
               </p>
             </div>
 
             <div className="bg-[#0f0f12] p-6 space-y-2">
-              <span className="font-mono text-[11px] uppercase tracking-widest text-zinc-300 block">
+              <h3 className="text-base font-semibold text-zinc-100 tracking-tight">
                 {t.feynman.step4Title.replace(/^\d+\.\s*/, '')}
-              </span>
+              </h3>
               <p className="text-sm text-zinc-400 leading-relaxed">
                 {t.feynman.step4Desc}
               </p>

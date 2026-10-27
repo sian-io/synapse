@@ -432,10 +432,10 @@ export const AIConfigModal: React.FC<AIConfigModalProps> = ({
         onClick={(e) => e.stopPropagation()}
       >
         {/* Modal Header */}
-        <div className="flex items-center justify-between border-b border-white/[0.07] px-5 py-3.5 bg-[#0f0f12]">
+        <div className="flex items-center justify-between border-b border-white/[0.07] px-5 py-4 bg-[#0f0f12]">
           <div className="flex items-center gap-2.5">
-            <Settings className="w-3.5 h-3.5 text-zinc-400 stroke-[1.75]" />
-            <h2 className="font-mono text-xs uppercase tracking-widest text-zinc-200 truncate">
+            <Settings className="w-4 h-4 text-zinc-400 stroke-[1.75]" />
+            <h2 className="text-base font-semibold text-zinc-100 tracking-tight truncate">
               {isPt ? 'Configurações de IA & Inspetor de Payload' : 'AI Configuration & Payload Inspector'}
             </h2>
           </div>
@@ -462,14 +462,14 @@ export const AIConfigModal: React.FC<AIConfigModalProps> = ({
               {/* Section 01: Core Connection */}
               <div className="space-y-3.5">
                 <div className="h-6 flex items-center justify-between">
-                  <span className="font-mono text-[11px] uppercase tracking-widest text-zinc-500 tabular-nums">
-                    {isPt ? 'CONEXÃO & MODELO' : 'CONNECTION & MODEL'}
-                  </span>
+                  <h3 className="text-sm font-semibold text-zinc-100 tracking-tight">
+                    {isPt ? 'Conexão & Modelo' : 'Connection & Model'}
+                  </h3>
                 </div>
 
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                   <div className="space-y-1.5">
-                    <label className="block font-mono text-[11px] uppercase tracking-widest text-zinc-500">
+                    <label className="block text-xs font-medium text-zinc-400">
                       {isPt ? 'Padrão de API' : 'API Standard'}
                     </label>
                     <Select
@@ -518,7 +518,7 @@ export const AIConfigModal: React.FC<AIConfigModalProps> = ({
 
                   {draft.apiStandard === 'openai' ? (
                     <div className="space-y-1.5">
-                      <label className="block font-mono text-[11px] uppercase tracking-widest text-zinc-500">
+                      <label className="block text-xs font-medium text-zinc-400">
                         {isPt ? 'Endpoint OpenAI' : 'OpenAI Endpoint'}
                       </label>
                       <Select
@@ -556,7 +556,7 @@ export const AIConfigModal: React.FC<AIConfigModalProps> = ({
                     </div>
                   ) : (
                     <div className="space-y-1.5">
-                      <label className="block font-mono text-[11px] uppercase tracking-widest text-zinc-500">
+                      <label className="block text-xs font-medium text-zinc-400">
                         Endpoint
                       </label>
                       <div className="h-10 surface-recessed rounded-md px-3.5 flex items-center font-mono text-xs text-zinc-400 truncate">
@@ -570,7 +570,7 @@ export const AIConfigModal: React.FC<AIConfigModalProps> = ({
 
                 {draft.apiStandard !== 'ollama' && (
                   <div className="space-y-1.5">
-                    <label className="block font-mono text-[11px] uppercase tracking-widest text-zinc-500">
+                    <label className="block text-xs font-medium text-zinc-400">
                       API Key
                     </label>
                     <div className="relative flex items-center">
@@ -601,7 +601,7 @@ export const AIConfigModal: React.FC<AIConfigModalProps> = ({
 
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                   <div className="space-y-1.5">
-                    <label className="block font-mono text-[11px] uppercase tracking-widest text-zinc-500">
+                    <label className="block text-xs font-medium text-zinc-400">
                       {isPt ? 'URL Base' : 'Base URL'}
                     </label>
                     <input
@@ -617,7 +617,7 @@ export const AIConfigModal: React.FC<AIConfigModalProps> = ({
                   </div>
 
                   <div className="space-y-1.5">
-                    <label className="block font-mono text-[11px] uppercase tracking-widest text-zinc-500">
+                    <label className="block text-xs font-medium text-zinc-400">
                       {isPt ? 'Nome do Modelo' : 'Model Name'}
                     </label>
                     <input
@@ -643,14 +643,14 @@ export const AIConfigModal: React.FC<AIConfigModalProps> = ({
                     type="button"
                     onClick={() => setShowAdvanced((prev) => !prev)}
                     aria-expanded={showAdvanced}
-                    className="flex items-center gap-1.5 font-mono text-[11px] uppercase tracking-widest text-zinc-500 hover:text-zinc-300 tabular-nums transition-colors cursor-pointer"
+                    className="flex items-center gap-1.5 text-sm font-medium text-zinc-300 hover:text-zinc-100 transition-colors cursor-pointer"
                   >
                     {showAdvanced ? (
-                      <ChevronDown className="w-3.5 h-3.5 stroke-[1.75]" />
+                      <ChevronDown className="w-4 h-4 stroke-[1.75]" />
                     ) : (
-                      <ChevronRight className="w-3.5 h-3.5 stroke-[1.75]" />
+                      <ChevronRight className="w-4 h-4 stroke-[1.75]" />
                     )}
-                    <span>{isPt ? 'CONFIGURAÇÕES AVANÇADAS' : 'ADVANCED SETTINGS'}</span>
+                    <span>{isPt ? 'Configurações Avançadas' : 'Advanced Settings'}</span>
                   </button>
                   {showAdvanced && hasCustomParameters && (
                     <button
@@ -983,9 +983,9 @@ export const AIConfigModal: React.FC<AIConfigModalProps> = ({
             <div className="lg:col-span-5 bg-[#0f0f12] p-5 sm:p-6 flex flex-col justify-between gap-3.5 lg:h-[520px] overflow-hidden">
               <div className="space-y-3.5 flex-1 flex flex-col min-h-0">
                 <div className="h-6 flex items-center justify-between gap-2 shrink-0">
-                  <span className="font-mono text-[11px] uppercase tracking-widest text-zinc-500 tabular-nums">
-                    {isPt ? 'PREVIEW DA REQUISIÇÃO' : 'REQUEST PREVIEW'}
-                  </span>
+                  <h3 className="text-sm font-semibold text-zinc-100 tracking-tight">
+                    {isPt ? 'Preview da Requisição' : 'Request Preview'}
+                  </h3>
 
                   <div className="flex items-center gap-2 shrink-0">
                     <span
