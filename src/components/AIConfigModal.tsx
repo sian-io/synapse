@@ -59,11 +59,6 @@ const PROVIDER_DEFAULTS: Record<APIStandard, { baseUrl: string; model: string; m
     model: 'gemini-2.5-flash',
     modelHint: 'gemini-2.5-flash, gemini-2.5-pro...',
   },
-  ollama: {
-    baseUrl: 'http://localhost:11434/api/chat',
-    model: 'llama3.2',
-    modelHint: 'llama3.2, qwen2.5, deepseek-r1...',
-  },
 };
 
 function parseOptionalNumber(val: string): number | undefined {
@@ -393,7 +388,6 @@ export const AIConfigModal: React.FC<AIConfigModalProps> = ({
     openai: 'OpenAI',
     anthropic: 'Anthropic',
     google: 'Google',
-    ollama: 'Ollama',
   };
 
   const openaiEndpointLabels: Record<OpenAIApiType, string> = {
@@ -417,9 +411,7 @@ export const AIConfigModal: React.FC<AIConfigModalProps> = ({
       draft.frequencyPenalty !== undefined ||
       draft.presencePenalty !== undefined ||
       draft.reasoningEffort !== undefined ||
-      draft.thinkingBudget !== undefined ||
-      draft.numCtx !== undefined ||
-      draft.repeatPenalty !== undefined
+      draft.thinkingBudget !== undefined
   );
 
   return (
@@ -509,9 +501,6 @@ export const AIConfigModal: React.FC<AIConfigModalProps> = ({
                         <SelectItem value="google" className="rounded-md text-sm cursor-pointer">
                           Google
                         </SelectItem>
-                        <SelectItem value="ollama" className="rounded-md text-sm cursor-pointer">
-                          Ollama
-                        </SelectItem>
                       </SelectContent>
                     </Select>
                   </div>
@@ -562,13 +551,12 @@ export const AIConfigModal: React.FC<AIConfigModalProps> = ({
                       <div className="h-10 surface-recessed rounded-md px-3.5 flex items-center font-mono text-xs text-zinc-400 truncate">
                         {draft.apiStandard === 'anthropic' && '/v1/messages'}
                         {draft.apiStandard === 'google' && '/v1beta/models/{model}:generateContent'}
-                        {draft.apiStandard === 'ollama' && '/api/chat'}
                       </div>
                     </div>
                   )}
                 </div>
 
-                {draft.apiStandard !== 'ollama' && (
+                
                   <div className="space-y-1.5">
                     <label className="block text-xs font-medium text-zinc-400">
                       API Key
@@ -597,7 +585,6 @@ export const AIConfigModal: React.FC<AIConfigModalProps> = ({
                       </button>
                     </div>
                   </div>
-                )}
 
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                   <div className="space-y-1.5">
@@ -893,13 +880,16 @@ export const AIConfigModal: React.FC<AIConfigModalProps> = ({
 
                     {support.thinkingBudget && (
                       <div className="space-y-1.5">
-                        <div className="flex items-center justify-between">
-                          <label className="font-mono text-[11px] text-zinc-400">
+                        <div className="flex items-center justify-between gap-1.5">
+                          <label
+                            className="font-mono text-[11px] text-zinc-400 truncate"
+                            title={draft.apiStandard === 'anthropic' ? 'thinking.budget_tokens' : 'thinkingBudget'}
+                          >
                             {draft.apiStandard === 'anthropic'
-                              ? 'thinking.budget_tokens'
+                              ? 'thinking_budget'
                               : 'thinkingBudget'}
                           </label>
-                          <span className="font-mono text-[10px] text-zinc-600 tabular-nums">
+                          <span className="font-mono text-[10px] text-zinc-600 tabular-nums whitespace-nowrap shrink-0">
                             {draft.apiStandard === 'anthropic' ? '≥ 1024' : '≥ 0'}
                           </span>
                         </div>
@@ -915,61 +905,6 @@ export const AIConfigModal: React.FC<AIConfigModalProps> = ({
                             }))
                           }
                           placeholder={isPt ? 'Padrão' : 'Default'}
-                          className="w-full h-10 surface-recessed rounded-md px-3.5 text-sm text-zinc-100 placeholder-zinc-600 font-mono tabular-nums focus:outline-none focus:border-white/[0.14]"
-                        />
-                      </div>
-                    )}
-
-                    {support.numCtx && (
-                      <div className="space-y-1.5">
-                        <div className="flex items-center justify-between">
-                          <label className="font-mono text-[11px] text-zinc-400">
-                            num_ctx
-                          </label>
-                          <span className="font-mono text-[10px] text-zinc-600 tabular-nums">
-                            ≥ 256
-                          </span>
-                        </div>
-                        <input
-                          type="number"
-                          min={256}
-                          step={512}
-                          value={draft.numCtx ?? ''}
-                          onChange={(e) =>
-                            updateDraftFromMenu((prev) => ({
-                              ...prev,
-                              numCtx: parseOptionalInt(e.target.value),
-                            }))
-                          }
-                          placeholder="4096"
-                          className="w-full h-10 surface-recessed rounded-md px-3.5 text-sm text-zinc-100 placeholder-zinc-600 font-mono tabular-nums focus:outline-none focus:border-white/[0.14]"
-                        />
-                      </div>
-                    )}
-
-                    {support.repeatPenalty && (
-                      <div className="space-y-1.5">
-                        <div className="flex items-center justify-between">
-                          <label className="font-mono text-[11px] text-zinc-400">
-                            repeat_penalty
-                          </label>
-                          <span className="font-mono text-[10px] text-zinc-600 tabular-nums">
-                            0.0 – 2.0
-                          </span>
-                        </div>
-                        <input
-                          type="number"
-                          min={0}
-                          max={2}
-                          step={0.05}
-                          value={draft.repeatPenalty ?? ''}
-                          onChange={(e) =>
-                            updateDraftFromMenu((prev) => ({
-                              ...prev,
-                              repeatPenalty: parseOptionalNumber(e.target.value),
-                            }))
-                          }
-                          placeholder="1.1"
                           className="w-full h-10 surface-recessed rounded-md px-3.5 text-sm text-zinc-100 placeholder-zinc-600 font-mono tabular-nums focus:outline-none focus:border-white/[0.14]"
                         />
                       </div>

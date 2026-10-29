@@ -60,7 +60,7 @@ export interface ConceptBreakdown {
   neuroscienceRationale: string;
 }
 
-export type APIStandard = 'openai' | 'anthropic' | 'google' | 'ollama';
+export type APIStandard = 'openai' | 'anthropic' | 'google';
 export type OpenAIApiType = 'completions' | 'responses';
 export type ReasoningEffort = 'low' | 'medium' | 'high';
 
@@ -78,8 +78,8 @@ export interface AIProviderConfig {
   presencePenalty?: number;
   reasoningEffort?: ReasoningEffort;
   thinkingBudget?: number;
-  numCtx?: number;
-  repeatPenalty?: number;
+
+
   manualEditEnabled?: boolean;
   customUrlOverride?: string;
   customHeadersOverride?: Record<string, string>;

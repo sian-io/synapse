@@ -5,7 +5,7 @@ export type InferenceProtocol =
   | 'openai-responses'
   | 'anthropic'
   | 'google'
-  | 'ollama';
+
 
 export interface EndpointParameterSupport {
   temperature: boolean;
@@ -19,8 +19,8 @@ export interface EndpointParameterSupport {
   presencePenalty: boolean;
   reasoningEffort: boolean;
   thinkingBudget: boolean;
-  numCtx: boolean;
-  repeatPenalty: boolean;
+
+
 }
 
 export interface BuildInferenceOptions {
@@ -80,8 +80,6 @@ export function getEndpointParameterSupport(
       presencePenalty: false,
       reasoningEffort: false,
       thinkingBudget: true,
-      numCtx: false,
-      repeatPenalty: false,
     };
   }
 
@@ -98,26 +96,6 @@ export function getEndpointParameterSupport(
       presencePenalty: false,
       reasoningEffort: false,
       thinkingBudget: true,
-      numCtx: false,
-      repeatPenalty: false,
-    };
-  }
-
-  if (apiStandard === 'ollama') {
-    return {
-      temperature: true,
-      maxTemperature: 2,
-      maxTokens: true,
-      maxTokensRequired: false,
-      maxTokensKeyLabel: 'num_predict',
-      topP: true,
-      topK: true,
-      frequencyPenalty: false,
-      presencePenalty: false,
-      reasoningEffort: false,
-      thinkingBudget: false,
-      numCtx: true,
-      repeatPenalty: true,
     };
   }
 
@@ -135,8 +113,6 @@ export function getEndpointParameterSupport(
       presencePenalty: false,
       reasoningEffort: true,
       thinkingBudget: false,
-      numCtx: false,
-      repeatPenalty: false,
     };
   }
 
@@ -152,8 +128,6 @@ export function getEndpointParameterSupport(
     presencePenalty: true,
     reasoningEffort: true,
     thinkingBudget: false,
-    numCtx: false,
-    repeatPenalty: false,
   };
 }
 
@@ -164,7 +138,7 @@ export function sanitizeConfigForEndpoint(cfg: AIProviderConfig): AIProviderConf
   const sanitized: AIProviderConfig = {
     apiStandard: cfg.apiStandard,
     ...(cfg.apiStandard === 'openai' ? { openaiApiType } : {}),
-    apiKey: cfg.apiStandard === 'ollama' ? '' : cfg.apiKey?.trim() || '',
+    apiKey: cfg.apiKey?.trim() || '',
     baseUrl: cfg.baseUrl?.trim() || '',
     model: cfg.model?.trim() || '',
   };
@@ -218,14 +192,6 @@ export function sanitizeConfigForEndpoint(cfg: AIProviderConfig): AIProviderConf
     } else {
       sanitized.thinkingBudget = Math.round(cfg.thinkingBudget);
     }
-  }
-
-  if (support.numCtx && isPosInt(cfg.numCtx)) {
-    sanitized.numCtx = cfg.numCtx;
-  }
-
-  if (support.repeatPenalty && isFiniteNum(cfg.repeatPenalty)) {
-    sanitized.repeatPenalty = Number(cfg.repeatPenalty.toFixed(2));
   }
 
   if (
@@ -301,16 +267,6 @@ export function detectManualProtocol(
     'max_output_tokens' in body
   ) {
     return 'openai-responses';
-  }
-
-  if (
-    lowerUrl.endsWith('/api/chat') ||
-    lowerUrl.includes(':11434') ||
-    ('options' in body && typeof body.options === 'object' && body.options !== null) ||
-    'num_ctx' in body ||
-    'format' in body
-  ) {
-    return 'ollama';
   }
 
   return 'openai-completions';
@@ -397,17 +353,6 @@ function buildManualRequest(
           format: { type: 'json_object' },
         };
       }
-    }
-  } else if (protocol === 'ollama') {
-    body.messages = [
-      ...(systemPrompt ? [{ role: 'system', content: systemPrompt }] : []),
-      ...options.messages.map((m) => ({
-        role: m.role === 'assistant' ? 'assistant' : 'user',
-        content: m.content,
-      })),
-    ];
-    if (options.jsonMode && body.format === undefined) {
-      body.format = 'json';
     }
   } else {
     // openai-completions
@@ -542,52 +487,6 @@ export function buildInferenceRequest(
       headers,
       body: baseBody,
       protocol: 'google',
-    };
-  }
-
-  if (cfg.apiStandard === 'ollama') {
-    const url = baseUrl.endsWith('/api/chat')
-      ? baseUrl
-      : baseUrl.endsWith('/api')
-        ? `${baseUrl}/chat`
-        : `${baseUrl.replace(/\/v1$/, '')}/api/chat`;
-
-    const headers: Record<string, string> = { 'content-type': 'application/json' };
-    if (rawApiKey) {
-      headers['authorization'] = `Bearer ${displayKey}`;
-    }
-
-    const chatMessages = [
-      ...(systemPrompt ? [{ role: 'system', content: systemPrompt }] : []),
-      ...options.messages.map((m) => ({
-        role: m.role === 'assistant' ? 'assistant' : 'user',
-        content: m.content,
-      })),
-    ];
-
-    const ollamaOptions: Record<string, unknown> = {
-      ...(isFiniteNum(cfg.temperature) ? { temperature: cfg.temperature } : {}),
-      ...(isPosInt(cfg.maxTokens) ? { num_predict: cfg.maxTokens } : {}),
-      ...(isFiniteNum(cfg.topP) ? { top_p: cfg.topP } : {}),
-      ...(isPosInt(cfg.topK) ? { top_k: cfg.topK } : {}),
-      ...(isPosInt(cfg.numCtx) ? { num_ctx: cfg.numCtx } : {}),
-      ...(isFiniteNum(cfg.repeatPenalty) ? { repeat_penalty: cfg.repeatPenalty } : {}),
-    };
-
-    const baseBody: Record<string, unknown> = {
-      model,
-      messages: chatMessages,
-      stream: false,
-      ...(options.jsonMode ? { format: 'json' } : {}),
-      ...(Object.keys(ollamaOptions).length > 0 ? { options: ollamaOptions } : {}),
-    };
-
-    return {
-      method: 'POST',
-      url,
-      headers,
-      body: baseBody,
-      protocol: 'ollama',
     };
   }
 

@@ -68,7 +68,7 @@ export function assertSafeInferenceUrl(rawUrl: string): void {
   if (parsed.protocol !== 'http:' && parsed.protocol !== 'https:') {
     throw new Error(`Unsupported URL protocol: ${parsed.protocol}`);
   }
-  // shortcut: allows localhost/LAN for self-hosted Ollama, block RFC1918 if multi-tenant
+  // shortcut: allows localhost/LAN for dev proxy, block RFC1918 if multi-tenant
   const host = parsed.hostname.toLowerCase().replace(/^\[|\]$/g, '');
   if (
     host === 'metadata.google.internal' ||
@@ -126,18 +126,6 @@ async function runInference(
     const textPart = parts.find((p: any) => typeof p?.text === 'string' && !p?.thought) ?? parts[0];
     const text = textPart?.text?.trim();
     if (!text) throw new Error('Empty response from Google API.');
-    return options.jsonMode ? cleanJsonText(text) : text;
-  }
-
-  if (req.protocol === 'ollama') {
-    if (!res.ok) {
-      const errBody = await res.text().catch(() => '');
-      throw new Error(`Ollama API error (${res.status}): ${errBody.slice(0, 200)}`);
-    }
-
-    const data: any = await res.json();
-    const text = (data?.message?.content ?? data?.choices?.[0]?.message?.content)?.trim();
-    if (!text) throw new Error('Empty response from Ollama API.');
     return options.jsonMode ? cleanJsonText(text) : text;
   }
 

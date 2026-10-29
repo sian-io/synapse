@@ -64,12 +64,12 @@ export const api = hc<AppType>('/');
 
 ## 2. O Pipeline de Inteligência Artificial e Arquitetura BYOK
 
-O Synapse opera com uma arquitetura **BYOK (Bring Your Own Key)** e proxy stateless, sem dependências de SDKs pesados. No `server.ts`, a função `runInference` utiliza o `fetch` nativo dos Web Standards para integrar com quatro padrões de mercado: **OpenAI** (Chat Completions e Responses API), **Anthropic** (Messages API), **Google Gemini** (REST API) e **Ollama** (modelos locais).
+O Synapse opera com uma arquitetura **BYOK (Bring Your Own Key)** e proxy stateless, sem dependências de SDKs pesados. No `server.ts`, a função `runInference` utiliza o `fetch` nativo dos Web Standards para integrar com três padrões de mercado: **OpenAI** (Chat Completions e Responses API), **Anthropic** (Messages API) e **Google Gemini** (REST API).
 
 ### 1. Respostas Estruturadas via JSON Schema
 Para ferramentas como o **Estúdio Feynman** e a **Geração de Flashcards**, respostas em texto livre são inadequadas porque o frontend precisa renderizar notas numéricas, listas de termos identificados e perguntas específicas.
 
-Os endpoints utilizam a flag `jsonMode: true` na função `runInference`, que adapta a chamada de acordo com o provedor escolhido (por exemplo, `response_format: { type: 'json_object' }` na OpenAI, `responseMimeType: 'application/json'` no Google Gemini ou `format: 'json'` no Ollama). Antes do `JSON.parse`, a função auxiliar `cleanJsonText` sanitiza o conteúdo removendo eventuais blocos de código markdown (````json ... ````).
+Os endpoints utilizam a flag `jsonMode: true` na função `runInference`, que adapta a chamada de acordo com o provedor escolhido (por exemplo, `response_format: { type: 'json_object' }` na OpenAI, `responseMimeType: 'application/json'` no Google Gemini). Antes do `JSON.parse`, a função auxiliar `cleanJsonText` sanitiza o conteúdo removendo eventuais blocos de código markdown (````json ... ````).
 
 Isso garante que a resposta respeite os contratos TypeScript, mapeando diretamente para interfaces como `FeynmanEvaluation` (`src/types.ts`).
 

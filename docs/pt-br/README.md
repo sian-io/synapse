@@ -107,7 +107,7 @@ Visite a aba **Base Neurocientífica** a qualquer momento para revisar os estudo
 ### Pré-requisitos
 
 - [Bun](https://bun.sh/) versão 1.1 ou superior instalado.
-- Chave de API ou modelo local de qualquer provedor LLM compatível: OpenAI, Anthropic, Google Gemini ou Ollama (Bring Your Own Key - BYOK).
+- Chave de API ou modelo local de qualquer provedor LLM compatível: OpenAI, Anthropic ou Google Gemini (Bring Your Own Key - BYOK).
 
 ### Passo a Passo de Instalação
 
@@ -146,7 +146,7 @@ Visite a aba **Base Neurocientífica** a qualquer momento para revisar os estudo
    ```
 
 6. **Configurar seu provedor de IA (BYOK)**:
-   No cabeçalho da aplicação, clique no ícone de **Configurações** (engrenagem) para selecionar seu provedor de IA (OpenAI, Anthropic, Google Gemini ou Ollama), a URL base, o nome do modelo e sua chave de API (opcional para Ollama). Suas credenciais são armazenadas exclusivamente no `localStorage` do seu navegador e enviadas por requisição via proxy stateless, sem gravação em disco no servidor.
+   No cabeçalho da aplicação, clique no ícone de **Configurações** (engrenagem) para selecionar seu provedor de IA (OpenAI, Anthropic ou Google Gemini), a URL base, o nome do modelo e sua chave de API. Suas credenciais são armazenadas exclusivamente no `localStorage` do seu navegador e enviadas por requisição via proxy stateless, sem gravação em disco no servidor.
 
 ---
 

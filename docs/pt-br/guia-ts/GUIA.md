@@ -31,7 +31,7 @@ A documentação está dividida de forma modular. Recomendamos a leitura sequenc
 ### [4. Arquitetura e Fluxo do Synapse](./04-arquitetura-e-fluxo-do-synapse.md)
 > **Foco**: Como a aplicação funciona de ponta a ponta:
 > - Arquitetura unificada: **Bun + Hono + `@hono/vite-dev-server`** e cliente tipado **Hono RPC** (`src/api.ts`)
-> - Pipeline de inteligência artificial com arquitetura BYOK (OpenAI, Anthropic, Google Gemini, Ollama)
+> - Pipeline de inteligência artificial com arquitetura BYOK (OpenAI, Anthropic, Google Gemini)
 > - Gerenciamento de estado no cliente (React 19 + `localStorage`)
 > - O algoritmo de repetição espaçada SM-2 implementado no laboratório de recuperação ativa
 

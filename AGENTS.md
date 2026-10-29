@@ -60,7 +60,7 @@ Synapse operates on a unified full-stack TypeScript architecture powered by **Bu
 - **Bun**: All-in-one JavaScript/TypeScript runtime and package manager (`bun.lock`). Executes `server.ts` natively in both development and production, and automatically loads `.env` variables without requiring `dotenv`.
 - **Hono & Hono RPC (`hono`, `hono/validator`, `hono/client`)**: Ultrafast, lightweight Web framework built entirely on Web Standards (`Request`, `Response`, `Fetch`), providing built-in end-to-end RPC type inference (`hc<AppType>`) without external schema libraries.
 - **`@hono/vite-dev-server`**: Bridges Vite's development server with the Hono application via the Fetch API, preserving single-port HMR without Connect/Express middleware coupling.
-- **Native Multi-Provider Inference (`fetch`)**: Zero external AI SDK dependencies. The server implements `runInference` in `server.ts` using native Web `fetch`, communicating directly with OpenAI (Chat Completions and Responses API), Anthropic Messages API, Google Gemini REST API, and local Ollama instances.
+- **Native Multi-Provider Inference (`fetch`)**: Zero external AI SDK dependencies. The server implements `runInference` in `server.ts` using native Web `fetch`, communicating directly with OpenAI (Chat Completions and Responses API), Anthropic Messages API, and Google Gemini REST API.
 
 ### 2.2 Frontend
 
@@ -94,7 +94,7 @@ On the server, `resolveAIConfig(c, bodyConfig, isPt)` extracts the configuration
 
 ### 3.2 Supported Providers & Standards
 
-The inference function `runInference` in `server.ts` standardizes requests across four major API protocols using Web Standards `fetch`:
+The inference function `runInference` in `server.ts` standardizes requests across three major API protocols using Web Standards `fetch`:
 
 1. **OpenAI (`openai`)**:
    - Supports Chat Completions (`/chat/completions` or `/v1/chat/completions`) and the Responses API (`/responses` or `/v1/responses`), selectable via `openaiApiType: 'completions' | 'responses'`.
@@ -113,10 +113,10 @@ The inference function `runInference` in `server.ts` standardizes requests acros
    - Maps system instructions to `systemInstruction.parts` and conversational history to `contents` (`role: 'user' | 'model'`).
    - Passes `generationConfig: { responseMimeType: 'application/json' }` when `jsonMode: true`.
 
-4. **Ollama (`ollama`)**:
-   - Connects to local or self-hosted Ollama instances (`/api/chat` or `/chat`).
-   - No API key required (passes optional `Authorization: Bearer` if specified).
-   - Maps system prompt into the messages array and sets `stream: false` and `format: 'json'` when `jsonMode: true`.
+
+
+
+
 
 ### 3.3 Structured JSON Processing & Error Handling
 

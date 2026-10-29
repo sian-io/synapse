@@ -109,7 +109,7 @@ Visit the **Neuroscience Guide** tab at any time to review the empirical studies
 ### Prerequisites
 
 - [Bun](https://bun.sh/) version 1.1 or higher installed.
-- An API key or local model from any supported LLM provider: OpenAI, Anthropic, Google Gemini, or Ollama (Bring Your Own Key - BYOK).
+- An API key or local model from any supported LLM provider: OpenAI, Anthropic, or Google Gemini (Bring Your Own Key - BYOK).
 
 ### Installation Steps
 
@@ -148,7 +148,7 @@ Visit the **Neuroscience Guide** tab at any time to review the empirical studies
    ```
 
 6. **Configure your AI provider**:
-   In the application header, click the **Settings** (gear) icon to configure your AI provider (OpenAI, Anthropic, Google Gemini, or Ollama), base URL, model name, and optional API key. Your credentials are saved exclusively in your browser's `localStorage` and sent per request via stateless proxy without being stored on disk.
+   In the application header, click the **Settings** (gear) icon to configure your AI provider (OpenAI, Anthropic, or Google Gemini), base URL, model name, and optional API key. Your credentials are saved exclusively in your browser's `localStorage` and sent per request via stateless proxy without being stored on disk.
 
 ---
 

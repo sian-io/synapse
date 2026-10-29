@@ -30,7 +30,7 @@ describe('inferenceRequest & server helpers', () => {
     ).toBe(true);
   });
 
-  test('buildInferenceRequest builds valid requests across all 5 protocols', () => {
+  test('buildInferenceRequest builds valid requests across all 4 protocols', () => {
     const messages = [{ role: 'user' as const, content: 'Explain LTP' }];
 
     const openaiComp = buildInferenceRequest(
@@ -64,14 +64,6 @@ describe('inferenceRequest & server helpers', () => {
     );
     expect(google.protocol).toBe('google');
     expect(google.url).toContain('models/gemini-2.5-flash:generateContent');
-
-    const ollama = buildInferenceRequest(
-      { apiStandard: 'ollama', baseUrl: 'http://localhost:11434', model: 'llama3.2' },
-      { messages, jsonMode: true }
-    );
-    expect(ollama.protocol).toBe('ollama');
-    expect(ollama.url).toBe('http://localhost:11434/api/chat');
-    expect(ollama.body.format).toBe('json');
   });
 
   test('sanitizeConfigForEndpoint clamps Anthropic thinkingBudget >= 1024 and maxTokens', () => {
@@ -95,7 +87,7 @@ describe('inferenceRequest & server helpers', () => {
     expect(() => assertSafeInferenceUrl('http://169.254.169.254/latest/meta-data/')).toThrow();
     expect(() => assertSafeInferenceUrl('http://metadata.google.internal/computeMetadata/v1/')).toThrow();
     expect(() => assertSafeInferenceUrl('file:///etc/passwd')).toThrow();
-    expect(() => assertSafeInferenceUrl('http://localhost:11434/api/chat')).not.toThrow();
+    expect(() => assertSafeInferenceUrl('https://api.openai.com/v1/chat/completions')).not.toThrow();
   });
 
   test('previewNextInterval calculates SM-2 intervals accurately', () => {
