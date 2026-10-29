@@ -1,257 +1,302 @@
-# Technical Documentation & Engineering Guide: Synapse (v1)
+# Synapse: Engineering Guide for Agents & Contributors
 
-This document outlines the technical architecture, engineering decisions, dependency choices, and internal workings of **Synapse**. Its intended audience includes human engineers and autonomous AI agents tasked with extending, auditing, or maintaining the codebase.
+> **Source-of-truth order: code > this file > `README.md` > `docs/pt-br/`.** If they disagree, trust the code and fix the doc in the same change.
+
+Synapse is a bilingual (en / pt-BR) active-learning tutor: a React 19 SPA plus a Hono API, running on Bun (Vite in dev). It is a **stateless BYOK proxy**: the user's own LLM key lives in their browser and is forwarded on every request; the server stores nothing. The product exists to *prevent* passive study. It must never turn into a "just give me the answer" chatbot.
+
+**Stack:** Bun · Hono + Hono RPC · Vite 6 · React 19 · Tailwind CSS v4 · Base UI (shadcn-style wrappers) · lucide-react · react-markdown · TypeScript 5.8 (check-only via `tsc --noEmit`).
+There is no router, no state library, no AI SDK (raw `fetch`), no database. Add a dependency only if the platform or Hono cannot do the job.
 
 ---
 
-## 1. How Synapse Works (Technical Architecture & "The How")
+## 1. Commands & Definition of Done
 
-Synapse operates on a unified full-stack TypeScript architecture powered by **Bun**, **Hono**, and **Vite**, where a single runtime orchestrates both the Web Standards REST API backend and the React 19 frontend pipeline.
+| Command | What it does | Notes |
+| :-- | :-- | :-- |
+| `bun install` | Install from `bun.lock` | **Bun only.** Never use npm/yarn/pnpm or commit a `package-lock.json`. The Dockerfile uses `--frozen-lockfile`, so keep `bun.lock` in sync (`bun add` / `bun remove`). |
+| `bun run dev` | `bun --bun vite` → http://localhost:3000 | `--bun` is mandatory (Vite's shebang targets Node). HMR on; `/api/*` is dispatched to `server.ts`. |
+| `bun run lint` | `tsc --noEmit` | The only static check (no ESLint/Prettier). Also type-checks every Hono RPC call. |
+| `bun test` | bun:test | Currently `src/lib/inferenceRequest.test.ts`. |
+| `bun run build` | `vite build` → `dist/` | Frontend only. The server is never bundled. |
+| `bun run start` | `bun server.ts` | Serves API + `dist/`. Paths are relative to CWD: run from the repo root, after `build`. |
+| `bun run clean` | `rm -rf dist` | |
+
+**Environment** (Bun auto-loads `.env`; `.env*` is git- and docker-ignored): `PORT` (default `3000`), `HOST` (default `0.0.0.0`; use `127.0.0.1` for loopback-only), `DISABLE_HMR=true`. **No variable is required.** There are no server-side provider credentials (the old `GEMINI_API_KEY` is obsolete).
+
+**Before you finish a task:**
+1. `bun run lint` is clean.
+2. `bun test` is green.
+3. `bun run build` succeeds.
+4. UI changes: exercise them in **EN and PT**, at mobile and desktop widths.
+5. Contract or behavior changes: update this file, the tests, and the READMEs if they mention it.
+
+Match the surrounding file's style. App code: single quotes, semicolons, named exports (only `App` is a default export). `src/components/ui/*` follows the generated style (double quotes, no semicolons). Git history uses Conventional Commits (`feat:`, `fix:`, `refactor:`, `docs:`).
+
+---
+
+## 2. Hard Rules
+
+1. **Pedagogy first.** The tutor never delivers expository answers. It decomposes, questions, and ends `socratic` turns with exactly ONE thought-provoking question. Any prompt edit must preserve this (Retrieval Practice, Socratic/Elaborative Interrogation, Feynman, Cognitive Load, Desirable Difficulties, Metacognition).
+2. **Stateless BYOK.** Never persist, log, echo, or cache user credentials server-side. Do not log request headers or bodies (`x-ai-config` contains the API key). Upstream error text sent to the client stays truncated (`slice(0, 200)`). All LLM calls go through `resolveAIConfig` → `runInference`.
+3. **Transparent failures.** Inference failures surface as HTTP 503 with a localized message. Do **not** reintroduce mock or fallback content that disguises an upstream error.
+4. **Keep the type chain intact.** Every route lives in the single chained expression assigned to `routes` in `server.ts`, with explicit literal status codes (`200`, `400`, `503`). The client only does `import type { AppType } from '../server'`. A value import would drag Bun-only code into the browser bundle.
+5. **The shared layer is isomorphic.** `src/lib/*` and `src/types.ts` run in both the browser (the modal's request preview) and the server. No Bun/Node APIs, no DOM APIs, no React. `server.ts` and the shared layer use **relative imports** (no `@/`).
+6. **Docker allow-list.** The runtime image copies only `package.json`, `node_modules`, `dist`, `server.ts`, `src/types.ts`, `src/i18n`, `src/lib`. If `server.ts` (or anything it imports) starts importing from another `src/` path, **update the Dockerfile `COPY` lines**, or production breaks while dev works.
+7. **All new routes start with `/api/`.** The Vite dev bridge excludes every non-`/api/` path from Hono (`/^\/(?!api\/).*/`), so other paths work in prod but 404 in dev.
+8. **Every user-visible string is bilingual** (see §8). The server also localizes errors and model output via the `language` param.
+9. **Security.** Never render LLM output as raw HTML (no `rehype-raw`, no `dangerouslySetInnerHTML`): the API key sits in `localStorage` and any XSS exposes it. Never weaken `assertSafeInferenceUrl` (§6).
+10. **UI constraints** in §9 are mandatory, not suggestions.
+
+---
+
+## 3. Architecture
 
 ```
-+-------------------------------------------------------------------------+
-|                               Bun Runtime                               |
-|                                                                         |
-|  +-------------------------------------------------------------------+  |
-|  |            Hono Server (server.ts -> export type AppType)         |  |
-|  |                                                                   |  |
-|  |   [Port 3000 - Web Standards Fetch API & Hono RPC]                |  |
-|  |   ├── /api/health                   ──> Status & BYOK Proxy Mode  |  |
-|  |   ├── /api/chat                     ──> Multi-Provider Proxy      |  |
-|  |   ├── /api/feynman-evaluate         ──> Multi-Provider Proxy      |  |
-|  |   ├── /api/generate-retrieval-deck  ──> Multi-Provider Proxy      |  |
-|  |   └── /api/generate-concept-breakdown ──> Multi-Provider Proxy    |  |
-|  |                                                                   |  |
-|  |   @hono/vite-dev-server (dev) / Hono Bun serveStatic Dist (prod)  |  |
-|  +---------------------------------+---------------------------------+  |
-+------------------------------------|------------------------------------+
-                                     │ Serves SPA & End-to-End RPC Types
-                                     v
-+-------------------------------------------------------------------------+
-|                        Browser Client (React 19)                        |
-|                                                                         |
-|  src/api.ts: hc<AppType>('/') (Typed Hono RPC Client with x-ai-config)  |
-|  App.tsx                                                                |
-|  ├── AIConfigContext (BYOK Management, Storage & Validation)            |
-|  ├── UnifiedConceptBar (Shared Topic State & Synchronization)           |
-|  ├── SocraticTutor (Conversational Engine & Metacognitive Certainty)   |
-|  ├── FeynmanStudio (Explanation Audit & Jargon Extraction)             |
-|  ├── ActiveRetrievalLab (SM-2 Spaced Repetition Engine & Recall)       |
-|  ├── CognitiveMap (Sweller / Paivio Structural Deconstruction)         |
-|  └── NeuroscienceGuide (Theoretical Foundations)                        |
-|                                                                         |
-|  Client Storage: localStorage (synapse_ai_config, chat, cards, stats)   |
-+-------------------------------------------------------------------------+
+Browser (React 19 SPA)                         Server (Bun + Hono)                         Provider
+──────────────────────                         ───────────────────                         ────────
+component
+  └─ api.api.<route>.$post({ json })           POST /api/<route>
+       hc<AppType>('/')  ────────────────────▶   jsonBody<T>()      (type-only, NO runtime validation)
+       header x-ai-config:                        resolveAIConfig()  (body.aiConfig ▸ header)
+       encodeURIComponent(JSON(config))           runInference()
+                                                    ├ buildInferenceRequest()   (src/lib, shared with modal preview)
+                                                    ├ assertSafeInferenceUrl()
+                                                    └ fetch ───────────────────────────▶  OpenAI / Anthropic / Gemini / custom
+       ◀──────── c.json(data, 200 | 400 | 503) ◀── parse + normalize LLM output
 ```
 
-### 1.1 Frontend/Backend Unification via `@hono/vite-dev-server`, Hono RPC & Bun
+| | Development | Production |
+| :-- | :-- | :-- |
+| Entry | `bun --bun vite` (port `PORT`/3000) | `bun server.ts` |
+| API | `@hono/vite-dev-server` loads `server.ts`, forwards **only `/api/*`**, and uses its `fetch` | `export default { port, hostname, fetch }` → Bun serves HTTP |
+| Frontend | Vite (HMR, Tailwind plugin) | `serveStatic` from `hono/bun` over `./dist`, SPA fallback to `dist/index.html` |
 
-- In development (`bun run dev`), Vite starts the dev server on port `3000` and uses `@hono/vite-dev-server` to dispatch `/api/*` requests directly to the Hono application (`server.ts`) via standard Web `Request`/`Response` objects while serving the React 19 SPA with HMR.
-- In production (`bun run start`, which executes `bun server.ts`), Bun natively runs `server.ts` without any secondary backend bundling step (`esbuild` is eliminated) and serves compiled static assets from `dist/` via `hono/bun`'s `serveStatic`.
-- **End-to-End Type Safety via Hono RPC**: Routes in `server.ts` are chained and typed with `hono/validator` (`validator('json', ...)`), exporting `export type AppType = typeof routes`. The frontend (`src/api.ts`) instantiates `hc<AppType>('/')` from `hono/client` with a dynamic headers hook that injects the user's `x-ai-config` from `localStorage` on every request. This gives all React components compile-time verified request payloads, status code narrowing (`res.ok`), and response types with zero extra dependencies or code generation.
-- **Design Rationale**: Eliminates Node.js HTTP coupling, `express`, `tsx`, `esbuild`, manual `createViteServer` middleware injection, and untyped `fetch` calls, unifying execution around native TypeScript and open Web Standards.
-
----
-
-## 2. Tooling and Technology Choices
-
-### 2.1 Backend & Runtime
-
-- **Bun**: All-in-one JavaScript/TypeScript runtime and package manager (`bun.lock`). Executes `server.ts` natively in both development and production, and automatically loads `.env` variables without requiring `dotenv`.
-- **Hono & Hono RPC (`hono`, `hono/validator`, `hono/client`)**: Ultrafast, lightweight Web framework built entirely on Web Standards (`Request`, `Response`, `Fetch`), providing built-in end-to-end RPC type inference (`hc<AppType>`) without external schema libraries.
-- **`@hono/vite-dev-server`**: Bridges Vite's development server with the Hono application via the Fetch API, preserving single-port HMR without Connect/Express middleware coupling.
-- **Native Multi-Provider Inference (`fetch`)**: Zero external AI SDK dependencies. The server implements `runInference` in `server.ts` using native Web `fetch`, communicating directly with OpenAI (Chat Completions and Responses API), Anthropic Messages API, and Google Gemini REST API.
-
-### 2.2 Frontend
-
-- **React 19 `package.json`**: Modern UI library delivering high rendering efficiency and stable state hooks (`useState`, `useEffect`, `useRef`).
-- **AI Configuration Context (`src/context/AIConfigContext.tsx`)**: Manages the BYOK lifecycle, credential drafts, validation (`isAIConfigValid`), password visibility toggles, and persistence to `localStorage` under `synapse_ai_config`.
-- **Hono Client (`hono/client`)**: Consumes `AppType` from `server.ts` in `src/api.ts` (`export const api = hc<AppType>('/')`) for type-safe RPC calls (`api.api.chat.$post`, `api.api['feynman-evaluate'].$post`, etc.).
-- **Tailwind CSS v4 `package.json`**: Configured via `@tailwindcss/vite` in `vite.config.ts`, delivering responsive styling with native CSS variable support.
-- **Lucide React `package.json`**: Lightweight vector icon suite providing visual signals for pedagogical states and metadata.
-- **`react-markdown` `package.json`**: Markdown parser rendering structured outputs from the Socratic tutor.
+`hono/bun` is **dynamically imported** behind `typeof Bun !== 'undefined'`. A static import crashes Vite when it loads `server.ts` under Node (`Bun is not defined`). The guard is also true under `bun --bun vite`, but the dev `exclude` regex keeps non-API traffic away from those handlers.
 
 ---
 
-## 3. Bring Your Own Key (BYOK) Architecture & Multi-Provider Inference
+## 4. Repository Map
 
-Synapse uses a **Bring Your Own Key (BYOK)** stateless proxy architecture. The backend server does not store, log, or persist provider credentials to disk or databases; API keys reside exclusively in the client's browser `localStorage` and are transmitted per request.
-
-### 3.1 Configuration Resolution & Header Injection
-
-On each client request, the typed Hono RPC client (`src/api.ts`) automatically extracts the saved configuration from `localStorage` under `synapse_ai_config` and attaches it via the `x-ai-config` HTTP header:
-
-```typescript
-export const api = hc<AppType>('/', {
-  headers: () => {
-    const raw = typeof localStorage !== 'undefined' ? localStorage.getItem(AI_CONFIG_STORAGE_KEY) : null;
-    return raw ? { 'x-ai-config': raw } : ({} as Record<string, string>);
-  },
-});
+```
+server.ts                  Hono app, 5 chained routes, runInference, resolveAIConfig, cleanJsonText,
+                           assertSafeInferenceUrl, global onError; exports `app`, `AppType`, default {port,hostname,fetch}
+vite.config.ts             react + tailwind + devServer bridge; alias @ → src; PORT/HOST/DISABLE_HMR
+tsconfig.json              check-only (noEmit); paths @/* → src/*; NOTE: `strict` is not enabled (see §13)
+Dockerfile / .dockerignore Two-stage Bun build; see rule 6
+metadata.json              AI Studio template leftover; not read by app code
+src/main.tsx               React root (StrictMode)
+src/App.tsx                Tab state (default tab: `cognitive_map`), header, language switch, settings button,
+                           cross-tab handoff `handleOpenSocraticWithPrompt`
+src/api.ts                 `hc<AppType>('/')` + `AI_CONFIG_STORAGE_KEY` + header injection
+src/types.ts               Shared contracts (must mirror server.ts payloads)
+src/lib/inferenceRequest.ts  Provider request builder, param support matrix, sanitizer, validity check (+ .test.ts)
+src/context/               AIConfigContext.tsx (provider + modal host), useAIConfig.ts (context + hook)
+src/i18n/                  LanguageContext.tsx (detection/persistence), translations.ts (en + pt)
+src/data/neurosciencePillars.ts   Pillar copy + demo flashcards, per language (`getX(language)`)
+src/components/            SocraticTutor, FeynmanStudio, ActiveRetrievalLab, CognitiveMap,
+                           NeuroscienceGuide, AIConfigModal
+src/components/ui/         Base UI wrappers: button, dialog, input, popover, select, textarea, tooltip
+src/index.css              Tailwind v4 entry, theme tokens, `surface-panel`/`surface-recessed`, custom variants
+docs/pt-br/                pt-BR README, TS guide for Python devs (guia-ts/), REFACTOR.md (point-in-time report)
 ```
 
-On the server, `resolveAIConfig(c, bodyConfig, isPt)` extracts the configuration from either the request body (`aiConfig`) or the `x-ai-config` header. If missing or invalid (missing `apiStandard`, `baseUrl`, or `model`), it throws an error prompting the user to configure their API credentials via the UI gear button.
-
-### 3.2 Supported Providers & Standards
-
-The inference function `runInference` in `server.ts` standardizes requests across three major API protocols using Web Standards `fetch`:
-
-1. **OpenAI (`openai`)**:
-   - Supports Chat Completions (`/chat/completions` or `/v1/chat/completions`) and the Responses API (`/responses` or `/v1/responses`), selectable via `openaiApiType: 'completions' | 'responses'`.
-   - Passes `response_format: { type: 'json_object' }` (or `text: { format: { type: 'json_object' } }`) when `jsonMode: true`.
-   - Authenticates via `Authorization: Bearer <apiKey>`.
-
-2. **Anthropic (`anthropic`)**:
-   - Calls the Messages API (`/messages` or `/v1/messages`).
-   - Supports configurable `maxTokens` (defaults to `2048`).
-   - Sets headers `x-api-key: <apiKey>` and `anthropic-version: 2023-06-01`.
-   - Maps the system prompt to the top-level `system` property and conversation messages to `{ role: 'user' | 'assistant', content }`.
-
-3. **Google Gemini (`google`)**:
-   - Calls the direct REST endpoint (`/v1beta/models/{model}:generateContent`).
-   - Passes API key via `x-goog-api-key` header.
-   - Maps system instructions to `systemInstruction.parts` and conversational history to `contents` (`role: 'user' | 'model'`).
-   - Passes `generationConfig: { responseMimeType: 'application/json' }` when `jsonMode: true`.
-
-
-
-
-
-
-### 3.3 Structured JSON Processing & Error Handling
-
-- **`cleanJsonText`**: Strips markdown code fences (````json ...````) before executing `JSON.parse` to avoid parsing failures across varied LLM providers.
-- **Transparent Error Propagation**: Upstream inference errors (such as 401 Unauthorized, 429 Quota Exceeded, or 503 Provider Unavailable) are caught and surfaced as HTTP 503/400 with descriptive localized messages in the student's selected language (`en` or `pt`). Silent mock responses that disguise inference failures are removed to ensure transparency.
-
 ---
 
-## 4. Prompt Engineering and API Contracts
+## 5. API Contracts
 
-### 4.1 Socratic Chat: `POST /api/chat`
+All routes are `/api/*`. Error shape is always `{ error: string }`.
 
-- **System Instruction**: Strictly forbids direct explanatory answers and mandates concluding with a single thought-provoking question.
-- **Metadata Extraction**: The model appends a delimited metadata block at the end of the text:
+| Route | Request (client sends) | 200 response | Other statuses |
+| :-- | :-- | :-- | :-- |
+| `GET /api/health` | none | `{ status: 'ok', mode: 'byok-stateless-proxy', timestamp }` | none |
+| `POST /api/chat` | `{ messages, mode: 'socratic', studentCalibration (1-5), language }` (server also accepts `currentTopic`, `aiConfig`) | `{ content }` (Markdown; the server strips any ` ```meta ` fence and trailing `---` rules) | 503 |
+| `POST /api/feynman-evaluate` | `{ explanation, targetAudience, language }` (the client never sends `topic`; the model infers it) | `FeynmanEvaluation` | 400 empty `explanation`; 503 |
+| `POST /api/generate-retrieval-deck` | `{ topic, difficulty, count, language }` | `{ flashcards, cards }` (same array twice; the client reads `flashcards`) | 400 missing `topic`; 503 |
+| `POST /api/generate-concept-breakdown` | `{ topic, language }` | `ConceptBreakdown` | 400 missing `topic`; 503 |
 
+- **Global `app.onError`:** `SyntaxError` (or a message containing `JSON`) → `400 { error: 'Malformed JSON payload.' }`; anything else → `500 { error: 'Internal Server Error' }`.
+- **Missing or invalid AI config** is thrown inside each route's `try`, so it surfaces as **503** with "Configure your API in AI Settings…", not 401/400.
+- **`jsonBody<T>()` is a type annotation, not validation.** It casts `c.req.json()`. Validate required fields by hand and **coerce LLM output defensively** (`String(...)`, `toStringArray`, finite-number check), as the Feynman and breakdown routes do. The deck route only maps fields through, so a malformed card can reach the UI.
+- **Deck normalization:** `id: fc_${now}_${index}`, `intervalDays: 1`, `repetitions: 0`, `easeFactor: 2.5`, `masteryLevel: 0`, `nextReviewDate: now`.
+- **Prompts live in `server.ts`**, are written in English, and carry an `Output language:` directive. JSON keys are part of the contract.
+- **Client call pattern** (keep it uniform):
+  ```ts
+  const response = await api.api['feynman-evaluate'].$post({ json: { ... } });
+  if (!response.ok) {
+    const errData = await response.json().catch(() => null);
+    throw new Error(errData?.error || t.feynman.errorFallback);
+  }
+  const data = await response.json();
   ```
-  ```meta
-  CognitivePhase: [Phase]
-  NeuroTip: [Neurobiological explanation]
-  SuggestedNextSteps: [Action 1 | Action 2]
-  ```
-
-  ```
-
-  The server parses this block via regular expressions in `server.ts`, maps cognitive phase names via `translateCognitivePhase` for consistency in English or Portuguese, and returns clean text in `content` and structured data in `meta`.
-
-### 4.2 Feynman Evaluation: `POST /api/feynman-evaluate`
-
-- Uses `runInference` with `jsonMode: true` and prompt engineering mandating a strict JSON structure.
-- Output Contract (`FeynmanEvaluation`):
-  - `score` (integer 0-100)
-  - `clarityAssessment` (string)
-  - `jargonIdentified` (array of strings)
-  - `conceptualGaps` (array of strings)
-  - `strengths` (array of strings)
-  - `analogiesEvaluation` (string)
-  - `suggestedAnalogy` (string)
-  - `simplifiedAlternative` (string)
-  - `followUpQuestion` (string)
-
-### 4.3 Deck Generation: `POST /api/generate-retrieval-deck`
-
-- Executes `runInference` with `jsonMode: true` producing a `cards` array containing:
-  - `question` (causal mechanism question, not trivia)
-  - `answer` (complete mental model)
-  - `keyConcept` (tested core concept)
-  - `neuroTip` (mnemonic anchor)
-- The backend normalizes generated cards to the `Flashcard` contract, initializing spaced repetition parameters (`intervalDays: 1`, `repetitions: 0`, `easeFactor: 2.5`, `masteryLevel: 0`), and returns `{ flashcards, cards }`.
-
-### 4.4 Conceptual Breakdown: `POST /api/generate-concept-breakdown`
-
-- Executes `runInference` with `jsonMode: true` returning `ConceptBreakdown`:
-  - `topic`, `overview`, `prerequisites`, `coreMechanism`, `commonMisconceptions`, `elaborativeQuestions`, `realWorldAnalogy`, `neuroscienceRationale`.
+  Errors are shown inline (grayscale `AlertTriangle` + message + Retry button), never via `alert()`.
 
 ---
 
-## 5. Client-Side Spaced Repetition Algorithm
+## 6. Inference Layer (`src/lib/inferenceRequest.ts` + `runInference`)
 
-In `ActiveRetrievalLab.tsx`, the `handleRateCard` function implements an adaptation of the **SM-2** algorithm:
+`buildInferenceRequest(cfg, { systemInstruction?, messages, jsonMode?, maskApiKey? })` returns `{ method, url, headers, body, protocol }`. **One builder drives both the modal's live preview (`maskApiKey: true`) and the server's real call.** Config is run through `sanitizeConfigForEndpoint` first.
 
-```typescript
-// Quality: 0 = Forgot / Blank, 1 = Hard, 2 = Good, 3 = Perfect
-if (quality === 0) {
-  newInterval = 1;
-  newRepetitions = 0;
-  newEase = Math.max(1.3, currentCard.easeFactor - 0.2);
-  newMastery = 0;
-} else if (quality === 1) {
-  newInterval = Math.max(1, Math.round(currentCard.intervalDays * 1.2));
-  newRepetitions += 1;
-  newEase = Math.max(1.3, currentCard.easeFactor - 0.1);
-  newMastery = Math.min(5, currentCard.masteryLevel + 1);
-} else if (quality === 2) {
-  newInterval = Math.max(2, Math.round(currentCard.intervalDays * currentCard.easeFactor));
-  newRepetitions += 1;
-  newMastery = Math.min(5, currentCard.masteryLevel + 1);
-} else {
-  newInterval = Math.max(3, Math.round(currentCard.intervalDays * currentCard.easeFactor * 1.3));
-  newRepetitions += 1;
-  newEase = currentCard.easeFactor + 0.15;
-  newMastery = Math.min(5, currentCard.masteryLevel + 2);
-}
-```
+| Protocol | URL (base trimmed of trailing `/`) | Auth | Notes |
+| :-- | :-- | :-- | :-- |
+| `openai-completions` | base ends `/chat/completions` → as is; ends `/v1` → `+/chat/completions`; else `+/v1/chat/completions` | `Authorization: Bearer` | `max_completion_tokens`, `response_format: json_object`, penalties, `reasoning_effort` |
+| `openai-responses` | same logic with `/responses` | `Authorization: Bearer` | `instructions` + `input`, `max_output_tokens`, `reasoning.effort`, `text.format` |
+| `anthropic` | ends `/messages` → as is; ends `/v1` → `+/messages`; else `+/v1/messages` | `x-api-key`, `anthropic-version: 2023-06-01` | `max_tokens` **required** (default 2048); `thinking.budget_tokens` ≥ 1024 and `max_tokens ≥ budget + 1024`; temperature ≤ 1; **no native JSON mode** |
+| `google` | `…/v1beta/models/{model}:generateContent` (a `models/` prefix and a base already ending `/v1` or `/v1beta` are handled) | `x-goog-api-key` | `systemInstruction`, `contents` (roles `user`/`model`), `generationConfig` (`responseMimeType`, `maxOutputTokens`, `topP`, `topK`, `thinkingConfig`) |
 
-The next review timestamp is calculated by adding `newInterval * 86400000` milliseconds to the current time.
+- **`jsonMode`:** native flag where one exists, plus an appended system sentence ("You MUST respond ONLY with a valid JSON object."). The response then passes through `cleanJsonText` (strips code fences or extracts the outermost JSON).
+- **Roles:** builders only distinguish `assistant` from everything else, so a `system` message becomes `user`. System prompts must go through `systemInstruction`.
+- **Response extraction:** Anthropic → first `text` block; Google → first non-`thought` text part; OpenAI Responses → `output_text` ▸ `output[].content[].text` ▸ `choices` fallback; Completions → `choices[0].message.content`.
+- **Manual Edit mode** (`manualEditEnabled` + `customUrlOverride` + `customBodyOverride` + optional `customHeadersOverride`) bypasses the form fields. `detectManualProtocol` infers the protocol from URL, headers, and body keys, then injects messages, system prompt, and JSON mode unless `preserveOverrideMessages` is set. `isAIConfigValid` has separate rules for manual and menu configs.
+- **Empty API key** renders as the literal `<YOUR_API_KEY>` when unmasked. Keep this in mind for key-less local endpoints.
+- **`PROVIDER_DEFAULTS`** (in `AIConfigModal.tsx`) are placeholder/hint values only; the form requires `baseUrl` and `model`. Keep them current when touching the file.
+- **SSRF guard (`assertSafeInferenceUrl`):** only `http:`/`https:`; blocks cloud-metadata hosts and IPs (`metadata.google.internal`, `169.254.*`, `100.100.100.200`, `fd00:ec2::254`, `fe80:`). It deliberately **allows localhost and LAN** so local models (Ollama, LM Studio) work. `fetch` follows redirects, so only the initial URL is checked. Before any public multi-tenant deployment, tighten it (block private ranges, resolve DNS, `redirect: 'manual'`).
 
 ---
 
-## 6. State Management and Data Lifecycle
+## 7. Client State & Persistence
 
-### 6.1 Global State and Persistence
+`App.tsx` renders **only the active tab**, so tab components **unmount on switch**. State survives only because each component initializes from `localStorage` (inside `try/catch`) and writes back in `useEffect`. A new stateful tab must do the same. In-flight requests are not preserved across tab switches.
 
-The root component `App.tsx` keeps primary state synchronized via `localStorage`:
+| Key | Owner | Content |
+| :-- | :-- | :-- |
+| `synapse_ai_config` | `AIConfigContext` / `api.ts` | `AIProviderConfig` JSON, **API key in plaintext** (written only when valid; removed when `null`) |
+| `synapse_language` | `LanguageContext` | `'en'` \| `'pt'` |
+| `synapse_chat_history` | `SocraticTutor` | `ChatMessage[]`. Legacy `…_en`/`…_pt` read as fallback and cleared on reset; ids starting `err_` filtered on load |
+| `synapse_flashcards` | `ActiveRetrievalLab` | `Flashcard[]` (legacy `…_<lang>` fallback) |
+| `synapse_retrieval_topic` / `_count` / `_difficulty` | `ActiveRetrievalLab` | form state. Difficulty is one of `fundamentos` \| `intermediario` \| `avancado` |
+| `synapse_cognitive_map_topic` / `_breakdown` | `CognitiveMap` | string / `ConceptBreakdown` |
+| `synapse_feynman_audience` / `_explanation` / `_evaluation` | `FeynmanStudio` | `child` \| `layperson` \| `beginner` / text / `FeynmanEvaluation` |
 
-- `synapse_ai_config`: Active AI provider credentials and model configuration (API standard, base URL, model name, API key, endpoint type, max tokens).
-- `synapse_current_topic`: Active concept entered by the user.
-- `synapse_stats`: `CognitiveStats` object tracking retrieval attempts, Feynman explanations, Socratic questions answered, retention streak days, and total active minutes.
-- `synapse_chat_history`: Message history for the Socratic tutor.
-- `synapse_flashcards`: Active flashcard deck.
-
-### 6.2 Cross-Tool Communication
-
-- The `currentTopic` state is passed down to all views.
-- The `handleOpenSocraticWithPrompt` callback in `App.tsx` allows buttons inside `FeynmanStudio` and `CognitiveMap` to set a pre-formatted prompt, switch the active tab to `socratic`, and immediately begin guided inquiry.
+- **Don't rename or reshape keys or enum values without a tolerant migration.** The difficulty values are Portuguese on purpose: they are persisted *and* interpolated into the prompt.
+- **StrictMode** double-invokes effects in dev. Effects that trigger API calls must be idempotent (see `isSendingRef` and `lastHandledPromptRef` in `SocraticTutor`).
+- **Cross-tab handoff:** Feynman/CognitiveMap call `onOpenSocraticWithPrompt(prompt)` → `App` stores the prompt and switches tabs → `SocraticTutor` sends it once, then calls `onClearInitialPrompt`. Prompt prefixes and suffixes come from `translations`.
+- **Demo cards:** `ActiveRetrievalLab` swaps demo flashcards when the language changes, but only if *all* cards have ids starting `fc_demo_` and no `lastReviewed`. Don't rename that prefix.
 
 ---
 
-## 7. Guidelines for Modifications and Extensions
+## 8. Internationalization (en / pt-BR)
 
-### 7.1 General Rules for AI Agents
+- `Language = 'en' | 'pt'`. Use `const { t, language } = useLanguage()`. Detection order: saved `synapse_language` → `navigator.languages` starting with `pt` → Brazilian/Portuguese time zones → `'en'`. The provider also sets `<html lang>` and `document.title`.
+- **Add every new key to BOTH `translations.en` and `translations.pt`, with identical structure.** There is **no compile-time parity check**: `t` is cast through `unknown` to `typeof translations.en`, so a key missing in `pt` is `undefined` at runtime.
+- New strings go in `translations.ts`, **not** inline `isPt ? '…' : '…'` ternaries. Those exist in `App.tsx`, the `SocraticTutor` dialog, and `AIConfigModal`; treat them as legacy and don't add more.
+- Some existing keys carry a trailing `:` or a leading `←` that components strip (`.replace(/:\s*$/, '')`). Write new keys clean.
+- Pillar copy and demo flashcards come from `getNeurosciencePillars(language)` / `getInitialPresetFlashcards(language)`.
+- The server is **binary** (`isPt`). Adding a third language requires `Language`, `translations`, the data files, and refactoring `server.ts` prompts and error messages away from the boolean.
 
-1. **Preserve Pedagogical Stance**: The agent must never be instructed to answer conceptual questions directly in an expository manner. Any prompt modifications must uphold the policy of guiding students to deduce answers themselves.
-2. **Adhere to Type Contracts & Hono RPC**: All TypeScript interfaces in `src/types.ts` must strictly mirror the schemas defined in `server.ts`. Keep API routes chained on `const routes = app...` in `server.ts` with `jsonBody<...>()` and explicit status codes (`200`, `400`) so `export type AppType = typeof routes` and `src/api.ts` (`hc<AppType>('/')`) remain end-to-end type-safe.
-3. **Maintain Stateless BYOK Architecture**: All LLM interactions must flow through `resolveAIConfig` and `runInference`. Do not persist user API keys on the server or reintroduce silent mock answers that disguise inference failures.
+---
 
-### 7.2 UI & Aesthetic Rules (Monochrome Precision)
+## 9. UI System ("Monochrome Precision")
 
-All frontend components in `src/` MUST strictly obey these architectural and aesthetic constraints:
+Dark-only (`<html class="dark">`). Pure grayscale. Prefer the utilities in `index.css` over repeating hex values.
 
-1. **Color & Luminance Hierarchy (Pure Grayscale)**:
-   - Canvas Background: `#09090b` (`bg-[#09090b]`)
-   - Primary Surface / Panels: `#0f0f12` (`bg-[#0f0f12]`)
-   - Recessed Surface (Inputs, Code, Textareas): `#050507` (`bg-[#050507]`)
-   - Interactive / Elevated Hover: `#16161a` (`bg-[#16161a]`)
-   - Borders: 1px solid low-contrast hairline (`border-white/[0.07]`), hover state (`border-white/[0.14]`).
-   - Primary CTA: High-contrast monochrome (`bg-zinc-100 text-zinc-950 hover:bg-white font-medium`).
+| Token | Value / class |
+| :-- | :-- |
+| Canvas | `#09090b` (`bg-[#09090b]`) |
+| Panel | `#0f0f12`, utility `surface-panel` (bg + 1px hairline + inset top highlight), or `bg-[#0f0f12]` for bento cells |
+| Recessed (inputs, code, segmented controls) | `#050507`, utility `surface-recessed` |
+| Hover / elevated | `#16161a` |
+| Borders | `border-white/[0.07]`; hover `border-white/[0.14]` |
+| Text | primary `zinc-100`; body `zinc-300/400`; meta `zinc-500` |
+| Primary CTA | `bg-zinc-100 hover:bg-white text-zinc-950 font-medium` + `disabled:bg-zinc-900 disabled:text-zinc-600` |
+| Fonts | Geist Variable (`font-sans`); JetBrains Mono (`font-mono`, loaded from Google Fonts in `index.html`) |
 
-2. **Structural Geometry (Anti-AI-Slop)**:
-   - **FORBIDDEN**: `rounded-2xl`, `rounded-3xl`, `shadow-lg`, `shadow-xl`, or decorative top explanatory banners on every tab.
-   - **FORBIDDEN**: "Boxes inside boxes" (never put a bordered card with padding inside another bordered card). Use **1px Hairline Bento Grids** (`grid gap-px bg-white/[0.07] border border-white/[0.07] rounded-xl overflow-hidden`) where inner cells have `bg-[#0f0f12]` and no individual borders.
-   - Outer containers use `rounded-xl` (12px) or `rounded-lg` (8px). Inner interactive controls use `rounded-md` (6px).
+**Structure**
+- Group content in **1px hairline bento grids**: `grid gap-px bg-white/[0.07] border border-white/[0.07] rounded-xl overflow-hidden`, with cells `bg-[#0f0f12]` and no borders of their own. **Never nest a bordered, padded card inside another.**
+- Radii: outer `rounded-xl` / `rounded-lg`; inner controls `rounded-md`. **Forbidden:** `rounded-2xl`, `rounded-3xl`, `shadow-lg`, `shadow-xl`, decorative explanatory banners atop tabs.
+- Controls are `h-10` (compact `h-8`). Add `cursor-pointer` explicitly on clickable elements (Tailwind v4 does not).
+- Icons: lucide, `w-4 h-4 stroke-[1.75] text-zinc-400`.
+- Meta labels: `font-mono text-[13px] uppercase tracking-widest text-zinc-500` (use `text-[11px]` only for compact chips and hints). **Every numeric metric** (scores, intervals, counts, timestamps) uses `font-mono tabular-nums`.
+- Motion: only `animate-fade-in` and functional spinners/pings.
 
-3. **Typography & Scannability**:
-   - Section headers and metadata must use `font-mono text-[11px] uppercase tracking-widest text-zinc-500 tabular-nums` (e.g., `01 // CORE MECHANISM`).
-   - All numeric metrics (scores, intervals, streaks, word counts) MUST include `font-mono tabular-nums`.
+**Primitives are Base UI, not Radix.** Use `@/components/ui/*` and follow the existing patterns:
+- Composition uses the **`render` prop** (`<DialogTrigger render={<Button … />}>`), not `asChild`.
+- `Select` `onValueChange` can receive `null`; guard with `if (val)`.
+- `index.css` defines custom variants (`data-open`, `data-closed`, `data-checked`, …) that bridge Base UI's data attributes to the animation classes. Don't remove them.
+- Callers override the default popover/dialog styling with `surface-panel … ring-0`.
+- **Forbidden:** native `<select>`, `<input type="range">`, `window.confirm()` (use `Dialog`).
+- `cn` is imported from the **`cn` npm package** (`import { cn } from "cn"`), **not** `@/lib/utils`.
+- `components.json` is git-ignored, so the shadcn CLI has no project config. Hand-write new primitives modeled on the existing files.
+- The only non-grayscale styling in the app is the red manual-JSON error banner in `AIConfigModal`. Don't copy it.
 
-4. **Component Primitives**:
-   - **FORBIDDEN**: Native `<select>`, `<input type="range">`, or `window.confirm()`. Always use shadcn/Radix primitives from `@/components/ui/*`.
+---
+
+## 10. Spaced Repetition (`ActiveRetrievalLab.tsx`)
+
+An SM-2-inspired adaptation (**not** canonical SM-2). Ratings: `0` forgot, `1` hard, `2` good, `3` perfect.
+
+`previewNextInterval(card, q)` is exported and is the **single source of truth** for the interval. It drives both the button labels and the real scheduling, and it is unit-tested:
+
+| q | Next interval (days) | `repetitions` | `easeFactor` | `masteryLevel` (0-5) |
+| :-- | :-- | :-- | :-- | :-- |
+| 0 | `1` | reset to 0 | `max(1.3, e − 0.2)` | 0 |
+| 1 | `max(1, round(i × 1.2))` | +1 | `max(1.3, e − 0.1)` | +1 |
+| 2 | `max(2, round(i × e))` | +1 | unchanged | +1 |
+| 3 | `max(3, round(i × e × 1.3))` | +1 | `e + 0.15` | +2 |
+
+`nextReviewDate = Date.now() + interval × 86_400_000`; `lastReviewed = Date.now()`. If you change the formulas, change `previewNextInterval`, `handleRateCard`, and the test together.
+
+---
+
+## 11. Recipes
+
+**Add an endpoint**
+1. Append `.post('/api/<name>', jsonBody<{ …; language?: 'en' | 'pt'; aiConfig?: AIProviderConfig }>(), handler)` **inside the existing `routes` chain**. A separate `app.post(…)` silently drops the route from `AppType`.
+2. Handler skeleton:
+   ```ts
+   async (c) => {
+     const { topic, language = 'en', aiConfig } = c.req.valid('json');
+     const isPt = language === 'pt';
+     if (!topic) return c.json({ error: isPt ? 'Tópico é obrigatório.' : 'Topic is required.' }, 400);
+     try {
+       const cfg = resolveAIConfig(c, aiConfig, isPt);
+       const text = await runInference(cfg, { messages: [{ role: 'user', content: prompt }], jsonMode: true });
+       return c.json(normalize(JSON.parse(text)), 200);
+     } catch (error: any) {
+       console.error('Error in /api/<name>:', error.message);
+       return c.json({ error: error.message || (isPt ? '…' : '…') }, 503);
+     }
+   }
+   ```
+3. Add the response interface to `src/types.ts`; normalize LLM output defensively.
+4. Call it from the client via `api.api['<name>'].$post` using the pattern in §5, and add `errorFallback` strings in both languages.
+5. If `server.ts` now imports a new `src/` path, update the Dockerfile.
+6. Update §5 of this file and add tests for any pure helper.
+
+**Change a JSON contract** (prompt keys): update the server prompt → the normalizer → `src/types.ts` → consuming components → this file's §5. Persisted shapes (`synapse_*_evaluation`, `_breakdown`, `synapse_flashcards`) must still load old data (the components already guard with `?? []`).
+
+**Add a provider / protocol:** `APIStandard` and `InferenceProtocol` in types/lib → `getEndpointParameterSupport` → `sanitizeConfigForEndpoint` → `buildInferenceRequest` → `detectManualProtocol` → response parsing in `runInference` → labels and `PROVIDER_DEFAULTS` in `AIConfigModal` → tests.
+
+**Add a tab:** extend `ActiveTab` and `navItems` in `App.tsx`; add `app.nav.<id>` in both languages; persist the tab's state (§7); follow §9.
+
+**Add a language:** see §8.
+
+---
+
+## 12. Testing
+
+- Runner: `bun test` (`bun:test`). There is no DOM test environment (no jsdom/testing-library). Test logic as **pure functions**. The precedent is exporting `previewNextInterval` from the component file.
+- Covered today: `isAIConfigValid`, `buildInferenceRequest` across the 4 protocols, Anthropic thinking-budget clamping, `cleanJsonText`, `assertSafeInferenceUrl`, `previewNextInterval`.
+- Worth adding when you touch the area: en/pt translation key parity, `detectManualProtocol`, `resolveAIConfig` header decoding (raw JSON vs URI-encoded), route-level tests via `app.request(...)` (`app` is exported).
+
+---
+
+## 13. Known Gaps & Traps
+
+| Area | Fact | Guidance |
+| :-- | :-- | :-- |
+| Type strictness | `tsconfig.json` does **not** enable `strict`; Hono's RPC docs expect it. `any` is common (`catch (e: any)`, provider payloads). | A clean `lint` ≠ strict safety. Enabling `strict` is its own change; don't mix it into feature work. |
+| Request validation | `jsonBody<T>()` doesn't validate. | Validate by hand (§5). |
+| SSRF | Minimal guard; redirects followed (§6). | Tighten before multi-tenant exposure. |
+| i18n parity | No compile-time check (§8). | Add a parity test if you touch translations. |
+| Chat history | The assistant welcome message (`msg_welcome`) is included in the history sent to the provider, so the first turn is an `assistant` message. *Unverified:* some providers (e.g. Anthropic, Gemini) may reject conversations that don't start with a user turn. | Verify before relying on it; strip it server-side if it fails. |
+| Chat modes | The UI only sends `mode: 'socratic'`. `PedagogicalMode` includes `concept_breakdown`, which has no guideline in the system prompt. | Don't assume the other modes are exercised. |
+| Spaced repetition | `nextReviewDate` is stored but the UI cycles cards sequentially (no due-date queue); `easeFactor` has no upper bound. | Keep in mind when "fixing" scheduling. |
+| Tab switching | In-flight results are lost on unmount (§7). | Persist or lift state if it matters. |
+| Credentials at rest | API key is plaintext in `localStorage` (by design, disclosed in the settings modal). | See rule 9. |
+| Docs drift | `README.md`, `docs/pt-br/README.md`, and `guia-ts/04` still mention things that no longer exist: `UnifiedConceptBar`, `synapse_current_topic`, `synapse_stats`, a pedagogical-mode selector, "Recommended Cognitive Actions", Gemini-only fallbacks, a "slider" for calibration (it's a popover of 1-5 buttons). `docs/pt-br/REFACTOR.md` is a point-in-time report for commit `9a8e646`, not a living doc. | Don't treat them as truth. Fix them when you touch the related area. |
+
+---
+
+## 14. Keeping Docs Honest
+
+When behavior changes, update in the same PR: this file → `README.md` (English) → `docs/pt-br/README.md` (Portuguese) if user-facing flow changed. `docs/pt-br/guia-ts/*` are educational and should stay consistent with `server.ts` / `src/api.ts` snippets. Keep this file dense and factual: commands, contracts, constraints, and traps. Put narrative and onboarding material in the READMEs.
