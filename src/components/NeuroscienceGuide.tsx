@@ -182,8 +182,8 @@ export const NeuroscienceGuide: React.FC = () => {
           </h3>
         </div>
 
-        {consolidationSteps.map(step => (
-          <div className="bg-[#0f0f12] p-6 space-y-2">
+        {consolidationSteps.map((step) => (
+          <div key={step.name} className="bg-[#0f0f12] p-6 space-y-2">
             <div className="flex items-baseline gap-2">
               <h4 className="font-semibold text-zinc-100 text-base tracking-tight">
                 {step.name}

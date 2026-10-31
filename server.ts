@@ -92,15 +92,20 @@ async function runInference(
     systemInstruction?: string;
     messages: { role: 'user' | 'assistant' | 'system'; content: string }[];
     jsonMode?: boolean;
+    signal?: AbortSignal;
   }
 ): Promise<string> {
   const req = buildInferenceRequest(cfg, options);
   assertSafeInferenceUrl(req.url);
 
+  const timeoutSignal = AbortSignal.timeout(60_000);
+  const effectiveSignal = options.signal ? AbortSignal.any([options.signal, timeoutSignal]) : timeoutSignal;
+
   const res = await fetch(req.url, {
     method: req.method,
     headers: req.headers,
     body: JSON.stringify(req.body),
+    signal: effectiveSignal,
   });
 
   if (req.protocol === 'anthropic') {
@@ -158,6 +163,51 @@ async function runInference(
   return options.jsonMode ? cleanJsonText(text) : text;
 }
 
+async function runInferenceJson(
+  cfg: AIProviderConfig,
+  options: {
+    systemInstruction?: string;
+    messages: { role: 'user' | 'assistant' | 'system'; content: string }[];
+    signal?: AbortSignal;
+  },
+  isPt: boolean
+): Promise<any> {
+  for (let attempt = 0; attempt < 2; attempt++) {
+    try {
+      const responseText = await runInference(cfg, {
+        ...options,
+        jsonMode: true,
+      });
+      return JSON.parse(responseText);
+    } catch (err: any) {
+      const isJsonError =
+        err instanceof SyntaxError ||
+        err?.name === 'SyntaxError' ||
+        (typeof err?.message === 'string' &&
+          (err.message.includes('JSON') || err.message.includes('Unexpected token')));
+      if (isJsonError && attempt === 0) {
+        // Retry once on invalid JSON response
+        continue;
+      }
+      if (isJsonError) {
+        throw new Error(
+          isPt
+            ? 'O modelo de IA gerou uma resposta em formato inválido. Por favor, tente novamente.'
+            : 'The AI model generated an invalid response format. Please try again.'
+        );
+      }
+      if (err?.name === 'TimeoutError') {
+        throw new Error(
+          isPt
+            ? 'Tempo limite esgotado ao aguardar o provedor de IA (60s).'
+            : 'AI provider request timed out (60s).'
+        );
+      }
+      throw err;
+    }
+  }
+}
+
 const routes = app
   // Health check
   .get('/api/health', (c) => {
@@ -211,9 +261,20 @@ Specific Mode Guidelines:
 Format your response in clean, direct, empathetic Markdown focused on student action.
 `.trim();
 
+        let cleanMessages = (messages || []).filter(
+          (m) => m && typeof m.content === 'string' && m.content.trim().length > 0
+        );
+        while (cleanMessages.length > 0 && cleanMessages[0].role === 'assistant') {
+          cleanMessages = cleanMessages.slice(1);
+        }
+        if (cleanMessages.length > 20) {
+          cleanMessages = cleanMessages.slice(-20);
+        }
+
         const responseText = await runInference(cfg, {
           systemInstruction,
-          messages: messages || [],
+          messages: cleanMessages,
+          signal: c.req.raw.signal,
         });
 
         const cleanedText = responseText
@@ -224,13 +285,17 @@ Format your response in clean, direct, empathetic Markdown focused on student ac
         return c.json({ content: cleanedText }, 200);
       } catch (error: any) {
         console.error('Error in /api/chat:', error.message);
+        const isTimeout = error?.name === 'TimeoutError';
         return c.json(
           {
-            error:
-              error.message ||
-              (isPt
-                ? 'Não foi possível alcançar a API de inferência para gerar a resposta.'
-                : 'Could not reach the inference API to generate a response.'),
+            error: isTimeout
+              ? (isPt
+                  ? 'Tempo limite esgotado ao aguardar o provedor de IA (60s).'
+                  : 'AI provider request timed out (60s).')
+              : (error.message ||
+                (isPt
+                  ? 'Não foi possível alcançar a API de inferência para gerar a resposta.'
+                  : 'Could not reach the inference API to generate a response.')),
           },
           503
         );
@@ -278,15 +343,21 @@ Analyze critically:
 Return JSON with keys: topic (string, the inferred or provided concept name), score (0-100 integer), clarityAssessment (string), jargonIdentified (string[]), conceptualGaps (string[]), strengths (string[]), analogiesEvaluation (string), suggestedAnalogy (string), simplifiedAlternative (string), followUpQuestion (string).
 `.trim();
 
-        const responseText = await runInference(cfg, {
-          messages: [{ role: 'user', content: prompt }],
-          jsonMode: true,
-        });
+        const raw = await runInferenceJson(
+          cfg,
+          {
+            messages: [{ role: 'user', content: prompt }],
+            signal: c.req.raw.signal,
+          },
+          isPt
+        );
 
-        const raw = JSON.parse(responseText);
+        const rawScore = Number(raw?.score);
+        const score = Number.isFinite(rawScore) ? Math.max(0, Math.min(100, Math.round(rawScore))) : 0;
+
         const parsed: FeynmanEvaluation = {
           topic: String(raw?.topic || topic || '').trim() || undefined,
-          score: typeof raw?.score === 'number' && Number.isFinite(raw.score) ? raw.score : 0,
+          score,
           clarityAssessment: String(raw?.clarityAssessment ?? ''),
           jargonIdentified: toStringArray(raw?.jargonIdentified),
           conceptualGaps: toStringArray(raw?.conceptualGaps),
@@ -299,13 +370,17 @@ Return JSON with keys: topic (string, the inferred or provided concept name), sc
         return c.json(parsed, 200);
       } catch (error: any) {
         console.error('Error in /api/feynman-evaluate:', error.message);
+        const isTimeout = error?.name === 'TimeoutError';
         return c.json(
           {
-            error:
-              error.message ||
-              (isPt
-                ? 'Não foi possível alcançar a API de inferência para avaliar a explicação.'
-                : 'Could not reach the inference API to evaluate the explanation.'),
+            error: isTimeout
+              ? (isPt
+                  ? 'Tempo limite esgotado ao aguardar o provedor de IA (60s).'
+                  : 'AI provider request timed out (60s).')
+              : (error.message ||
+                (isPt
+                  ? 'Não foi possível alcançar a API de inferência para avaliar a explicação.'
+                  : 'Could not reach the inference API to evaluate the explanation.')),
           },
           503
         );
@@ -347,21 +422,24 @@ STRICT PEDAGOGICAL RULES:
 Return JSON with key "cards", an array of objects each with keys: question (string), answer (string), keyConcept (string), neuroTip (string).
 `.trim();
 
-        const responseText = await runInference(cfg, {
-          messages: [{ role: 'user', content: prompt }],
-          jsonMode: true,
-        });
+        const parsed = await runInferenceJson(
+          cfg,
+          {
+            messages: [{ role: 'user', content: prompt }],
+            signal: c.req.raw.signal,
+          },
+          isPt
+        );
 
-        const parsed = JSON.parse(responseText);
         const rawCards = Array.isArray(parsed) ? parsed : (parsed.cards || parsed.flashcards || []);
         const now = Date.now();
         const flashcards: Flashcard[] = rawCards.map((c: any, index: number) => ({
           id: `fc_${now}_${index}`,
           topic,
-          question: c.question,
-          answer: c.answer,
-          keyConcept: c.keyConcept,
-          neuroTip: c.neuroTip,
+          question: String(c.question || '').trim(),
+          answer: String(c.answer || '').trim(),
+          keyConcept: String(c.keyConcept || '').trim(),
+          neuroTip: String(c.neuroTip || '').trim(),
           intervalDays: 1,
           repetitions: 0,
           easeFactor: 2.5,
@@ -372,13 +450,17 @@ Return JSON with key "cards", an array of objects each with keys: question (stri
         return c.json({ flashcards, cards: flashcards }, 200);
       } catch (error: any) {
         console.error('Error in /api/generate-retrieval-deck:', error.message);
+        const isTimeout = error?.name === 'TimeoutError';
         return c.json(
           {
-            error:
-              error.message ||
-              (isPt
-                ? 'Não foi possível alcançar a API de inferência para gerar o baralho.'
-                : 'Could not reach the inference API to generate the deck.'),
+            error: isTimeout
+              ? (isPt
+                  ? 'Tempo limite esgotado ao aguardar o provedor de IA (60s).'
+                  : 'AI provider request timed out (60s).')
+              : (error.message ||
+                (isPt
+                  ? 'Não foi possível alcançar a API de inferência para gerar o baralho.'
+                  : 'Could not reach the inference API to generate the deck.')),
           },
           503
         );
@@ -420,12 +502,15 @@ Structure:
 Return JSON with keys: topic (string), overview (string), prerequisites (string[]), coreMechanism (string), commonMisconceptions (string[]), elaborativeQuestions (string[]), realWorldAnalogy (string), neuroscienceRationale (string).
 `.trim();
 
-        const responseText = await runInference(cfg, {
-          messages: [{ role: 'user', content: prompt }],
-          jsonMode: true,
-        });
+        const raw = await runInferenceJson(
+          cfg,
+          {
+            messages: [{ role: 'user', content: prompt }],
+            signal: c.req.raw.signal,
+          },
+          isPt
+        );
 
-        const raw = JSON.parse(responseText);
         const parsed: ConceptBreakdown = {
           topic: String(raw?.topic || topic).trim(),
           overview: String(raw?.overview ?? ''),
@@ -439,13 +524,17 @@ Return JSON with keys: topic (string), overview (string), prerequisites (string[
         return c.json(parsed, 200);
       } catch (error: any) {
         console.error('Error in /api/generate-concept-breakdown:', error.message);
+        const isTimeout = error?.name === 'TimeoutError';
         return c.json(
           {
-            error:
-              error.message ||
-              (isPt
-                ? 'Não foi possível alcançar a API de inferência para gerar o mapeamento conceitual.'
-                : 'Could not reach the inference API to generate the concept breakdown.'),
+            error: isTimeout
+              ? (isPt
+                  ? 'Tempo limite esgotado ao aguardar o provedor de IA (60s).'
+                  : 'AI provider request timed out (60s).')
+              : (error.message ||
+                (isPt
+                  ? 'Não foi possível alcançar a API de inferência para gerar o mapeamento conceitual.'
+                  : 'Could not reach the inference API to generate the concept breakdown.')),
           },
           503
         );

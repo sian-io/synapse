@@ -9,6 +9,8 @@ import {
   RefreshCw,
   BookOpen,
   Award,
+  Square,
+  Download,
 } from 'lucide-react';
 import { api } from '../api';
 import { FeynmanEvaluation } from '../types';
@@ -73,6 +75,22 @@ export const FeynmanStudio: React.FC<FeynmanStudioProps> = ({
     beginner: t.feynman.audienceOptions.beginner,
   };
 
+  const abortControllerRef = React.useRef<AbortController | null>(null);
+
+  useEffect(() => {
+    return () => {
+      abortControllerRef.current?.abort();
+    };
+  }, []);
+
+  const handleCancel = () => {
+    if (abortControllerRef.current) {
+      abortControllerRef.current.abort();
+      abortControllerRef.current = null;
+    }
+    setIsAnalyzing(false);
+  };
+
   const handleEvaluate = async (e?: React.FormEvent) => {
     if (e) e.preventDefault();
     if (!explanation.trim() || isAnalyzing) return;
@@ -80,14 +98,25 @@ export const FeynmanStudio: React.FC<FeynmanStudioProps> = ({
     setIsAnalyzing(true);
     setError(null);
 
+    abortControllerRef.current?.abort();
+    const controller = new AbortController();
+    abortControllerRef.current = controller;
+
     try {
-      const response = await api.api['feynman-evaluate'].$post({
-        json: {
-          explanation,
-          targetAudience: audienceLabelMap[audience] || audience,
-          language,
+      const response = await api.api['feynman-evaluate'].$post(
+        {
+          json: {
+            explanation,
+            targetAudience: audienceLabelMap[audience] || audience,
+            language,
+          },
         },
-      });
+        {
+          init: {
+            signal: controller.signal,
+          },
+        }
+      );
 
       if (!response.ok) {
         const errData = await response.json().catch(() => null);
@@ -95,12 +124,18 @@ export const FeynmanStudio: React.FC<FeynmanStudioProps> = ({
       }
 
       const data = await response.json();
-      setEvaluation(data);
+      const rawScore = Number(data.score);
+      const clampedScore = Number.isFinite(rawScore) ? Math.max(0, Math.min(100, Math.round(rawScore))) : 0;
+      setEvaluation({ ...data, score: clampedScore });
     } catch (err: any) {
+      if (err?.name === 'AbortError') {
+        return;
+      }
       console.error(err);
       setError(err.message || t.feynman.errorFallback);
     } finally {
       setIsAnalyzing(false);
+      abortControllerRef.current = null;
     }
   };
 
@@ -114,9 +149,24 @@ export const FeynmanStudio: React.FC<FeynmanStudioProps> = ({
         <form onSubmit={handleEvaluate} className="p-5 sm:p-6 flex-1 flex flex-col gap-5">
           {/* Target Audience Select */}
           <div className="space-y-1.5">
-            <label className="text-sm font-medium text-zinc-300 block">
-              {t.feynman.audienceLabel.replace(/:\s*$/, '')}
-            </label>
+            <div className="flex items-center justify-between gap-2">
+              <label className="text-sm font-medium text-zinc-300 block">
+                {t.feynman.audienceLabel.replace(/:\s*$/, '')}
+              </label>
+              {evaluation && (
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => window.print()}
+                  className="h-7 px-2 text-xs text-zinc-400 hover:text-zinc-100 hover:bg-[#16161a] rounded-md flex items-center gap-1 cursor-pointer transition-colors"
+                  title={t.feynman.exportPdf}
+                >
+                  <Download className="w-3 h-3 stroke-[1.75]" />
+                  <span>{t.feynman.exportPdf}</span>
+                </Button>
+              )}
+            </div>
             <Select
               value={audience}
               onValueChange={(val) => {
@@ -174,23 +224,36 @@ export const FeynmanStudio: React.FC<FeynmanStudioProps> = ({
             />
           </div>
 
-          <Button
-            type="submit"
-            disabled={isAnalyzing || !explanation.trim()}
-            className="w-full h-10 bg-zinc-100 hover:bg-white disabled:bg-zinc-900 disabled:text-zinc-600 text-zinc-950 font-medium text-sm rounded-md transition-colors flex items-center justify-center gap-2 cursor-pointer"
-          >
-            {isAnalyzing ? (
-              <>
+          {isAnalyzing ? (
+            <div className="flex gap-2">
+              <Button
+                type="button"
+                disabled
+                className="flex-1 h-10 bg-zinc-900 text-zinc-400 font-medium text-sm rounded-md flex items-center justify-center gap-2"
+              >
                 <RefreshCw className="w-3.5 h-3.5 animate-spin" />
                 <span>{t.feynman.auditingButton}</span>
-              </>
-            ) : (
-              <>
-                <Award className="w-3.5 h-3.5 stroke-[1.75]" />
-                <span>{t.feynman.auditButton}</span>
-              </>
-            )}
-          </Button>
+              </Button>
+              <Button
+                type="button"
+                onClick={handleCancel}
+                className="h-10 px-3 surface-recessed hover:bg-[#16161a] hover:border-white/[0.14] text-zinc-200 text-sm font-medium rounded-md transition-colors flex items-center gap-1.5 cursor-pointer"
+                title={t.feynman.cancel}
+              >
+                <Square className="w-3.5 h-3.5 fill-current" />
+                <span>{t.feynman.cancel}</span>
+              </Button>
+            </div>
+          ) : (
+            <Button
+              type="submit"
+              disabled={!explanation.trim()}
+              className="w-full h-10 bg-zinc-100 hover:bg-white disabled:bg-zinc-900 disabled:text-zinc-600 text-zinc-950 font-medium text-sm rounded-md transition-colors flex items-center justify-center gap-2 cursor-pointer"
+            >
+              <Award className="w-3.5 h-3.5 stroke-[1.75]" />
+              <span>{t.feynman.auditButton}</span>
+            </Button>
+          )}
 
           {error && (
             <div className="pt-3 border-t border-white/[0.05] text-sm text-zinc-300 flex items-center justify-between gap-3">

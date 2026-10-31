@@ -6,6 +6,8 @@ import {
 } from './inferenceRequest';
 import { previewNextInterval } from '../components/ActiveRetrievalLab';
 import { assertSafeInferenceUrl, cleanJsonText } from '../../server';
+import { generateAnkiTsv, generateFlashcardsCsv } from './anki';
+import { translations } from '../i18n/translations';
 import type { Flashcard } from '../types';
 
 describe('inferenceRequest & server helpers', () => {
@@ -108,5 +110,78 @@ describe('inferenceRequest & server helpers', () => {
     expect(previewNextInterval(card, 1)).toBe(5);
     expect(previewNextInterval(card, 2)).toBe(10);
     expect(previewNextInterval(card, 3)).toBe(13);
+  });
+
+  test('generateAnkiTsv formats flashcards correctly for Anki import', () => {
+    const cards: Flashcard[] = [
+      {
+        id: 'fc_1',
+        topic: 'Neuroscience & Memory',
+        question: 'What triggers LTP?',
+        answer: 'High frequency stimulation.',
+        keyConcept: 'LTP',
+        neuroTip: 'AMPA recruits NMDA',
+        intervalDays: 1,
+        repetitions: 0,
+        easeFactor: 2.5,
+        nextReviewDate: 0,
+        masteryLevel: 0,
+      },
+    ];
+
+    const tsv = generateAnkiTsv(cards);
+    const parts = tsv.split('\t');
+    expect(parts.length).toBe(3);
+    expect(parts[0]).toBe('What triggers LTP?');
+    expect(parts[1]).toContain('High frequency stimulation.');
+    expect(parts[1]).toContain('<b>Concept:</b> LTP');
+    expect(parts[1]).toContain('<i>NeuroTip:</i> AMPA recruits NMDA');
+    expect(parts[2]).toBe('Neuroscience_&_Memory');
+  });
+
+  test('generateFlashcardsCsv formats basic front, back and topic correctly with RFC 4180 escaping', () => {
+    const cards: Flashcard[] = [
+      {
+        id: 'fc_1',
+        topic: 'Neuroscience',
+        question: 'What is LTP, and how does it work?',
+        answer: 'Long-term potentiation,\nstrengthening synapses.',
+        keyConcept: 'LTP',
+        neuroTip: 'AMPA & NMDA',
+        intervalDays: 1,
+        repetitions: 0,
+        easeFactor: 2.5,
+        nextReviewDate: 0,
+        masteryLevel: 0,
+      },
+    ];
+
+    const csvPt = generateFlashcardsCsv(cards, true);
+    expect(csvPt).toContain('Pergunta,Resposta,Tópico');
+    expect(csvPt).toContain('"What is LTP, and how does it work?"');
+    expect(csvPt).toContain('"Long-term potentiation,\nstrengthening synapses."');
+    expect(csvPt).toContain('Neuroscience');
+
+    const csvEn = generateFlashcardsCsv(cards, false);
+    expect(csvEn).toContain('Question,Answer,Topic');
+  });
+
+  test('translations have exact parity between en and pt', () => {
+    function getKeys(obj: Record<string, any>, prefix = ''): string[] {
+      let keys: string[] = [];
+      for (const [k, v] of Object.entries(obj)) {
+        const full = prefix ? `${prefix}.${k}` : k;
+        if (v && typeof v === 'object' && !Array.isArray(v)) {
+          keys = keys.concat(getKeys(v, full));
+        } else {
+          keys.push(full);
+        }
+      }
+      return keys.sort();
+    }
+
+    const enKeys = getKeys(translations.en);
+    const ptKeys = getKeys(translations.pt);
+    expect(enKeys).toEqual(ptKeys);
   });
 });

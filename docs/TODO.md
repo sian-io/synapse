@@ -1,13 +1,13 @@
 ## 1. Corrigir primeiro (bugs reais, esforço baixo)
 
-- **Gerar baralho apaga o progresso.** `handleGenerateDeck` faz `setCards(data.flashcards)`, substituindo o baralho inteiro e destruindo o histórico SM-2. Fazer mesclar/anexar, idealmente com baralhos por tópico.
-- **Sem backup.** Todos os dados estão no `localStorage`, então limpar o navegador apaga tudo. Exportar e importar JSON é barato, e um export TSV para Anki daria portabilidade.
-- **A mensagem de boas-vindas vai para o provedor** como primeira mensagem do assistente. Filtrar `msg_welcome` antes de enviar resolve, e vale limitar também a janela do histórico, que hoje cresce sem limite.
-- **Sem timeout nem cancelamento.** O `fetch` do servidor não tem `AbortSignal.timeout`, e o cliente não tem `AbortController`. Um provedor travado deixa a UI girando para sempre.
-- **Pequenos defeitos:**
-  - `consolidationSteps.map` em `NeuroscienceGuide` está sem `key`.
-  - O `score` do Feynman não é limitado a 0–100.
-  - JSON inválido do modelo chega ao usuário como "Unexpected token…" num 503. Uma mensagem amigável e um retry resolveriam.
+- [x] **Gerar baralho apaga o progresso.** `handleGenerateDeck` faz `setCards(data.flashcards)`, substituindo o baralho inteiro e destruindo o histórico SM-2. Fazer mesclar/anexar, idealmente com baralhos por tópico.
+- [x] **Sem backup.** Todos os dados estão no `localStorage`, então limpar o navegador apaga tudo. Exportar e importar JSON é barato, e um export TSV para Anki daria portabilidade.
+- [x] **A mensagem de boas-vindas vai para o provedor** como primeira mensagem do assistente. Filtrar `msg_welcome` antes de enviar resolve, e vale limitar também a janela do histórico, que hoje cresce sem limite.
+- [x] **Sem timeout nem cancelamento.** O `fetch` do servidor não tem `AbortSignal.timeout`, e o cliente não tem `AbortController`. Um provedor travado deixa a UI girando para sempre.
+- [x] **Pequenos defeitos:**
+  - [x] `consolidationSteps.map` em `NeuroscienceGuide` está sem `key`.
+  - [x] O `score` do Feynman não é limitado a 0–100.
+  - [x] JSON inválido do modelo chega ao usuário como "Unexpected token…" num 503. Uma mensagem amigável e um retry resolveriam.
 
 ## 2. Antes de expor publicamente
 

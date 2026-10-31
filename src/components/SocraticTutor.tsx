@@ -6,6 +6,9 @@ import {
   Plus,
   Copy,
   Check,
+  Square,
+  Download,
+  MoreVertical,
 } from 'lucide-react';
 import Markdown, { type Components } from 'react-markdown';
 import { api } from '../api';
@@ -26,7 +29,6 @@ import {
   DialogFooter,
   DialogHeader,
   DialogTitle,
-  DialogTrigger,
 } from '@/components/ui/dialog';
 
 const PreContext = React.createContext(false);
@@ -223,10 +225,27 @@ export const SocraticTutor: React.FC<SocraticTutorProps> = ({
   const [metacognitiveCertainty, setMetacognitiveCertainty] = useState<number>(3);
   const [isCalibrationOpen, setIsCalibrationOpen] = useState(false);
   const [isResetDialogOpen, setIsResetDialogOpen] = useState(false);
+  const [isOptionsMenuOpen, setIsOptionsMenuOpen] = useState(false);
 
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const isSendingRef = useRef(false);
   const lastHandledPromptRef = useRef<string | null>(null);
+  const abortControllerRef = useRef<AbortController | null>(null);
+
+  useEffect(() => {
+    return () => {
+      abortControllerRef.current?.abort();
+    };
+  }, []);
+
+  const handleCancel = () => {
+    if (abortControllerRef.current) {
+      abortControllerRef.current.abort();
+      abortControllerRef.current = null;
+    }
+    setIsLoading(false);
+    isSendingRef.current = false;
+  };
 
   useEffect(() => {
     if (!initialPrompt) {
@@ -252,15 +271,31 @@ export const SocraticTutor: React.FC<SocraticTutorProps> = ({
     setIsLoading(true);
     setError(null);
 
+    abortControllerRef.current?.abort();
+    const controller = new AbortController();
+    abortControllerRef.current = controller;
+
     try {
-      const response = await api.api.chat.$post({
-        json: {
-          messages: historyToSend.map((m) => ({ role: m.role, content: m.content })),
-          mode: 'socratic',
-          studentCalibration: metacognitiveCertainty,
-          language,
+      const messagesToSend = historyToSend
+        .filter((m) => m.id !== 'msg_welcome')
+        .slice(-20)
+        .map((m) => ({ role: m.role, content: m.content }));
+
+      const response = await api.api.chat.$post(
+        {
+          json: {
+            messages: messagesToSend,
+            mode: 'socratic',
+            studentCalibration: metacognitiveCertainty,
+            language,
+          },
         },
-      });
+        {
+          init: {
+            signal: controller.signal,
+          },
+        }
+      );
 
       if (!response.ok) {
         const errData = await response.json().catch(() => null);
@@ -278,11 +313,15 @@ export const SocraticTutor: React.FC<SocraticTutorProps> = ({
 
       setMessages((prev) => [...prev, assistantMessage]);
     } catch (err: any) {
+      if (err?.name === 'AbortError') {
+        return;
+      }
       console.error(err);
       setError(err.message || t.socratic.connectionError);
     } finally {
       setIsLoading(false);
       isSendingRef.current = false;
+      abortControllerRef.current = null;
     }
   };
 
@@ -321,7 +360,51 @@ export const SocraticTutor: React.FC<SocraticTutorProps> = ({
   };
 
   return (
-    <div className="w-full flex flex-col flex-1 min-h-[520px] surface-panel rounded-xl overflow-hidden">
+    <div className="w-full flex flex-col flex-1 min-h-[520px] surface-panel rounded-xl overflow-hidden relative">
+      {/* Options Menu (PDF Export & Reset) */}
+      <div className="absolute top-3.5 right-3.5 sm:top-4 sm:right-4 z-20 no-print">
+        <Popover open={isOptionsMenuOpen} onOpenChange={setIsOptionsMenuOpen}>
+          <PopoverTrigger
+            type="button"
+            className="h-8 w-8 rounded-md surface-recessed hover:bg-[#16161a] hover:border-white/[0.14] text-zinc-400 hover:text-zinc-100 flex items-center justify-center transition-colors cursor-pointer"
+            title={isPt ? 'Opções' : 'Options'}
+          >
+            <MoreVertical className="w-4 h-4 stroke-[1.75]" />
+          </PopoverTrigger>
+          <PopoverContent
+            side="bottom"
+            align="end"
+            sideOffset={4}
+            className="w-44 p-1 rounded-lg surface-panel border border-white/[0.08] shadow-lg ring-0 flex flex-col gap-0.5 z-30"
+          >
+            {messages.length > 1 && (
+              <button
+                type="button"
+                onClick={() => {
+                  setIsOptionsMenuOpen(false);
+                  window.print();
+                }}
+                className="w-full text-left px-2.5 py-1.5 text-xs text-zinc-300 hover:text-zinc-100 hover:bg-[#16161a] rounded-md transition-colors flex items-center gap-2 cursor-pointer"
+              >
+                <Download className="w-3.5 h-3.5 text-zinc-400 stroke-[1.75]" />
+                <span>{t.socratic.exportPdf}</span>
+              </button>
+            )}
+            <button
+              type="button"
+              onClick={() => {
+                setIsOptionsMenuOpen(false);
+                setIsResetDialogOpen(true);
+              }}
+              className="w-full text-left px-2.5 py-1.5 text-xs text-zinc-300 hover:text-zinc-100 hover:bg-[#16161a] rounded-md transition-colors flex items-center gap-2 cursor-pointer"
+            >
+              <RotateCcw className="w-3.5 h-3.5 text-zinc-400 stroke-[1.75]" />
+              <span>{t.socratic.resetTooltip}</span>
+            </button>
+          </PopoverContent>
+        </Popover>
+      </div>
+
       {/* Editorial Log Stream */}
       <div className="flex-1 overflow-y-auto divide-y divide-white/[0.05]">
         {messages.map((message) => {
@@ -385,14 +468,26 @@ export const SocraticTutor: React.FC<SocraticTutorProps> = ({
         )}
 
         {isLoading && (
-          <div className="max-w-3xl mx-auto px-5 sm:px-0 py-6 flex items-center gap-3 text-sm text-zinc-400">
-            <span className="flex h-2 w-2 relative shrink-0">
-              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-zinc-400 opacity-75" />
-              <span className="relative inline-flex rounded-full h-2 w-2 bg-zinc-300" />
-            </span>
-            <span className="font-mono text-[11px] uppercase tracking-wider text-zinc-400">
-              {t.socratic.loadingText}
-            </span>
+          <div className="max-w-3xl mx-auto px-5 sm:px-0 py-6 flex items-center justify-between gap-3 text-sm text-zinc-400">
+            <div className="flex items-center gap-3">
+              <span className="flex h-2 w-2 relative shrink-0">
+                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-zinc-400 opacity-75" />
+                <span className="relative inline-flex rounded-full h-2 w-2 bg-zinc-300" />
+              </span>
+              <span className="font-mono text-[11px] uppercase tracking-wider text-zinc-400">
+                {t.socratic.loadingText}
+              </span>
+            </div>
+            <Button
+              type="button"
+              variant="ghost"
+              size="sm"
+              onClick={handleCancel}
+              className="h-7 px-2.5 surface-recessed hover:bg-[#16161a] hover:border-white/[0.14] text-zinc-300 text-xs rounded-md flex items-center gap-1.5 cursor-pointer"
+            >
+              <Square className="w-3 h-3 fill-current" />
+              <span>{t.socratic.cancel}</span>
+            </Button>
           </div>
         )}
 
@@ -478,65 +573,65 @@ export const SocraticTutor: React.FC<SocraticTutorProps> = ({
             className="flex-1 h-10 surface-recessed rounded-md px-3.5 text-sm text-zinc-100 placeholder:text-zinc-600 focus-visible:border-white/[0.14] focus-visible:ring-0 disabled:opacity-50"
           />
 
-          <Button
-            type="submit"
-            disabled={isLoading || !input.trim()}
-            className="h-10 px-4 bg-zinc-100 hover:bg-white disabled:bg-zinc-900 disabled:text-zinc-600 text-zinc-950 font-medium text-[13px] rounded-md transition-colors flex items-center justify-center gap-1.5 shrink-0 cursor-pointer"
-            title={t.socratic.sendTooltip}
-          >
-            <span className="hidden sm:inline">{t.socratic.sendButton}</span>
-            <Send className="w-3.5 h-3.5 stroke-[1.75]" />
-          </Button>
+          {isLoading ? (
+            <Button
+              type="button"
+              onClick={handleCancel}
+              className="h-10 px-4 surface-recessed hover:bg-[#16161a] hover:border-white/[0.14] text-zinc-200 font-medium text-[13px] rounded-md transition-colors flex items-center justify-center gap-1.5 shrink-0 cursor-pointer"
+              title={t.socratic.cancel}
+            >
+              <Square className="w-3.5 h-3.5 fill-current" />
+              <span className="hidden sm:inline">{t.socratic.cancel}</span>
+            </Button>
+          ) : (
+            <Button
+              type="submit"
+              disabled={!input.trim()}
+              className="h-10 px-4 bg-zinc-100 hover:bg-white disabled:bg-zinc-900 disabled:text-zinc-600 text-zinc-950 font-medium text-[13px] rounded-md transition-colors flex items-center justify-center gap-1.5 shrink-0 cursor-pointer"
+              title={t.socratic.sendTooltip}
+            >
+              <span className="hidden sm:inline">{t.socratic.sendButton}</span>
+              <Send className="w-3.5 h-3.5 stroke-[1.75]" />
+            </Button>
+          )}
 
-          <Dialog open={isResetDialogOpen} onOpenChange={setIsResetDialogOpen}>
-            <DialogTrigger
+        </form>
+      </div>
+
+      <Dialog open={isResetDialogOpen} onOpenChange={setIsResetDialogOpen}>
+        <DialogContent className="surface-panel rounded-xl text-zinc-100 ring-0 sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle className="text-base font-semibold text-zinc-100">
+              {t.socratic.resetTooltip}?
+            </DialogTitle>
+            <DialogDescription className="text-sm text-zinc-400 leading-relaxed">
+              {t.socratic.resetConfirm}
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter className="bg-[#050507] border-white/[0.07]">
+            <DialogClose
               render={
                 <Button
                   type="button"
                   variant="ghost"
-                  size="icon-sm"
-                  className="h-10 w-10 rounded-md surface-recessed text-zinc-400 hover:text-zinc-100 hover:bg-[#16161a] hover:border-white/[0.14] shrink-0 cursor-pointer"
-                  title={t.socratic.resetTooltip}
+                  size="sm"
+                  className="rounded-md text-xs text-zinc-400 hover:text-zinc-100 hover:bg-[#16161a] cursor-pointer"
                 />
               }
             >
-              <RotateCcw className="w-3.5 h-3.5" />
-            </DialogTrigger>
-            <DialogContent className="surface-panel rounded-xl text-zinc-100 ring-0 sm:max-w-md">
-              <DialogHeader>
-                <DialogTitle className="text-base font-semibold text-zinc-100">
-                  {t.socratic.resetTooltip}
-                </DialogTitle>
-                <DialogDescription className="text-sm text-zinc-400 leading-relaxed">
-                  {t.socratic.resetConfirm}
-                </DialogDescription>
-              </DialogHeader>
-              <DialogFooter className="bg-[#050507] border-white/[0.07]">
-                <DialogClose
-                  render={
-                    <Button
-                      type="button"
-                      variant="ghost"
-                      size="sm"
-                      className="rounded-md text-xs text-zinc-400 hover:text-zinc-100 hover:bg-[#16161a] cursor-pointer"
-                    />
-                  }
-                >
-                  {isPt ? 'Cancelar' : 'Cancel'}
-                </DialogClose>
-                <Button
-                  type="button"
-                  size="sm"
-                  onClick={handleConfirmClearHistory}
-                  className="rounded-md bg-zinc-100 text-zinc-950 hover:bg-white font-medium text-xs cursor-pointer"
-                >
-                  {isPt ? 'Confirmar Reset' : 'Confirm Reset'}
-                </Button>
-              </DialogFooter>
-            </DialogContent>
-          </Dialog>
-        </form>
-      </div>
+              {isPt ? 'Cancelar' : 'Cancel'}
+            </DialogClose>
+            <Button
+              type="button"
+              size="sm"
+              onClick={handleConfirmClearHistory}
+              className="rounded-md bg-zinc-100 text-zinc-950 hover:bg-white font-medium text-xs cursor-pointer"
+            >
+              {isPt ? 'Confirmar' : 'Confirm'}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };

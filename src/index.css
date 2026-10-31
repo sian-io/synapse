@@ -241,3 +241,69 @@
   --sidebar-border: oklch(1 0 0 / 10%);
   --sidebar-ring: oklch(0.556 0 0);
 }
+
+@media print {
+  /* Hide navigation, forms, buttons and interactive controls */
+  header,
+  nav,
+  form,
+  button,
+  .no-print {
+    display: none !important;
+  }
+
+  /* High contrast clean paper document presentation */
+  html,
+  body,
+  #root,
+  .dark {
+    background-color: #ffffff !important;
+    background: #ffffff !important;
+    color: #18181b !important;
+  }
+
+  main {
+    max-width: 100% !important;
+    padding: 0 !important;
+    margin: 0 !important;
+  }
+
+  .surface-panel,
+  .surface-recessed,
+  [class*="bg-[#0f0f12]"],
+  [class*="bg-[#050507]"],
+  [class*="bg-[#09090b]"] {
+    background-color: #ffffff !important;
+    background: #ffffff !important;
+    color: #18181b !important;
+    border-color: #e4e4e7 !important;
+    box-shadow: none !important;
+  }
+
+  [class*="text-zinc-100"],
+  [class*="text-zinc-200"],
+  [class*="text-zinc-300"],
+  [class*="text-zinc-400"],
+  [class*="text-zinc-500"] {
+    color: #18181b !important;
+  }
+
+  [class*="border-white"] {
+    border-color: #e4e4e7 !important;
+  }
+
+  h1, h2, h3, h4 {
+    page-break-after: avoid;
+    color: #09090b !important;
+  }
+
+  p, li, blockquote {
+    color: #27272a !important;
+  }
+
+  pre, code {
+    background-color: #f4f4f5 !important;
+    color: #09090b !important;
+    border: 1px solid #e4e4e7 !important;
+  }
+}

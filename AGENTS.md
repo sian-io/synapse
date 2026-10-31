@@ -288,7 +288,7 @@ An SM-2-inspired adaptation (**not** canonical SM-2). Ratings: `0` forgot, `1` h
 | Request validation | `jsonBody<T>()` doesn't validate. | Validate by hand (§5). |
 | SSRF | Minimal guard; redirects followed (§6). | Tighten before multi-tenant exposure. |
 | i18n parity | No compile-time check (§8). | Add a parity test if you touch translations. |
-| Chat history | The assistant welcome message (`msg_welcome`) is included in the history sent to the provider, so the first turn is an `assistant` message. *Unverified:* some providers (e.g. Anthropic, Gemini) may reject conversations that don't start with a user turn. | Verify before relying on it; strip it server-side if it fails. |
+| Chat history | The assistant welcome message (`msg_welcome`) and any leading assistant turns are filtered out before sending to the provider, ensuring the conversation begins with a user turn and context is capped at the last 20 messages. | Preserved across Socratic sessions; sanitized client- and server-side. |
 | Chat modes | The UI only sends `mode: 'socratic'`. `PedagogicalMode` includes `concept_breakdown`, which has no guideline in the system prompt. | Don't assume the other modes are exercised. |
 | Spaced repetition | `nextReviewDate` is stored but the UI cycles cards sequentially (no due-date queue); `easeFactor` has no upper bound. | Keep in mind when "fixing" scheduling. |
 | Tab switching | In-flight results are lost on unmount (§7). | Persist or lift state if it matters. |

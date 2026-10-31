@@ -11,11 +11,14 @@ import {
   AlertCircle,
   Bookmark,
   X,
+  Download,
+  Square,
 } from 'lucide-react';
 import { api } from '../api';
 import { Flashcard } from '../types';
 import { getInitialPresetFlashcards } from '../data/neurosciencePillars';
 import { useLanguage } from '../i18n/LanguageContext';
+import { generateAnkiTsv, generateFlashcardsCsv } from '../lib/anki';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
@@ -26,6 +29,11 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from '@/components/ui/popover';
 
 export function previewNextInterval(card: Flashcard, quality: 0 | 1 | 2 | 3): number {
   if (quality === 0) {
@@ -66,10 +74,28 @@ export const ActiveRetrievalLab: React.FC = () => {
   });
 
   const [currentIndex, setCurrentIndex] = useState(0);
+  const [topicFilter, setTopicFilter] = useState<string>('all');
+  const [isExportOpen, setIsExportOpen] = useState(false);
   const [isFlipped, setIsFlipped] = useState(false);
   const [userDraftAnswer, setUserDraftAnswer] = useState('');
   const [isGeneratingDeck, setIsGeneratingDeck] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  const abortControllerRef = React.useRef<AbortController | null>(null);
+
+  useEffect(() => {
+    return () => {
+      abortControllerRef.current?.abort();
+    };
+  }, []);
+
+  const handleCancel = () => {
+    if (abortControllerRef.current) {
+      abortControllerRef.current.abort();
+      abortControllerRef.current = null;
+    }
+    setIsGeneratingDeck(false);
+  };
 
   useEffect(() => {
     if (cards.length > 0 && cards.every((c) => c.id.startsWith('fc_demo_') && !c.lastReviewed)) {
@@ -93,7 +119,11 @@ export const ActiveRetrievalLab: React.FC = () => {
     localStorage.setItem('synapse_retrieval_difficulty', deckDifficulty);
   }, [deckDifficulty]);
 
-  const currentCard = cards[currentIndex] || null;
+  const availableTopics = Array.from(new Set(cards.map((c) => c.topic).filter(Boolean)));
+  const displayCards = topicFilter === 'all' ? cards : cards.filter((c) => c.topic === topicFilter);
+  const safeIndex = displayCards.length > 0 ? Math.min(currentIndex, displayCards.length - 1) : 0;
+  const currentCard = displayCards[safeIndex] || null;
+
   const formatIntervalLabel = (days: number) =>
     days === 1 ? t.retrieval.ratingHardSub : `+${days} ${t.retrieval.ratingGoodSub}`;
 
@@ -108,13 +138,17 @@ export const ActiveRetrievalLab: React.FC = () => {
   const handleNextCard = () => {
     setIsFlipped(false);
     setUserDraftAnswer('');
-    setCurrentIndex((prev) => (prev + 1) % cards.length);
+    if (displayCards.length > 0) {
+      setCurrentIndex((prev) => (prev + 1) % displayCards.length);
+    }
   };
 
   const handlePrevCard = () => {
     setIsFlipped(false);
     setUserDraftAnswer('');
-    setCurrentIndex((prev) => (prev - 1 + cards.length) % cards.length);
+    if (displayCards.length > 0) {
+      setCurrentIndex((prev) => (prev - 1 + displayCards.length) % displayCards.length);
+    }
   };
 
   const handleRateCard = (quality: 0 | 1 | 2 | 3) => {
@@ -169,15 +203,26 @@ export const ActiveRetrievalLab: React.FC = () => {
     setIsGeneratingDeck(true);
     setError(null);
 
+    abortControllerRef.current?.abort();
+    const controller = new AbortController();
+    abortControllerRef.current = controller;
+
     try {
-      const response = await api.api['generate-retrieval-deck'].$post({
-        json: {
-          topic: activeConcept,
-          difficulty: deckDifficulty,
-          count: Number(deckCount) || 4,
-          language,
+      const response = await api.api['generate-retrieval-deck'].$post(
+        {
+          json: {
+            topic: activeConcept,
+            difficulty: deckDifficulty,
+            count: Number(deckCount) || 4,
+            language,
+          },
         },
-      });
+        {
+          init: {
+            signal: controller.signal,
+          },
+        }
+      );
 
       if (!response.ok) {
         const errData = await response.json().catch(() => null);
@@ -186,17 +231,68 @@ export const ActiveRetrievalLab: React.FC = () => {
 
       const data = await response.json();
       if (data.flashcards && data.flashcards.length > 0) {
-        setCards(data.flashcards);
-        setCurrentIndex(0);
+        const isOnlyUnreviewedDemo =
+          cards.length > 0 && cards.every((c) => c.id.startsWith('fc_demo_') && !c.lastReviewed);
+
+        setCards((prev) => {
+          if (isOnlyUnreviewedDemo) {
+            return data.flashcards;
+          }
+          const existingIds = new Set(prev.map((c) => c.id));
+          const newCards = data.flashcards.filter((c: Flashcard) => !existingIds.has(c.id));
+          return [...prev, ...newCards];
+        });
+
+        setTopicFilter('all');
+        const nextIdx = isOnlyUnreviewedDemo ? 0 : cards.length;
+        setCurrentIndex(nextIdx);
         setIsFlipped(false);
         setUserDraftAnswer('');
       }
     } catch (err: any) {
+      if (err?.name === 'AbortError') {
+        return;
+      }
       console.error(err);
       setError(err.message || t.retrieval.errorFallback);
     } finally {
       setIsGeneratingDeck(false);
+      abortControllerRef.current = null;
     }
+  };
+
+  const handleExportCsv = () => {
+    if (cards.length === 0) return;
+    const cardsToExport = topicFilter === 'all' ? cards : displayCards;
+    const csv = generateFlashcardsCsv(cardsToExport, language === 'pt');
+    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    const topicSlug = topicFilter === 'all' ? 'synapse' : topicFilter.toLowerCase().replace(/[\s\t]+/g, '_');
+    const dateStr = new Date().toISOString().split('T')[0];
+    a.download = `synapse-flashcards-${topicSlug}-${dateStr}.csv`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  };
+
+  const handleExportAnki = () => {
+    if (cards.length === 0) return;
+    const cardsToExport = topicFilter === 'all' ? cards : displayCards;
+    const tsv = generateAnkiTsv(cardsToExport);
+    const blob = new Blob([tsv], { type: 'text/tab-separated-values;charset=utf-8' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    const topicSlug = topicFilter === 'all' ? 'synapse' : topicFilter.toLowerCase().replace(/[\s\t]+/g, '_');
+    const dateStr = new Date().toISOString().split('T')[0];
+    a.download = `synapse-anki-${topicSlug}-${dateStr}.tsv`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
   };
 
   return (
@@ -214,13 +310,13 @@ export const ActiveRetrievalLab: React.FC = () => {
                     <Layers className="w-3.5 h-3.5 text-zinc-500 stroke-[1.75]" />
                     <span>
                       {t.retrieval.cardCount}{' '}
-                      <strong className="text-zinc-100 font-semibold">{currentIndex + 1}</strong>{' '}
+                      <strong className="text-zinc-100 font-semibold">{safeIndex + 1}</strong>{' '}
                       {t.retrieval.of}{' '}
-                      <strong className="text-zinc-100 font-semibold">{cards.length}</strong>
+                      <strong className="text-zinc-100 font-semibold">{displayCards.length}</strong>
                     </span>
                   </span>
 
-                  <span className="px-2 py-0.5 rounded-md surface-recessed text-[13px] font-mono text-zinc-300 truncate max-w-[240px]">
+                  <span className="px-2 py-0.5 rounded-md surface-recessed text-[13px] font-mono text-zinc-300 truncate max-w-[600px]">
                     {currentCard.topic}
                   </span>
                 </div>
@@ -529,23 +625,36 @@ export const ActiveRetrievalLab: React.FC = () => {
               </Select>
             </div>
 
-            <Button
-              type="submit"
-              disabled={isGeneratingDeck || !deckTopic.trim()}
-              className="w-full h-10 bg-zinc-100 hover:bg-white disabled:bg-zinc-900 disabled:text-zinc-600 text-zinc-950 text-sm font-medium rounded-md transition-colors flex items-center justify-center gap-2 cursor-pointer"
-            >
-              {isGeneratingDeck ? (
-                <>
+            {isGeneratingDeck ? (
+              <div className="flex gap-2">
+                <Button
+                  type="button"
+                  disabled
+                  className="flex-1 h-10 bg-zinc-900 text-zinc-400 text-sm font-medium rounded-md flex items-center justify-center gap-2"
+                >
                   <RotateCw className="w-3.5 h-3.5 animate-spin" />
                   <span>{t.retrieval.synthesizing}</span>
-                </>
-              ) : (
-                <>
-                  <Sparkles className="w-3.5 h-3.5 stroke-[1.75]" />
-                  <span>{t.retrieval.synthesizeButton}</span>
-                </>
-              )}
-            </Button>
+                </Button>
+                <Button
+                  type="button"
+                  onClick={handleCancel}
+                  className="h-10 px-3 surface-recessed hover:bg-[#16161a] hover:border-white/[0.14] text-zinc-200 text-sm font-medium rounded-md transition-colors flex items-center gap-1.5 cursor-pointer"
+                  title={t.retrieval.cancel}
+                >
+                  <Square className="w-3.5 h-3.5 fill-current" />
+                  <span>{t.retrieval.cancel}</span>
+                </Button>
+              </div>
+            ) : (
+              <Button
+                type="submit"
+                disabled={!deckTopic.trim()}
+                className="w-full h-10 bg-zinc-100 hover:bg-white disabled:bg-zinc-900 disabled:text-zinc-600 text-zinc-950 text-sm font-medium rounded-md transition-colors flex items-center justify-center gap-2 cursor-pointer"
+              >
+                <Sparkles className="w-3.5 h-3.5 stroke-[1.75]" />
+                <span>{t.retrieval.synthesizeButton}</span>
+              </Button>
+            )}
 
             {error && (
               <div className="pt-3 border-t border-white/[0.05] text-sm text-zinc-300 flex items-center justify-between gap-2">
@@ -569,19 +678,104 @@ export const ActiveRetrievalLab: React.FC = () => {
 
         {/* Cell 2: Deck Overview & Question Jump List */}
         <div className="bg-[#0f0f12] p-6 space-y-3">
-          <div className="flex items-center justify-between">
+          <div className="flex items-center justify-between gap-2">
             <h3 className="text-base font-semibold text-zinc-100 tracking-tight flex items-center gap-2">
               <Bookmark className="w-4 h-4 text-zinc-400 stroke-[1.75]" />
               <span>{t.retrieval.deckCardsTitle}</span>
             </h3>
-            <span className="text-[11px] font-mono tabular-nums text-zinc-400">
-              {cards.length} {t.retrieval.cardsUnit}
-            </span>
+            <div className="flex items-center gap-2">
+              {cards.length > 0 && (
+                <Popover open={isExportOpen} onOpenChange={setIsExportOpen}>
+                  <PopoverTrigger
+                    type="button"
+                    className="h-7 px-2 text-xs text-zinc-400 hover:text-zinc-100 hover:bg-[#16161a] rounded-md flex items-center gap-1 cursor-pointer transition-colors"
+                    title={t.retrieval.export}
+                  >
+                    <Download className="w-3 h-3" />
+                    <span>{t.retrieval.export}</span>
+                  </PopoverTrigger>
+                  <PopoverContent
+                    side="bottom"
+                    align="end"
+                    sideOffset={4}
+                    className="w-32 p-1 rounded-lg surface-panel border border-white/[0.08] shadow-lg ring-0 flex flex-col gap-0.5 z-50"
+                  >
+                    <button
+                      type="button"
+                      onClick={() => {
+                        handleExportCsv();
+                        setIsExportOpen(false);
+                      }}
+                      className="w-full text-left px-2.5 py-1.5 text-xs text-zinc-300 hover:text-zinc-100 hover:bg-[#16161a] rounded-md font-mono transition-colors cursor-pointer"
+                    >
+                      {t.retrieval.exportCsv}
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        handleExportAnki();
+                        setIsExportOpen(false);
+                      }}
+                      className="w-full text-left px-2.5 py-1.5 text-xs text-zinc-300 hover:text-zinc-100 hover:bg-[#16161a] rounded-md font-mono transition-colors cursor-pointer"
+                    >
+                      {t.retrieval.exportTsvAnki}
+                    </button>
+                  </PopoverContent>
+                </Popover>
+              )}
+              <span className="text-[11px] font-mono tabular-nums text-zinc-400">
+                {displayCards.length} {t.retrieval.cardsUnit}
+              </span>
+            </div>
           </div>
 
+          {availableTopics.length > 1 && (
+            <div className="pt-1">
+              <Select
+                value={topicFilter}
+                onValueChange={(val) => {
+                  if (val) {
+                    setTopicFilter(val);
+                    setCurrentIndex(0);
+                    setIsFlipped(false);
+                    setUserDraftAnswer('');
+                  }
+                }}
+              >
+                <SelectTrigger className="w-full h-8 rounded-md surface-recessed px-2.5 text-xs text-zinc-300 hover:border-white/[0.14] focus-visible:ring-0">
+                  <SelectValue>
+                    {topicFilter === 'all' ? t.retrieval.allTopics : topicFilter}
+                  </SelectValue>
+                </SelectTrigger>
+                <SelectContent
+                  align="start"
+                  sideOffset={4}
+                  alignItemWithTrigger={false}
+                  className="surface-panel rounded-lg p-1 text-zinc-200 ring-0"
+                >
+                  <SelectItem
+                    value="all"
+                    className="rounded-md text-xs text-zinc-300 hover:bg-[#16161a] hover:text-zinc-100 focus:bg-[#16161a] focus:text-zinc-100 cursor-pointer"
+                  >
+                    {t.retrieval.allTopics} ({cards.length})
+                  </SelectItem>
+                  {availableTopics.map((top) => (
+                    <SelectItem
+                      key={top}
+                      value={top}
+                      className="rounded-md text-xs text-zinc-300 hover:bg-[#16161a] hover:text-zinc-100 focus:bg-[#16161a] focus:text-zinc-100 cursor-pointer"
+                    >
+                      {top} ({cards.filter((c) => c.topic === top).length})
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          )}
+
           <div className="divide-y divide-white/[0.05] -mx-6 border-t border-white/[0.05] max-h-[360px] overflow-y-auto">
-            {cards.map((c, idx) => {
-              const isSelected = currentIndex === idx;
+            {displayCards.map((c, idx) => {
+              const isSelected = safeIndex === idx;
               return (
                 <button
                   key={c.id}

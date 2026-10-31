@@ -10,6 +10,8 @@ import {
   ShieldCheck,
   RotateCw,
   X,
+  Square,
+  Download,
 } from 'lucide-react';
 import { api } from '../api';
 import { ConceptBreakdown } from '../types';
@@ -57,6 +59,22 @@ export const CognitiveMap: React.FC<CognitiveMapProps> = ({
     }
   }, [breakdown]);
 
+  const abortControllerRef = React.useRef<AbortController | null>(null);
+
+  useEffect(() => {
+    return () => {
+      abortControllerRef.current?.abort();
+    };
+  }, []);
+
+  const handleCancel = () => {
+    if (abortControllerRef.current) {
+      abortControllerRef.current.abort();
+      abortControllerRef.current = null;
+    }
+    setIsLoading(false);
+  };
+
   const handleDeconstruct = async (e?: React.FormEvent) => {
     if (e) e.preventDefault();
     const activeConcept = topic.trim();
@@ -65,13 +83,24 @@ export const CognitiveMap: React.FC<CognitiveMapProps> = ({
     setIsLoading(true);
     setError(null);
 
+    abortControllerRef.current?.abort();
+    const controller = new AbortController();
+    abortControllerRef.current = controller;
+
     try {
-      const response = await api.api['generate-concept-breakdown'].$post({
-        json: {
-          topic: activeConcept,
-          language,
+      const response = await api.api['generate-concept-breakdown'].$post(
+        {
+          json: {
+            topic: activeConcept,
+            language,
+          },
         },
-      });
+        {
+          init: {
+            signal: controller.signal,
+          },
+        }
+      );
 
       if (!response.ok) {
         const errData = await response.json().catch(() => null);
@@ -81,10 +110,14 @@ export const CognitiveMap: React.FC<CognitiveMapProps> = ({
       const data = await response.json();
       setBreakdown(data);
     } catch (err: any) {
+      if (err?.name === 'AbortError') {
+        return;
+      }
       console.error(err);
       setError(err.message || t.cognitiveMap.errorFallback);
     } finally {
       setIsLoading(false);
+      abortControllerRef.current = null;
     }
   };
 
@@ -121,23 +154,50 @@ export const CognitiveMap: React.FC<CognitiveMapProps> = ({
           )}
         </div>
 
-        <Button
-          type="submit"
-          disabled={isLoading || !topic.trim()}
-          className="h-10 px-4 bg-zinc-100 hover:bg-white disabled:bg-zinc-900 disabled:text-zinc-600 text-zinc-950 font-medium text-[13px] rounded-md transition-colors flex items-center justify-center gap-2 shrink-0 cursor-pointer"
-        >
-          {isLoading ? (
-            <>
+        {isLoading ? (
+          <div className="flex gap-2">
+            <Button
+              type="button"
+              disabled
+              className="h-10 px-4 bg-zinc-900 text-zinc-400 font-medium text-[13px] rounded-md flex items-center justify-center gap-2 shrink-0"
+            >
               <RotateCw className="w-3.5 h-3.5 animate-spin" />
               <span>{t.cognitiveMap.mappingButton}</span>
-            </>
-          ) : (
-            <>
+            </Button>
+            <Button
+              type="button"
+              onClick={handleCancel}
+              className="h-10 px-3 surface-recessed hover:bg-[#16161a] hover:border-white/[0.14] text-zinc-200 text-sm font-medium rounded-md transition-colors flex items-center gap-1.5 shrink-0 cursor-pointer"
+              title={t.cognitiveMap.cancel}
+            >
+              <Square className="w-3.5 h-3.5 fill-current" />
+              <span>{t.cognitiveMap.cancel}</span>
+            </Button>
+          </div>
+        ) : (
+          <div className="flex items-center gap-2">
+            <Button
+              type="submit"
+              disabled={!topic.trim()}
+              className="h-10 px-4 bg-zinc-100 hover:bg-white disabled:bg-zinc-900 disabled:text-zinc-600 text-zinc-950 font-medium text-[13px] rounded-md transition-colors flex items-center justify-center gap-2 shrink-0 cursor-pointer"
+            >
               <Compass className="w-3.5 h-3.5 stroke-[1.75]" />
               <span>{t.cognitiveMap.deconstructButton}</span>
-            </>
-          )}
-        </Button>
+            </Button>
+            {breakdown && (
+              <Button
+                type="button"
+                variant="ghost"
+                onClick={() => window.print()}
+                className="h-10 px-3 surface-recessed hover:bg-[#16161a] hover:border-white/[0.14] text-zinc-300 hover:text-zinc-100 rounded-md text-xs font-medium flex items-center gap-1.5 shrink-0 cursor-pointer"
+                title={t.cognitiveMap.exportPdf}
+              >
+                <Download className="w-3.5 h-3.5 stroke-[1.75]" />
+                <span>{t.cognitiveMap.exportPdf}</span>
+              </Button>
+            )}
+          </div>
+        )}
       </form>
 
       {error && (
