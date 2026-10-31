@@ -1,4 +1,4 @@
-> **Language / Idioma**: [Versão original em português](docs/pt-br/README.md)
+> **Language / Idioma**: [Versão original em português](docs/README-PT.md)
 
 # Synapse - Active Learning Agent
 
