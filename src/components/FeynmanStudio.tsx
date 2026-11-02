@@ -143,9 +143,9 @@ export const FeynmanStudio: React.FC<FeynmanStudioProps> = ({
   const analyzedConcept = evaluation?.topic?.trim() || t.feynman.inferredConceptFallback;
 
   return (
-    <div className="w-full grid grid-cols-1 lg:grid-cols-12 gap-5 items-stretch">
+    <div className="w-full grid grid-cols-1 lg:grid-cols-12 gap-5 items-stretch print:block print:w-full">
       {/* Left Column: Editor Workspace - 5 Columns */}
-      <div className="lg:col-span-5 surface-panel rounded-xl overflow-hidden flex flex-col">
+      <div className="lg:col-span-5 surface-panel rounded-xl overflow-hidden flex flex-col no-print">
         <form onSubmit={handleEvaluate} className="p-5 sm:p-6 flex-1 flex flex-col gap-5">
           {/* Target Audience Select */}
           <div className="space-y-1.5">
@@ -276,7 +276,7 @@ export const FeynmanStudio: React.FC<FeynmanStudioProps> = ({
       </div>
 
       {/* Right Column: Continuous Hairline Diagnostic Grid - 7 Columns */}
-      <div className="lg:col-span-7 flex flex-col">
+      <div className="lg:col-span-7 flex flex-col print:w-full">
         {evaluation ? (
           <div className="grid grid-cols-1 md:grid-cols-12 gap-px bg-white/[0.07] border border-white/[0.07] rounded-xl overflow-hidden animate-fade-in">
             {/* Assessment Summary (8 cols) */}
@@ -412,7 +412,7 @@ export const FeynmanStudio: React.FC<FeynmanStudioProps> = ({
                       `${t.feynman.discussPromptPrefix} ${analyzedConcept} ${t.feynman.discussPromptSuffix} "${evaluation.followUpQuestion}"`
                     )
                   }
-                  className="h-9 px-4 rounded-md bg-zinc-100 hover:bg-white text-[13px] font-medium text-zinc-950 transition-colors shrink-0 flex items-center gap-1.5 cursor-pointer"
+                  className="h-9 px-4 rounded-md bg-zinc-100 hover:bg-white text-[13px] font-medium text-zinc-950 transition-colors shrink-0 flex items-center gap-1.5 cursor-pointer no-print"
                 >
                   <span>{t.feynman.discussWithTutor}</span>
                   <ArrowRight className="w-3.5 h-3.5 stroke-[1.75]" />

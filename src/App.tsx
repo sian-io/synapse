@@ -157,7 +157,7 @@ function AppContent() {
       {/* Main Content Viewport */}
       <main className="flex-1 max-w-[1320px] w-full mx-auto px-4 sm:px-6 xl:px-8 py-6 flex flex-col gap-5">
         {!isConfigured && (
-          <div className="px-4 py-3 rounded-lg surface-panel text-zinc-300 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 text-sm">
+          <div className="px-4 py-3 rounded-lg surface-panel text-zinc-300 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 text-sm no-print">
             <div className="flex items-center gap-2.5">
               <AlertTriangle className="w-4 h-4 text-zinc-400 shrink-0" />
               <span>

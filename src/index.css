@@ -262,6 +262,16 @@
     color: #18181b !important;
   }
 
+  .min-h-screen {
+    min-height: auto !important;
+    height: auto !important;
+  }
+
+  * {
+    animation: none !important;
+    transition: none !important;
+  }
+
   main {
     max-width: 100% !important;
     padding: 0 !important;
@@ -278,6 +288,12 @@
     color: #18181b !important;
     border-color: #e4e4e7 !important;
     box-shadow: none !important;
+    break-inside: avoid;
+    page-break-inside: avoid;
+  }
+
+  .overflow-hidden {
+    overflow: visible !important;
   }
 
   [class*="text-zinc-100"],
@@ -294,6 +310,7 @@
 
   h1, h2, h3, h4 {
     page-break-after: avoid;
+    break-after: avoid;
     color: #09090b !important;
   }
 
