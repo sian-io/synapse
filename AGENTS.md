@@ -112,12 +112,13 @@ All routes are `/api/*`. Error shape is always `{ error: string }`.
 | `POST /api/chat` | `{ messages, mode: 'socratic', studentCalibration (1-5), language }` (server also accepts `currentTopic`, `aiConfig`) | `{ content }` (Markdown; the server strips any ` ```meta ` fence and trailing `---` rules) | 503 |
 | `POST /api/feynman-evaluate` | `{ explanation, targetAudience, language }` (the client never sends `topic`; the model infers it) | `FeynmanEvaluation` | 400 empty `explanation`; 503 |
 | `POST /api/generate-retrieval-deck` | `{ topic, difficulty, count, language }` | `{ flashcards, cards }` (same array twice; the client reads `flashcards`) | 400 missing `topic`; 503 |
+| `POST /api/evaluate-retrieval-answer` | `{ question, answer, userAnswer, language }` | `RetrievalEvaluation` (`{ rating: 'correct' \| 'partial' \| 'incorrect', feedback }`) | 400 missing fields; 503 |
 | `POST /api/generate-concept-breakdown` | `{ topic, language }` | `ConceptBreakdown` | 400 missing `topic`; 503 |
 
 - **Global `app.onError`:** `SyntaxError` (or a message containing `JSON`) → `400 { error: 'Malformed JSON payload.' }`; anything else → `500 { error: 'Internal Server Error' }`.
 - **Missing or invalid AI config** is thrown inside each route's `try`, so it surfaces as **503** with "Configure your API in AI Settings…", not 401/400.
 - **`jsonBody<T>()` is a type annotation, not validation.** It casts `c.req.json()`. Validate required fields by hand and **coerce LLM output defensively** (`String(...)`, `toStringArray`, finite-number check), as the Feynman and breakdown routes do. The deck route only maps fields through, so a malformed card can reach the UI.
-- **Deck normalization:** `id: fc_${now}_${index}`, `intervalDays: 1`, `repetitions: 0`, `easeFactor: 2.5`, `masteryLevel: 0`, `nextReviewDate: now`.
+- **Deck normalization:** `id: fc_${now}_${index}`, `topic`, `question`, `answer`.
 - **Prompts live in `server.ts`**, are written in English, and carry an `Output language:` directive. JSON keys are part of the contract.
 - **Client call pattern** (keep it uniform):
   ```ts
@@ -170,7 +171,7 @@ All routes are `/api/*`. Error shape is always `{ error: string }`.
 - **Don't rename or reshape keys or enum values without a tolerant migration.** The difficulty values are Portuguese on purpose: they are persisted *and* interpolated into the prompt.
 - **StrictMode** double-invokes effects in dev. Effects that trigger API calls must be idempotent (see `isSendingRef` and `lastHandledPromptRef` in `SocraticTutor`).
 - **Cross-tab handoff:** Feynman/CognitiveMap call `onOpenSocraticWithPrompt(prompt)` → `App` stores the prompt and switches tabs → `SocraticTutor` sends it once, then calls `onClearInitialPrompt`. Prompt prefixes and suffixes come from `translations`.
-- **Demo cards:** `ActiveRetrievalLab` swaps demo flashcards when the language changes, but only if *all* cards have ids starting `fc_demo_` and no `lastReviewed`. Don't rename that prefix.
+- **Empty initial state:** `ActiveRetrievalLab` starts with an empty deck (`[]`) until cards are synthesized with AI or imported.
 
 ---
 
@@ -220,20 +221,12 @@ Dark-only (`<html class="dark">`). Pure grayscale. Prefer the utilities in `inde
 
 ---
 
-## 10. Spaced Repetition (`ActiveRetrievalLab.tsx`)
+## 10. Active Retrieval Practice (`ActiveRetrievalLab.tsx`)
 
-An SM-2-inspired adaptation (**not** canonical SM-2). Ratings: `0` forgot, `1` hard, `2` good, `3` perfect.
+Implements active retrieval practice and elaborative interrogation with qualitative AI feedback. Ratings (`RetrievalRating`): `'correct'`, `'partial'`, `'incorrect'`.
 
-`previewNextInterval(card, q)` is exported and is the **single source of truth** for the interval. It drives both the button labels and the real scheduling, and it is unit-tested:
-
-| q | Next interval (days) | `repetitions` | `easeFactor` | `masteryLevel` (0-5) |
-| :-- | :-- | :-- | :-- | :-- |
-| 0 | `1` | reset to 0 | `max(1.3, e − 0.2)` | 0 |
-| 1 | `max(1, round(i × 1.2))` | +1 | `max(1.3, e − 0.1)` | +1 |
-| 2 | `max(2, round(i × e))` | +1 | unchanged | +1 |
-| 3 | `max(3, round(i × e × 1.3))` | +1 | `e + 0.15` | +2 |
-
-`nextReviewDate = Date.now() + interval × 86_400_000`; `lastReviewed = Date.now()`. If you change the formulas, change `previewNextInterval`, `handleRateCard`, and the test together.
+- **AI-driven evaluation:** When the student submits their written attempt (`userDraftAnswer`), `POST /api/evaluate-retrieval-answer` evaluates conceptual accuracy and causal mechanism comprehension against the benchmark answer and returns `{ rating: 'correct' | 'partial' | 'incorrect', feedback }`. The client also provides an "I Forgot / Blank" shortcut that directly applies `'incorrect'` without an LLM call.
+- **Card model:** Flashcards maintain essential content (`id`, `topic`, `question`, `answer`) without scheduled interval projections.
 
 ---
 

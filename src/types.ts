@@ -34,19 +34,22 @@ export interface FeynmanEvaluation {
   followUpQuestion: string;
 }
 
+export type RetrievalRating = 'correct' | 'partial' | 'incorrect';
+
+export interface RetrievalEvaluation {
+  rating: RetrievalRating;
+  feedback: string;
+}
+
 export interface Flashcard {
   id: string;
   topic: string;
   question: string;
   answer: string;
-  keyConcept: string;
-  neuroTip: string;
-  intervalDays: number;
-  repetitions: number;
-  easeFactor: number;
-  lastReviewed?: number;
-  nextReviewDate: number;
-  masteryLevel: number; // 0: new, up to 5: consolidated memory
+  userAnswer?: string;
+  rating?: RetrievalRating;
+  feedback?: string;
+  reviewedAt?: number;
 }
 
 export interface ConceptBreakdown {

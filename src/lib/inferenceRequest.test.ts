@@ -4,9 +4,8 @@ import {
   isAIConfigValid,
   sanitizeConfigForEndpoint,
 } from './inferenceRequest';
-import { previewNextInterval } from '../components/ActiveRetrievalLab';
 import { assertSafeInferenceUrl, cleanJsonText } from '../../server';
-import { generateAnkiTsv, generateFlashcardsCsv } from './anki';
+import { generateAnkiTsv, generateFlashcardsCsv, parseFlashcardsImport } from './anki';
 import { translations } from '../i18n/translations';
 import type { Flashcard } from '../types';
 
@@ -92,26 +91,6 @@ describe('inferenceRequest & server helpers', () => {
     expect(() => assertSafeInferenceUrl('https://api.openai.com/v1/chat/completions')).not.toThrow();
   });
 
-  test('previewNextInterval calculates SM-2 intervals accurately', () => {
-    const card: Flashcard = {
-      id: 'fc_1',
-      topic: 'LTP',
-      question: 'Q',
-      answer: 'A',
-      keyConcept: 'K',
-      neuroTip: 'N',
-      intervalDays: 4,
-      repetitions: 2,
-      easeFactor: 2.5,
-      nextReviewDate: 0,
-      masteryLevel: 2,
-    };
-    expect(previewNextInterval(card, 0)).toBe(1);
-    expect(previewNextInterval(card, 1)).toBe(5);
-    expect(previewNextInterval(card, 2)).toBe(10);
-    expect(previewNextInterval(card, 3)).toBe(13);
-  });
-
   test('generateAnkiTsv formats flashcards correctly for Anki import', () => {
     const cards: Flashcard[] = [
       {
@@ -119,13 +98,6 @@ describe('inferenceRequest & server helpers', () => {
         topic: 'Neuroscience & Memory',
         question: 'What triggers LTP?',
         answer: 'High frequency stimulation.',
-        keyConcept: 'LTP',
-        neuroTip: 'AMPA recruits NMDA',
-        intervalDays: 1,
-        repetitions: 0,
-        easeFactor: 2.5,
-        nextReviewDate: 0,
-        masteryLevel: 0,
       },
     ];
 
@@ -133,9 +105,7 @@ describe('inferenceRequest & server helpers', () => {
     const parts = tsv.split('\t');
     expect(parts.length).toBe(3);
     expect(parts[0]).toBe('What triggers LTP?');
-    expect(parts[1]).toContain('High frequency stimulation.');
-    expect(parts[1]).toContain('<b>Concept:</b> LTP');
-    expect(parts[1]).toContain('<i>NeuroTip:</i> AMPA recruits NMDA');
+    expect(parts[1]).toBe('High frequency stimulation.');
     expect(parts[2]).toBe('Neuroscience_&_Memory');
   });
 
@@ -146,13 +116,6 @@ describe('inferenceRequest & server helpers', () => {
         topic: 'Neuroscience',
         question: 'What is LTP, and how does it work?',
         answer: 'Long-term potentiation,\nstrengthening synapses.',
-        keyConcept: 'LTP',
-        neuroTip: 'AMPA & NMDA',
-        intervalDays: 1,
-        repetitions: 0,
-        easeFactor: 2.5,
-        nextReviewDate: 0,
-        masteryLevel: 0,
       },
     ];
 
@@ -164,6 +127,31 @@ describe('inferenceRequest & server helpers', () => {
 
     const csvEn = generateFlashcardsCsv(cards, false);
     expect(csvEn).toContain('Question,Answer,Topic');
+  });
+
+  test('parseFlashcardsImport parses 3-column CSV and Anki TSV round-trip accurately', () => {
+    const original: Flashcard[] = [
+      {
+        id: 'fc_1',
+        topic: 'Neuroscience & Memory',
+        question: 'What is LTP, and how does it work?',
+        answer: 'Long-term potentiation,\nstrengthening synapses.',
+      },
+    ];
+
+    const csv = generateFlashcardsCsv(original, true);
+    const parsedFromCsv = parseFlashcardsImport(csv, 'deck.csv', 1000);
+    expect(parsedFromCsv.length).toBe(1);
+    expect(parsedFromCsv[0].question).toBe('What is LTP, and how does it work?');
+    expect(parsedFromCsv[0].answer).toBe('Long-term potentiation,\nstrengthening synapses.');
+    expect(parsedFromCsv[0].topic).toBe('Neuroscience & Memory');
+
+    const tsv = generateAnkiTsv(original);
+    const parsedFromTsv = parseFlashcardsImport(tsv, 'deck.tsv', 2000);
+    expect(parsedFromTsv.length).toBe(1);
+    expect(parsedFromTsv[0].question).toBe('What is LTP, and how does it work?');
+    expect(parsedFromTsv[0].answer).toBe('Long-term potentiation,\nstrengthening synapses.');
+    expect(parsedFromTsv[0].topic).toBe('Neuroscience & Memory');
   });
 
   test('translations have exact parity between en and pt', () => {

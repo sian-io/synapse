@@ -8,6 +8,8 @@ import type {
   FeynmanEvaluation,
   Flashcard,
   PedagogicalMode,
+  RetrievalEvaluation,
+  RetrievalRating,
 } from './src/types';
 
 const app = new Hono();
@@ -98,7 +100,7 @@ async function runInference(
   const req = buildInferenceRequest(cfg, options);
   assertSafeInferenceUrl(req.url);
 
-  const timeoutSignal = AbortSignal.timeout(60_000);
+  const timeoutSignal = AbortSignal.timeout(120_000);
   const effectiveSignal = options.signal ? AbortSignal.any([options.signal, timeoutSignal]) : timeoutSignal;
 
   const res = await fetch(req.url, {
@@ -199,8 +201,8 @@ async function runInferenceJson(
       if (err?.name === 'TimeoutError') {
         throw new Error(
           isPt
-            ? 'Tempo limite esgotado ao aguardar o provedor de IA (60s).'
-            : 'AI provider request timed out (60s).'
+            ? 'Tempo limite esgotado ao aguardar o provedor de IA (120s).'
+            : 'AI provider request timed out (120s).'
         );
       }
       throw err;
@@ -290,8 +292,8 @@ Format your response in clean, direct, empathetic Markdown focused on student ac
           {
             error: isTimeout
               ? (isPt
-                  ? 'Tempo limite esgotado ao aguardar o provedor de IA (60s).'
-                  : 'AI provider request timed out (60s).')
+                  ? 'Tempo limite esgotado ao aguardar o provedor de IA (120s).'
+                  : 'AI provider request timed out (120s).')
               : (error.message ||
                 (isPt
                   ? 'Não foi possível alcançar a API de inferência para gerar a resposta.'
@@ -375,8 +377,8 @@ Return JSON with keys: topic (string, the inferred or provided concept name), sc
           {
             error: isTimeout
               ? (isPt
-                  ? 'Tempo limite esgotado ao aguardar o provedor de IA (60s).'
-                  : 'AI provider request timed out (60s).')
+                  ? 'Tempo limite esgotado ao aguardar o provedor de IA (120s).'
+                  : 'AI provider request timed out (120s).')
               : (error.message ||
                 (isPt
                   ? 'Não foi possível alcançar a API de inferência para avaliar a explicação.'
@@ -417,9 +419,8 @@ STRICT PEDAGOGICAL RULES:
 - NEVER create shallow trivia questions (e.g., "In what year was X born?").
 - Create mechanism questions ("What would happen if component X failed?", "Why does X produce Y instead of Z?", "What is the essential distinction between A and B?").
 - Provide explanatory answers that consolidate the correct mental model.
-- Include a mnemonic "neuroTip" or conceptual anchor for each question.
 
-Return JSON with key "cards", an array of objects each with keys: question (string), answer (string), keyConcept (string), neuroTip (string).
+Return JSON with key "cards", an array of objects each with keys: question (string), answer (string).
 `.trim();
 
         const parsed = await runInferenceJson(
@@ -438,13 +439,6 @@ Return JSON with key "cards", an array of objects each with keys: question (stri
           topic,
           question: String(c.question || '').trim(),
           answer: String(c.answer || '').trim(),
-          keyConcept: String(c.keyConcept || '').trim(),
-          neuroTip: String(c.neuroTip || '').trim(),
-          intervalDays: 1,
-          repetitions: 0,
-          easeFactor: 2.5,
-          nextReviewDate: now,
-          masteryLevel: 0,
         }));
 
         return c.json({ flashcards, cards: flashcards }, 200);
@@ -455,12 +449,98 @@ Return JSON with key "cards", an array of objects each with keys: question (stri
           {
             error: isTimeout
               ? (isPt
-                  ? 'Tempo limite esgotado ao aguardar o provedor de IA (60s).'
-                  : 'AI provider request timed out (60s).')
+                  ? 'Tempo limite esgotado ao aguardar o provedor de IA (120s).'
+                  : 'AI provider request timed out (120s).')
               : (error.message ||
                 (isPt
                   ? 'Não foi possível alcançar a API de inferência para gerar o baralho.'
                   : 'Could not reach the inference API to generate the deck.')),
+          },
+          503
+        );
+      }
+    }
+  )
+  // Evaluate Active Retrieval Answer & Assign FSRS Rating (1-4)
+  .post(
+    '/api/evaluate-retrieval-answer',
+    jsonBody<{
+      question: string;
+      answer: string;
+      userAnswer: string;
+      language?: 'en' | 'pt';
+      aiConfig?: AIProviderConfig;
+    }>(),
+    async (c) => {
+      const { question, answer, userAnswer, language = 'en', aiConfig } = c.req.valid('json');
+      const isPt = language === 'pt';
+
+      if (!question?.trim() || !answer?.trim() || !userAnswer?.trim()) {
+        return c.json(
+          {
+            error: isPt
+              ? 'Pergunta, gabarito e resposta do estudante são obrigatórios.'
+              : 'Question, benchmark answer, and student answer are required.',
+          },
+          400
+        );
+      }
+
+      try {
+        const cfg = resolveAIConfig(c, aiConfig, isPt);
+
+        const prompt = `
+Evaluate the student's active retrieval attempt against the benchmark answer:
+- Question: "${question.trim()}"
+- Benchmark Answer: "${answer.trim()}"
+- Student Attempt:
+"""${userAnswer.trim()}"""
+- Output language: ${isPt ? 'Portuguese (pt-BR)' : 'English (en)'}
+
+Evaluation Criteria:
+- "correct": Accurate understanding; captures the core causal mechanism and essential concept with no critical flaws.
+- "partial": Partially correct; grasps the general idea but omits a crucial causal link, confuses a detail, or relies on vague/incomplete reasoning.
+- "incorrect": Incorrect, off-topic, contradictory, or missing the fundamental mechanism entirely.
+
+Provide a concise, surgical pedagogical feedback (1-3 sentences) highlighting what was accurately retrieved and, if rating is not "correct", the exact conceptual link to reinforce.
+
+Return JSON with keys: rating (string, exactly one of: "correct", "partial", "incorrect"), feedback (string).
+`.trim();
+
+        const raw = await runInferenceJson(
+          cfg,
+          {
+            messages: [{ role: 'user', content: prompt }],
+            signal: c.req.raw.signal,
+          },
+          isPt
+        );
+
+        const rawRating = String(raw?.rating ?? '').trim().toLowerCase();
+        const rating: RetrievalRating =
+          rawRating === 'correct' || rawRating === 'partial' || rawRating === 'incorrect'
+            ? rawRating
+            : 'partial';
+
+        const parsed: RetrievalEvaluation = {
+          rating,
+          feedback: String(raw?.feedback ?? '').trim(),
+        };
+
+        return c.json(parsed, 200);
+      } catch (error: any) {
+        console.error('Error in /api/evaluate-retrieval-answer:', error.message);
+        const isTimeout = error?.name === 'TimeoutError';
+        return c.json(
+          {
+            error: isTimeout
+              ? (isPt
+                  ? 'Tempo limite esgotado ao aguardar o provedor de IA (120s).'
+                  : 'AI provider request timed out (120s).')
+              : (error.message ||
+                (isPt
+                  ? 'Não foi possível alcançar a API de inferência para avaliar a resposta.'
+                  : 'Could not reach the inference API to evaluate the answer.')),
           },
           503
         );
@@ -529,8 +609,8 @@ Return JSON with keys: topic (string), overview (string), prerequisites (string[
           {
             error: isTimeout
               ? (isPt
-                  ? 'Tempo limite esgotado ao aguardar o provedor de IA (60s).'
-                  : 'AI provider request timed out (60s).')
+                  ? 'Tempo limite esgotado ao aguardar o provedor de IA (120s).'
+                  : 'AI provider request timed out (120s).')
               : (error.message ||
                 (isPt
                   ? 'Não foi possível alcançar a API de inferência para gerar o mapeamento conceitual.'

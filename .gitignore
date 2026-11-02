@@ -5,6 +5,8 @@ coverage/
 .DS_Store
 *.log
 .env*
+.agents/
 .playwright/
 .playwright-cli/
 components.json
+graphify-out/
