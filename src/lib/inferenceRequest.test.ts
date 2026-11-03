@@ -8,8 +8,12 @@ import {
   app,
   assertSafeInferenceUrl,
   cleanJsonText,
+  createRateLimiter,
+  DEFAULT_RATE_LIMIT_MAX,
+  DEFAULT_RATE_LIMIT_WINDOW_MS,
   isPrivateNetworkAllowed,
   MAX_API_BODY_BYTES,
+  resolveRateLimitConfig,
 } from '../../server';
 import { generateAnkiTsv, generateFlashcardsCsv, parseFlashcardsImport } from './anki';
 import { translations } from '../i18n/translations';
@@ -283,5 +287,96 @@ describe('inferenceRequest & server helpers', () => {
     expect(res.status).toBe(413);
     const data = (await res.json()) as { error: string };
     expect(data.error).toContain('Payload too large');
+  });
+
+  test('resolveRateLimitConfig reads defaults and supports disabling or custom thresholds via env', () => {
+    expect(resolveRateLimitConfig({})).toEqual({
+      enabled: true,
+      max: DEFAULT_RATE_LIMIT_MAX,
+      windowMs: DEFAULT_RATE_LIMIT_WINDOW_MS,
+    });
+    expect(resolveRateLimitConfig({ RATE_LIMIT_ENABLED: 'false' }).enabled).toBe(false);
+    expect(resolveRateLimitConfig({ RATE_LIMIT_ENABLED: '0' }).enabled).toBe(false);
+    expect(resolveRateLimitConfig({ RATE_LIMIT_MAX: '0' }).enabled).toBe(false);
+    expect(resolveRateLimitConfig({ RATE_LIMIT_MAX: '10', RATE_LIMIT_WINDOW_MS: '5000' })).toEqual({
+      enabled: true,
+      max: 10,
+      windowMs: 5000,
+    });
+  });
+
+  test('rate limiter enforces IP threshold with HTTP 429 and resets after window or when disabled', async () => {
+    const prevMax = process.env.RATE_LIMIT_MAX;
+    const prevWindow = process.env.RATE_LIMIT_WINDOW_MS;
+    const prevEnabled = process.env.RATE_LIMIT_ENABLED;
+
+    try {
+      process.env.RATE_LIMIT_MAX = '2';
+      process.env.RATE_LIMIT_WINDOW_MS = '60000';
+      delete process.env.RATE_LIMIT_ENABLED;
+
+      const testIp = '203.0.113.42';
+      const reqInit = {
+        method: 'POST',
+        headers: {
+          'content-type': 'application/json',
+          'x-forwarded-for': testIp,
+        },
+        body: JSON.stringify({ explanation: '' }),
+      };
+
+      const res1 = await app.request('/api/feynman-evaluate', reqInit);
+      const res2 = await app.request('/api/feynman-evaluate', reqInit);
+      const res3 = await app.request('/api/feynman-evaluate', reqInit);
+
+      expect(res1.status).toBe(400);
+      expect(res2.status).toBe(400);
+      expect(res3.status).toBe(429);
+      expect(res3.headers.get('retry-after')).toBeTruthy();
+      const errBody = (await res3.json()) as { error: string };
+      expect(errBody.error).toContain('Too many requests');
+
+      // Different IP should have its own bucket
+      const otherIpRes = await app.request('/api/feynman-evaluate', {
+        ...reqInit,
+        headers: { ...reqInit.headers, 'x-forwarded-for': '203.0.113.99' },
+      });
+      expect(otherIpRes.status).toBe(400);
+
+      // Health endpoint is exempt from rate limiting
+      const healthRes = await app.request('/api/health', {
+        headers: { 'x-forwarded-for': testIp },
+      });
+      expect(healthRes.status).toBe(200);
+
+      // Disabling via env bypasses the limit
+      process.env.RATE_LIMIT_ENABLED = 'false';
+      const bypassedRes = await app.request('/api/feynman-evaluate', reqInit);
+      expect(bypassedRes.status).toBe(400);
+    } finally {
+      if (prevMax === undefined) delete process.env.RATE_LIMIT_MAX;
+      else process.env.RATE_LIMIT_MAX = prevMax;
+      if (prevWindow === undefined) delete process.env.RATE_LIMIT_WINDOW_MS;
+      else process.env.RATE_LIMIT_WINDOW_MS = prevWindow;
+      if (prevEnabled === undefined) delete process.env.RATE_LIMIT_ENABLED;
+      else process.env.RATE_LIMIT_ENABLED = prevEnabled;
+    }
+
+    // Verify window expiration using isolated createRateLimiter with controllable clock
+    let currentTime = 1_000_000;
+    const limiter = createRateLimiter({
+      env: { RATE_LIMIT_MAX: '1', RATE_LIMIT_WINDOW_MS: '1000' },
+      now: () => currentTime,
+    });
+    const { Hono } = await import('hono');
+    const miniApp = new Hono();
+    miniApp.use('/api/*', limiter);
+    miniApp.post('/api/test', (c) => c.json({ ok: true }, 200));
+
+    expect((await miniApp.request('/api/test', { method: 'POST' })).status).toBe(200);
+    expect((await miniApp.request('/api/test', { method: 'POST' })).status).toBe(429);
+
+    currentTime += 1001;
+    expect((await miniApp.request('/api/test', { method: 'POST' })).status).toBe(200);
   });
 });

@@ -1,4 +1,4 @@
-import { Hono, Context } from 'hono';
+import { Hono, Context, MiddlewareHandler } from 'hono';
 import { bodyLimit } from 'hono/body-limit';
 import { secureHeaders } from 'hono/secure-headers';
 import { validator } from 'hono/validator';
@@ -15,6 +15,101 @@ import type {
 } from './src/types';
 
 export const MAX_API_BODY_BYTES = 256 * 1024; // 256 KB
+export const DEFAULT_RATE_LIMIT_MAX = 30;
+export const DEFAULT_RATE_LIMIT_WINDOW_MS = 60_000;
+
+export interface RateLimitConfig {
+  enabled: boolean;
+  max: number;
+  windowMs: number;
+}
+
+export function resolveRateLimitConfig(env: Record<string, string | undefined> = process.env): RateLimitConfig {
+  const rawMax = env.RATE_LIMIT_MAX !== undefined ? Number(env.RATE_LIMIT_MAX) : DEFAULT_RATE_LIMIT_MAX;
+  const max = Number.isFinite(rawMax) && rawMax >= 0 ? Math.floor(rawMax) : DEFAULT_RATE_LIMIT_MAX;
+
+  const rawWindow = env.RATE_LIMIT_WINDOW_MS !== undefined ? Number(env.RATE_LIMIT_WINDOW_MS) : DEFAULT_RATE_LIMIT_WINDOW_MS;
+  const windowMs = Number.isFinite(rawWindow) && rawWindow > 0 ? Math.floor(rawWindow) : DEFAULT_RATE_LIMIT_WINDOW_MS;
+
+  const rawFlag = env.RATE_LIMIT_ENABLED?.trim().toLowerCase();
+  const explicitlyDisabled = rawFlag === 'false' || rawFlag === '0' || max === 0;
+
+  return {
+    enabled: !explicitlyDisabled,
+    max,
+    windowMs,
+  };
+}
+
+export function extractClientIp(c: Context): string {
+  const forwarded = c.req.header('x-forwarded-for');
+  if (forwarded) {
+    const first = forwarded.split(',')[0]?.trim();
+    if (first) return first;
+  }
+
+  const realIp = c.req.header('x-real-ip')?.trim() || c.req.header('cf-connecting-ip')?.trim();
+  if (realIp) return realIp;
+
+  try {
+    const envObj = c.env as any;
+    const server = envObj && typeof envObj === 'object' && 'server' in envObj ? envObj.server : envObj;
+    if (server && typeof server.requestIP === 'function') {
+      const info = server.requestIP(c.req.raw);
+      if (info?.address) return info.address;
+    }
+  } catch {
+    // ignore adapter lookup errors
+  }
+
+  return '127.0.0.1';
+}
+
+export function createRateLimiter(options?: {
+  env?: Record<string, string | undefined>;
+  now?: () => number;
+}): MiddlewareHandler {
+  const store = new Map<string, { count: number; resetAt: number }>();
+  const getNow = options?.now ?? Date.now;
+
+  return async (c, next) => {
+    if (c.req.path === '/api/health') {
+      return next();
+    }
+
+    const { enabled, max, windowMs } = resolveRateLimitConfig(options?.env ?? process.env);
+    if (!enabled) {
+      return next();
+    }
+
+    const now = getNow();
+    if (store.size > 1000) {
+      for (const [key, entry] of store) {
+        if (now >= entry.resetAt) store.delete(key);
+      }
+    }
+
+    const ip = extractClientIp(c);
+    let entry = store.get(ip);
+    if (!entry || now >= entry.resetAt) {
+      entry = { count: 0, resetAt: now + windowMs };
+      store.set(ip, entry);
+    }
+
+    entry.count += 1;
+
+    if (entry.count > max) {
+      const retryAfterSec = Math.max(1, Math.ceil((entry.resetAt - now) / 1000));
+      c.header('Retry-After', String(retryAfterSec));
+      return c.json(
+        { error: 'Too many requests. Please wait a moment before trying again.' },
+        429
+      );
+    }
+
+    return next();
+  };
+}
 
 const app = new Hono();
 const PORT = Number(process.env.PORT) || 3000;
@@ -37,6 +132,8 @@ app.use(
     },
   })
 );
+
+app.use('/api/*', createRateLimiter());
 
 app.use(
   '/api/*',
