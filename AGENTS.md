@@ -21,7 +21,7 @@ There is no router, no state library, no AI SDK (raw `fetch`), no database. Add 
 | `bun run start` | `bun server.ts` | Serves API + `dist/`. Paths are relative to CWD: run from the repo root, after `build`. |
 | `bun run clean` | `rm -rf dist` | |
 
-**Environment** (Bun auto-loads `.env`; `.env*` is git- and docker-ignored): `PORT` (default `3000`), `HOST` (default `0.0.0.0`; use `127.0.0.1` for loopback-only), `DISABLE_HMR=true`. **No variable is required.** There are no server-side provider credentials (the old `GEMINI_API_KEY` is obsolete).
+**Environment** (Bun auto-loads `.env`; `.env*` is git- and docker-ignored): `PORT` (default `3000`), `HOST` (default `0.0.0.0`; use `127.0.0.1` for loopback-only), `DISABLE_HMR=true`, `ALLOW_PRIVATE_NETWORKS` (default `false` when `NODE_ENV=production`, `true` otherwise). **No variable is required.** There are no server-side provider credentials (the old `GEMINI_API_KEY` is obsolete).
 
 **Before you finish a task:**
 1. `bun run lint` is clean.
@@ -150,7 +150,7 @@ All routes are `/api/*`. Error shape is always `{ error: string }`.
 - **Manual Edit mode** (`manualEditEnabled` + `customUrlOverride` + `customBodyOverride` + optional `customHeadersOverride`) bypasses the form fields. `detectManualProtocol` infers the protocol from URL, headers, and body keys, then injects messages, system prompt, and JSON mode unless `preserveOverrideMessages` is set. `isAIConfigValid` has separate rules for manual and menu configs.
 - **Empty API key** renders as the literal `<YOUR_API_KEY>` when unmasked. Keep this in mind for key-less local endpoints.
 - **`PROVIDER_DEFAULTS`** (in `AIConfigModal.tsx`) are placeholder/hint values only; the form requires `baseUrl` and `model`. Keep them current when touching the file.
-- **SSRF guard (`assertSafeInferenceUrl`):** only `http:`/`https:`; blocks cloud-metadata hosts and IPs (`metadata.google.internal`, `169.254.*`, `100.100.100.200`, `fd00:ec2::254`, `fe80:`). It deliberately **allows localhost and LAN** so local models (Ollama, LM Studio) work. `fetch` follows redirects, so only the initial URL is checked. Before any public multi-tenant deployment, tighten it (block private ranges, resolve DNS, `redirect: 'manual'`).
+- **SSRF guard (`assertSafeInferenceUrl`):** only `http:`/`https:`; always blocks cloud-metadata hosts and IPs (`metadata.google.internal`, `169.254.*`, `100.100.100.200`, `fd00:ec2::254`, `fe80:`). Loopback (`localhost`, `127.0.0.0/8`, `::1`, `0.0.0.0`) and private/LAN IP ranges (`10.0.0.0/8`, `172.16.0.0/12`, `192.168.0.0/16`, `100.64.0.0/10`, `fc00::/7`) are blocked in production (`NODE_ENV=production`) unless `ALLOW_PRIVATE_NETWORKS=true` (enabled by default in development so local models like Ollama and LM Studio work). Inference `fetch` calls use `redirect: 'manual'` and reject `3xx` redirects.
 
 ---
 
@@ -279,7 +279,7 @@ Implements active retrieval practice and elaborative interrogation with qualitat
 | :-- | :-- | :-- |
 | Type strictness | `tsconfig.json` does **not** enable `strict`; Hono's RPC docs expect it. `any` is common (`catch (e: any)`, provider payloads). | A clean `lint` ≠ strict safety. Enabling `strict` is its own change; don't mix it into feature work. |
 | Request validation | `jsonBody<T>()` doesn't validate. | Validate by hand (§5). |
-| SSRF | Minimal guard; redirects followed (§6). | Tighten before multi-tenant exposure. |
+| SSRF | Private/loopback ranges blocked in production (`ALLOW_PRIVATE_NETWORKS=true` overrides); `redirect: 'manual'` (§6). | Resolve DNS prior to connecting if defending against DNS rebinding in public multi-tenant setups. |
 | i18n parity | No compile-time check (§8). | Add a parity test if you touch translations. |
 | Chat history | The assistant welcome message (`msg_welcome`) and any leading assistant turns are filtered out before sending to the provider, ensuring the conversation begins with a user turn and context is capped at the last 20 messages. | Preserved across Socratic sessions; sanitized client- and server-side. |
 | Chat modes | The UI only sends `mode: 'socratic'`. `PedagogicalMode` includes `concept_breakdown`, which has no guideline in the system prompt. | Don't assume the other modes are exercised. |

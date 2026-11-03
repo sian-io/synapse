@@ -60,7 +60,54 @@ export function cleanJsonText(text: string): string {
   return (objectOrArray ? objectOrArray[1] : text).trim();
 }
 
-export function assertSafeInferenceUrl(rawUrl: string): void {
+export function isPrivateNetworkAllowed(env: Record<string, string | undefined> = process.env): boolean {
+  const raw = env.ALLOW_PRIVATE_NETWORKS?.trim().toLowerCase();
+  if (raw === 'true' || raw === '1') return true;
+  if (raw === 'false' || raw === '0') return false;
+  return env.NODE_ENV !== 'production';
+}
+
+function isPrivateOrLoopbackHost(host: string): boolean {
+  if (
+    host === 'localhost' ||
+    host.endsWith('.localhost') ||
+    host === '0.0.0.0' ||
+    host === '::1' ||
+    host === '0:0:0:0:0:0:0:1' ||
+    host === '::' ||
+    host === '0:0:0:0:0:0:0:0' ||
+    host.startsWith('fc') ||
+    host.startsWith('fd')
+  ) {
+    return true;
+  }
+
+  // IPv4-mapped IPv6 in dotted form (if not normalized by URL parser) or hex form (::ffff:7f00:1, ::ffff:a00:1, etc.)
+  const v4MappedHex = host.match(/^::ffff:([0-9a-f]{1,4}):([0-9a-f]{1,4})$/);
+  if (v4MappedHex) {
+    const high = parseInt(v4MappedHex[1], 16);
+    const low = parseInt(v4MappedHex[2], 16);
+    host = `${(high >> 8) & 0xff}.${high & 0xff}.${(low >> 8) & 0xff}.${low & 0xff}`;
+  }
+
+  const ipv4Match = host.match(/^(\d{1,3})\.(\d{1,3})\.(\d{1,3})\.(\d{1,3})$/);
+  if (ipv4Match) {
+    const [, a, b, c, d] = ipv4Match.map(Number);
+    if (a > 255 || b > 255 || c > 255 || d > 255) return true;
+    if (a === 0 || a === 10 || a === 127) return true;
+    if (a === 172 && b >= 16 && b <= 31) return true;
+    if (a === 192 && b === 168) return true;
+    if (a === 169 && b === 254) return true;
+    if (a === 100 && b >= 64 && b <= 127) return true;
+  }
+
+  return false;
+}
+
+export function assertSafeInferenceUrl(
+  rawUrl: string,
+  options?: { allowPrivateNetworks?: boolean }
+): void {
   let parsed: URL;
   try {
     parsed = new URL(rawUrl);
@@ -70,7 +117,6 @@ export function assertSafeInferenceUrl(rawUrl: string): void {
   if (parsed.protocol !== 'http:' && parsed.protocol !== 'https:') {
     throw new Error(`Unsupported URL protocol: ${parsed.protocol}`);
   }
-  // shortcut: allows localhost/LAN for dev proxy, block RFC1918 if multi-tenant
   const host = parsed.hostname.toLowerCase().replace(/^\[|\]$/g, '');
   if (
     host === 'metadata.google.internal' ||
@@ -81,6 +127,11 @@ export function assertSafeInferenceUrl(rawUrl: string): void {
     host.startsWith('fe80:')
   ) {
     throw new Error('Blocked unsafe inference URL host.');
+  }
+
+  const allowPrivate = options?.allowPrivateNetworks ?? isPrivateNetworkAllowed();
+  if (!allowPrivate && isPrivateOrLoopbackHost(host)) {
+    throw new Error('Blocked private or loopback inference URL host.');
   }
 }
 
@@ -108,7 +159,12 @@ async function runInference(
     headers: req.headers,
     body: JSON.stringify(req.body),
     signal: effectiveSignal,
+    redirect: 'manual',
   });
+
+  if (res.status >= 300 && res.status < 400) {
+    throw new Error(`Inference endpoint returned a disallowed redirect (${res.status}).`);
+  }
 
   if (req.protocol === 'anthropic') {
     if (!res.ok) {

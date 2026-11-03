@@ -4,7 +4,7 @@ import {
   isAIConfigValid,
   sanitizeConfigForEndpoint,
 } from './inferenceRequest';
-import { assertSafeInferenceUrl, cleanJsonText } from '../../server';
+import { app, assertSafeInferenceUrl, cleanJsonText, isPrivateNetworkAllowed } from '../../server';
 import { generateAnkiTsv, generateFlashcardsCsv, parseFlashcardsImport } from './anki';
 import { translations } from '../i18n/translations';
 import type { Flashcard } from '../types';
@@ -89,6 +89,78 @@ describe('inferenceRequest & server helpers', () => {
     expect(() => assertSafeInferenceUrl('http://metadata.google.internal/computeMetadata/v1/')).toThrow();
     expect(() => assertSafeInferenceUrl('file:///etc/passwd')).toThrow();
     expect(() => assertSafeInferenceUrl('https://api.openai.com/v1/chat/completions')).not.toThrow();
+  });
+
+  test('isPrivateNetworkAllowed defaults to false in production unless ALLOW_PRIVATE_NETWORKS is enabled', () => {
+    expect(isPrivateNetworkAllowed({ NODE_ENV: 'production' })).toBe(false);
+    expect(isPrivateNetworkAllowed({ NODE_ENV: 'production', ALLOW_PRIVATE_NETWORKS: 'true' })).toBe(true);
+    expect(isPrivateNetworkAllowed({ NODE_ENV: 'production', ALLOW_PRIVATE_NETWORKS: '1' })).toBe(true);
+    expect(isPrivateNetworkAllowed({ NODE_ENV: 'production', ALLOW_PRIVATE_NETWORKS: 'false' })).toBe(false);
+    expect(isPrivateNetworkAllowed({ NODE_ENV: 'development' })).toBe(true);
+    expect(isPrivateNetworkAllowed({ NODE_ENV: 'development', ALLOW_PRIVATE_NETWORKS: 'false' })).toBe(false);
+    expect(isPrivateNetworkAllowed({ NODE_ENV: 'development', ALLOW_PRIVATE_NETWORKS: '0' })).toBe(false);
+  });
+
+  test('assertSafeInferenceUrl blocks or allows private/loopback hosts based on allowPrivateNetworks', () => {
+    const privateUrls = [
+      'http://localhost:11434/v1/chat/completions',
+      'http://sub.localhost:8080/v1',
+      'http://127.0.0.1:11434/v1/chat/completions',
+      'http://127.0.1.1:8000/v1',
+      'http://0.0.0.0:3000/v1',
+      'http://[::1]:11434/v1',
+      'http://[::ffff:127.0.0.1]:11434/v1',
+      'http://10.0.0.5:8080/v1/chat/completions',
+      'http://172.16.0.1:8080/v1',
+      'http://172.31.255.254:8080/v1',
+      'http://192.168.1.100:1234/v1/chat/completions',
+      'http://100.64.0.1:8080/v1',
+      'http://[fd00::1]:8080/v1',
+    ];
+
+    for (const url of privateUrls) {
+      expect(() => assertSafeInferenceUrl(url, { allowPrivateNetworks: false })).toThrow();
+      expect(() => assertSafeInferenceUrl(url, { allowPrivateNetworks: true })).not.toThrow();
+    }
+
+    // Non-private 172.x outside 172.16.0.0/12 should remain allowed even when private networks are blocked
+    expect(() =>
+      assertSafeInferenceUrl('https://172.15.0.1/v1/chat/completions', { allowPrivateNetworks: false })
+    ).not.toThrow();
+    expect(() =>
+      assertSafeInferenceUrl('https://172.32.0.1/v1/chat/completions', { allowPrivateNetworks: false })
+    ).not.toThrow();
+  });
+
+  test('inference fetch sets redirect: manual and rejects HTTP redirects', async () => {
+    const originalFetch = globalThis.fetch;
+    let capturedInit: RequestInit | undefined;
+    globalThis.fetch = (async (_input: any, init?: RequestInit) => {
+      capturedInit = init;
+      return new Response(null, { status: 302, headers: { location: 'http://169.254.169.254/' } });
+    }) as typeof fetch;
+
+    try {
+      const res = await app.request('/api/chat', {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({
+          messages: [{ role: 'user', content: 'Hello' }],
+          aiConfig: {
+            apiStandard: 'openai',
+            baseUrl: 'https://api.openai.com/v1',
+            model: 'gpt-4o-mini',
+            apiKey: 'sk-test',
+          },
+        }),
+      });
+      expect(capturedInit?.redirect).toBe('manual');
+      expect(res.status).toBe(503);
+      const body = (await res.json()) as { error: string };
+      expect(body.error).toContain('redirect');
+    } finally {
+      globalThis.fetch = originalFetch;
+    }
   });
 
   test('generateAnkiTsv formats flashcards correctly for Anki import', () => {
