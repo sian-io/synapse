@@ -116,6 +116,7 @@ All routes are `/api/*`. Error shape is always `{ error: string }`.
 | `POST /api/generate-concept-breakdown` | `{ topic, language }` | `ConceptBreakdown` | 400 missing `topic`; 503 |
 
 - **Global `app.onError`:** `SyntaxError` (or a message containing `JSON`) → `400 { error: 'Malformed JSON payload.' }`; anything else → `500 { error: 'Internal Server Error' }`.
+- **Security headers & body limit:** `secureHeaders` (from `hono/secure-headers`) applies CSP (`default-src 'self'`, `script-src 'self'`, `style-src 'self' 'unsafe-inline' https://fonts.googleapis.com`, `font-src 'self' https://fonts.gstatic.com data:`, `connect-src 'self'`, `object-src 'none'`, `frame-ancestors 'none'`) across all responses. `bodyLimit` (from `hono/body-limit`) caps `/api/*` request bodies at `MAX_API_BODY_BYTES` (256 KB), returning `413 { error: 'Payload too large. Maximum allowed request body is 256 KB.' }`.
 - **Missing or invalid AI config** is thrown inside each route's `try`, so it surfaces as **503** with "Configure your API in AI Settings…", not 401/400.
 - **`jsonBody<T>()` is a type annotation, not validation.** It casts `c.req.json()`. Validate required fields by hand and **coerce LLM output defensively** (`String(...)`, `toStringArray`, finite-number check), as the Feynman and breakdown routes do. The deck route only maps fields through, so a malformed card can reach the UI.
 - **Deck normalization:** `id: fc_${now}_${index}`, `topic`, `question`, `answer`.

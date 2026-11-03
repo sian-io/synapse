@@ -4,7 +4,13 @@ import {
   isAIConfigValid,
   sanitizeConfigForEndpoint,
 } from './inferenceRequest';
-import { app, assertSafeInferenceUrl, cleanJsonText, isPrivateNetworkAllowed } from '../../server';
+import {
+  app,
+  assertSafeInferenceUrl,
+  cleanJsonText,
+  isPrivateNetworkAllowed,
+  MAX_API_BODY_BYTES,
+} from '../../server';
 import { generateAnkiTsv, generateFlashcardsCsv, parseFlashcardsImport } from './anki';
 import { translations } from '../i18n/translations';
 import type { Flashcard } from '../types';
@@ -243,5 +249,39 @@ describe('inferenceRequest & server helpers', () => {
     const enKeys = getKeys(translations.en);
     const ptKeys = getKeys(translations.pt);
     expect(enKeys).toEqual(ptKeys);
+  });
+
+  test('secureHeaders middleware sets Content-Security-Policy and standard security headers', async () => {
+    const res = await app.request('/api/health');
+    expect(res.status).toBe(200);
+
+    const csp = res.headers.get('content-security-policy') || '';
+    expect(csp).toContain("default-src 'self'");
+    expect(csp).toContain("script-src 'self'");
+    expect(csp).toContain("style-src 'self' 'unsafe-inline' https://fonts.googleapis.com");
+    expect(csp).toContain("font-src 'self' https://fonts.gstatic.com data:");
+    expect(csp).toContain("connect-src 'self'");
+    expect(csp).toContain("object-src 'none'");
+    expect(csp).toContain("frame-ancestors 'none'");
+    expect(res.headers.get('x-content-type-options')).toBe('nosniff');
+    expect(res.headers.get('x-frame-options')).toBe('SAMEORIGIN');
+  });
+
+  test('bodyLimit middleware rejects oversized API payloads with HTTP 413', async () => {
+    const oversizedText = 'x'.repeat(MAX_API_BODY_BYTES + 1024);
+    const body = JSON.stringify({ explanation: oversizedText });
+
+    const res = await app.request('/api/feynman-evaluate', {
+      method: 'POST',
+      headers: {
+        'content-type': 'application/json',
+        'content-length': String(Buffer.byteLength(body)),
+      },
+      body,
+    });
+
+    expect(res.status).toBe(413);
+    const data = (await res.json()) as { error: string };
+    expect(data.error).toContain('Payload too large');
   });
 });

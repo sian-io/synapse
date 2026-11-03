@@ -1,4 +1,6 @@
 import { Hono, Context } from 'hono';
+import { bodyLimit } from 'hono/body-limit';
+import { secureHeaders } from 'hono/secure-headers';
 import { validator } from 'hono/validator';
 import { buildInferenceRequest, isAIConfigValid } from './src/lib/inferenceRequest';
 import type {
@@ -12,9 +14,37 @@ import type {
   RetrievalRating,
 } from './src/types';
 
+export const MAX_API_BODY_BYTES = 256 * 1024; // 256 KB
+
 const app = new Hono();
 const PORT = Number(process.env.PORT) || 3000;
 const HOST = process.env.HOST || '0.0.0.0';
+
+app.use(
+  '*',
+  secureHeaders({
+    contentSecurityPolicy: {
+      defaultSrc: ["'self'"],
+      scriptSrc: ["'self'"],
+      styleSrc: ["'self'", "'unsafe-inline'", 'https://fonts.googleapis.com'],
+      fontSrc: ["'self'", 'https://fonts.gstatic.com', 'data:'],
+      imgSrc: ["'self'", 'data:', 'blob:'],
+      connectSrc: ["'self'"],
+      objectSrc: ["'none'"],
+      baseUri: ["'self'"],
+      formAction: ["'self'"],
+      frameAncestors: ["'none'"],
+    },
+  })
+);
+
+app.use(
+  '/api/*',
+  bodyLimit({
+    maxSize: MAX_API_BODY_BYTES,
+    onError: (c) => c.json({ error: 'Payload too large. Maximum allowed request body is 256 KB.' }, 413),
+  })
+);
 
 const jsonBody = <T>() =>
   validator('json', (_v: T, c) => c.req.json() as Promise<T>);
