@@ -83,7 +83,6 @@ server.ts                  Hono app, 5 chained routes, runInference, resolveAICo
 vite.config.ts             react + tailwind + devServer bridge; alias @ → src; PORT/HOST/DISABLE_HMR
 tsconfig.json              check-only (noEmit); paths @/* → src/*; NOTE: `strict` is not enabled (see §13)
 Dockerfile / .dockerignore Two-stage Bun build; see rule 6
-metadata.json              AI Studio template leftover; not read by app code
 src/main.tsx               React root (StrictMode)
 src/App.tsx                Tab state (default tab: `cognitive_map`), header, language switch, settings button,
                            cross-tab handoff `handleOpenSocraticWithPrompt`
