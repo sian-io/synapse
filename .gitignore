@@ -5,6 +5,7 @@ coverage/
 .DS_Store
 *.log
 .env*
+.vscode/
 .agents/
 .playwright/
 .playwright-cli/
