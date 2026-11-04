@@ -61,21 +61,19 @@ function AppContent() {
     <div className="min-h-screen bg-[#09090b] text-zinc-100 flex flex-col font-sans selection:bg-zinc-800 selection:text-zinc-100">
       {/* Top Header */}
       <header className="sticky top-0 z-40 min-h-16 lg:h-16 py-2.5 lg:py-0 border-b border-white/[0.07] bg-[#09090b]/90 backdrop-blur-md px-4 sm:px-6 xl:px-8 flex items-center">
-        <div className="max-w-[1320px] w-full mx-auto flex flex-wrap lg:flex-nowrap items-center justify-between gap-y-2.5 gap-x-4">
+        <div className="w-full flex flex-wrap lg:grid lg:grid-cols-[1fr_auto_1fr] items-center justify-between gap-y-2.5 gap-x-4">
           {/* Left: Brand Identity */}
-          <div className="flex items-center gap-3 shrink-0">
+          <div className="flex items-center gap-3 shrink-0 justify-self-start">
             <div className="flex items-center gap-2.5 shrink-0">
               <Brain className="w-7 h-7 text-zinc-100 stroke-[1.75] shrink-0" />
               <span className="font-mono text-sm font-semibold tracking-[0.2em] text-zinc-100">
                 SYNAPSE
               </span>
             </div>
-
-            <div className="hidden lg:block h-4 w-px bg-white/[0.08] shrink-0" />
           </div>
 
-          {/* Navigation Tabs - Minimalist Segmented Control */}
-          <nav className="order-last lg:order-none w-full lg:w-auto lg:mr-auto flex items-center gap-1 p-1 rounded-lg surface-recessed overflow-x-auto no-scrollbar min-w-0">
+          {/* Center: Navigation Tabs - Minimalist Segmented Control */}
+          <nav className="order-last lg:order-none w-full lg:w-auto lg:justify-self-center flex items-center gap-1 p-1 rounded-lg surface-recessed overflow-x-auto no-scrollbar min-w-0">
             {navItems.map((item) => {
               const Icon = item.icon;
               const isActive = activeTab === item.id;
@@ -97,7 +95,7 @@ function AppContent() {
           </nav>
 
           {/* Right Controls: Language Selector & AI Settings */}
-          <div className="flex items-center gap-1.5 sm:gap-2.5 shrink-0">
+          <div className="flex items-center gap-1.5 sm:gap-2.5 shrink-0 justify-self-end">
             {/* Language Switcher */}
             <div className="flex items-center rounded-md surface-recessed p-0.5 text-xs text-zinc-300 font-medium">
               <div className="hidden sm:flex items-center px-2 text-zinc-500">
