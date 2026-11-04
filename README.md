@@ -100,7 +100,7 @@ Open the **Active Retrieval** tab:
 
 ### Step 6: Deepen Scientific Foundations
 
-Visit the **Neuroscience Guide** tab at any time to review the empirical studies supporting each step of the methodology.
+Click the **About** (?) button in the header at any time to review the empirical studies supporting each step of the methodology.
 
 ---
 

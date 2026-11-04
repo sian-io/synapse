@@ -5,9 +5,9 @@ import {
   Sparkles,
   Zap,
   Layers,
-  BookOpen,
   Globe,
   Settings,
+  CircleHelp,
   AlertTriangle,
 } from 'lucide-react';
 import { SocraticTutor } from './components/SocraticTutor';
@@ -19,13 +19,14 @@ import { LanguageProvider, useLanguage } from './i18n/LanguageContext';
 import { AIConfigProvider } from './context/AIConfigContext';
 import { useAIConfig } from './context/useAIConfig';
 
-type ActiveTab = 'socratic' | 'feynman' | 'retrieval' | 'cognitive_map' | 'neuroscience';
+type ActiveTab = 'socratic' | 'feynman' | 'retrieval' | 'cognitive_map';
 
 function AppContent() {
   const { t, language, setLanguage } = useLanguage();
   const { isConfigured, openModal } = useAIConfig();
   const isPt = language === 'pt';
   const [activeTab, setActiveTab] = useState<ActiveTab>('cognitive_map');
+  const [aboutOpen, setAboutOpen] = useState(false);
   const [socraticPromptOverride, setSocraticPromptOverride] = useState<string | null>(null);
 
   const handleOpenSocraticWithPrompt = (prompt: string) => {
@@ -54,11 +55,6 @@ function AppContent() {
       label: t.app.nav.retrieval,
       icon: Zap,
     },
-    {
-      id: 'neuroscience' as ActiveTab,
-      label: t.app.nav.neuroscience,
-      icon: BookOpen,
-    },
   ];
 
   return (
@@ -69,9 +65,7 @@ function AppContent() {
           {/* Left: Brand Identity */}
           <div className="flex items-center gap-3 shrink-0">
             <div className="flex items-center gap-2.5 shrink-0">
-              <div className="w-8 h-8 rounded-md surface-panel flex items-center justify-center text-zinc-100">
-                <Brain className="w-[18px] h-[18px] text-zinc-100 stroke-[1.75]" />
-              </div>
+              <Brain className="w-7 h-7 text-zinc-100 stroke-[1.75] shrink-0" />
               <span className="font-mono text-sm font-semibold tracking-[0.2em] text-zinc-100">
                 SYNAPSE
               </span>
@@ -137,6 +131,17 @@ function AppContent() {
 
             <div className="hidden sm:block h-4 w-px bg-white/[0.08] shrink-0" />
 
+            {/* About Button (Neuroscience Guide) */}
+            <button
+              type="button"
+              onClick={() => setAboutOpen(true)}
+              className="h-8 w-8 rounded-md surface-panel text-zinc-400 hover:text-zinc-100 hover:border-white/[0.14] hover:bg-[#16161a] flex items-center justify-center transition-colors cursor-pointer"
+              title={t.neuroscience.aboutLabel}
+              aria-label={t.neuroscience.aboutLabel}
+            >
+              <CircleHelp className="w-4 h-4 stroke-[1.75]" />
+            </button>
+
             {/* AI Settings Button */}
             <button
               type="button"
@@ -196,9 +201,9 @@ function AppContent() {
             onOpenSocraticWithPrompt={handleOpenSocraticWithPrompt}
           />
         )}
-
-        {activeTab === 'neuroscience' && <NeuroscienceGuide />}
       </main>
+
+      <NeuroscienceGuide open={aboutOpen} onOpenChange={setAboutOpen} />
     </div>
   );
 }

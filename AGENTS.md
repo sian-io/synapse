@@ -93,7 +93,7 @@ src/context/               AIConfigContext.tsx (provider + modal host), useAICon
 src/i18n/                  LanguageContext.tsx (detection/persistence), translations.ts (en + pt)
 src/data/neurosciencePillars.ts   Pillar copy + demo flashcards, per language (`getX(language)`)
 src/components/            SocraticTutor, FeynmanStudio, ActiveRetrievalLab, CognitiveMap,
-                           NeuroscienceGuide, AIConfigModal
+                           AIConfigModal; NeuroscienceGuide is a Dialog opened by the header About (?) button, not a tab
 src/components/ui/         Base UI wrappers: button, dialog, input, popover, select, textarea, tooltip
 src/index.css              Tailwind v4 entry, theme tokens, `surface-panel`/`surface-recessed`, custom variants
 docs/pt-br/                pt-BR README, TS guide for Python devs (guia-ts/), REFACTOR.md (point-in-time report)

@@ -33,6 +33,11 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from '@/components/ui/tooltip';
+import {
+  Dialog,
+  DialogContent,
+  DialogTitle,
+} from '@/components/ui/dialog';
 
 const EMPTY_FORM_DRAFT: AIProviderConfig = {
   apiStandard: 'openai',
@@ -113,12 +118,14 @@ function getInitialManualBodyText(initial: AIProviderConfig): string {
 }
 
 interface AIConfigModalProps {
+  open: boolean;
   config: AIProviderConfig | null;
   onSaveConfig: (next: AIProviderConfig) => void;
   onClose: () => void;
 }
 
 export const AIConfigModal: React.FC<AIConfigModalProps> = ({
+  open,
   config,
   onSaveConfig,
   onClose,
@@ -415,21 +422,18 @@ export const AIConfigModal: React.FC<AIConfigModalProps> = ({
   );
 
   return (
-    <div
-      className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm p-3 sm:p-6 overflow-y-auto"
-      onClick={onClose}
-    >
-      <div
-        className="w-full max-w-5xl rounded-xl surface-panel text-zinc-100 overflow-hidden my-auto"
-        onClick={(e) => e.stopPropagation()}
+    <Dialog open={open} onOpenChange={(next) => { if (!next) onClose(); }}>
+      <DialogContent
+        showCloseButton={false}
+        className="surface-panel rounded-xl text-zinc-100 ring-0 p-0 gap-0 sm:max-w-5xl max-h-[90vh] overflow-y-auto"
       >
         {/* Modal Header */}
         <div className="flex items-center justify-between border-b border-white/[0.07] px-5 py-4 bg-[#0f0f12]">
           <div className="flex items-center gap-2.5">
             <Settings className="w-4 h-4 text-zinc-400 stroke-[1.75]" />
-            <h2 className="text-base font-semibold text-zinc-100 tracking-tight truncate">
+            <DialogTitle className="text-base font-semibold text-zinc-100 tracking-tight truncate">
               {isPt ? 'Configurações de IA & Inspetor de Payload' : 'AI Configuration & Payload Inspector'}
-            </h2>
+            </DialogTitle>
           </div>
           <button
             type="button"
@@ -1038,7 +1042,7 @@ export const AIConfigModal: React.FC<AIConfigModalProps> = ({
             </div>
           </div>
         </form>
-      </div>
-    </div>
+      </DialogContent>
+    </Dialog>
   );
 };

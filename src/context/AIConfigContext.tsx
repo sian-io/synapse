@@ -16,6 +16,8 @@ export const AIConfigProvider: React.FC<{ children: React.ReactNode }> = ({ chil
   });
 
   const [isModalOpen, setIsModalOpen] = useState(false);
+  // Bumped on every open so the modal remounts with a fresh draft; the modal stays mounted while closing to play its exit animation.
+  const [modalSession, setModalSession] = useState(0);
 
   useEffect(() => {
     if (config && isAIConfigValid(config)) {
@@ -25,7 +27,10 @@ export const AIConfigProvider: React.FC<{ children: React.ReactNode }> = ({ chil
     }
   }, [config]);
 
-  const openModal = () => setIsModalOpen(true);
+  const openModal = () => {
+    setModalSession((n) => n + 1);
+    setIsModalOpen(true);
+  };
   const closeModal = () => setIsModalOpen(false);
   const isConfigured = isAIConfigValid(config);
 
@@ -34,9 +39,13 @@ export const AIConfigProvider: React.FC<{ children: React.ReactNode }> = ({ chil
       value={{ config, setConfig, isConfigured, isModalOpen, openModal, closeModal }}
     >
       {children}
-      {isModalOpen && (
-        <AIConfigModal config={config} onSaveConfig={setConfig} onClose={closeModal} />
-      )}
+      <AIConfigModal
+        key={modalSession}
+        open={isModalOpen}
+        config={config}
+        onSaveConfig={setConfig}
+        onClose={closeModal}
+      />
     </AIConfigContext.Provider>
   );
 };

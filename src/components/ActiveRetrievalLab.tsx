@@ -863,7 +863,7 @@ export const ActiveRetrievalLab: React.FC = () => {
               <Bookmark className="w-4 h-4 text-zinc-400 stroke-[1.75] shrink-0" />
               <span className="truncate">{t.retrieval.deckCardsTitle}</span>
             </h3>
-            <span className="text-[11px] font-mono tabular-nums text-zinc-400 whitespace-nowrap shrink-0">
+            <span className="text-[13px] font-mono tabular-nums text-zinc-400 whitespace-nowrap shrink-0">
               {displayCards.length} {t.retrieval.cardsUnit}
             </span>
           </div>
