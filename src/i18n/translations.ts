@@ -18,7 +18,7 @@ export const translations = {
       resetConfirm: 'Current message history will be cleared.',
       you: 'You',
       assistant: 'Synapse',
-      loadingText: 'Building cognitive scaffold and formulating Socratic question...',
+      loadingText: 'Thinking...',
       inputPlaceholder: 'Respond to the tutor or propose a topic/hypothesis to explore...',
       sendButton: 'Send',
       sendTooltip: 'Submit response for Socratic evaluation',
@@ -26,16 +26,15 @@ export const translations = {
       guess: '1: Guess',
       partial: '3: Partial',
       conviction: '5: Conviction',
-      defaultWelcome: `Hello! I am **Synapse**, your active learning pedagogical tutor grounded in **Cognitive Neuroscience**.
-
-Unlike conventional assistants that hand out ready-made answers (which causes the illusion of fluency and rapid forgetting), we prioritize **Long-Term Potentiation** and **active retrieval**:
-- We do not hand out pre-digested answers.
-- We deconstruct complex problems via the **Socratic Method** and **Elaborative Interrogation**.
-- You build neural pathways through productive cognitive struggle (*desirable difficulty*).
-
-**Which concept, topic, or subject would you like to dissect today?**`,
+      defaultWelcome: 'Which concept would you like to dissect today?',
       connectionError: 'Could not reach the inference API to generate a response.',
       retry: 'Try again',
+      regenerate: 'Redo',
+      copyMessage: 'Copy',
+      copiedMessage: 'Copied',
+      editMessage: 'Edit',
+      saveAndSubmit: 'Save & submit',
+      cancelEdit: 'Cancel',
       cancel: 'Stop',
       exportPdf: 'Export PDF',
     },
@@ -218,7 +217,7 @@ Unlike conventional assistants that hand out ready-made answers (which causes th
       resetConfirm: 'O histórico atual de mensagens será limpo.',
       you: 'Você',
       assistant: 'Synapse',
-      loadingText: 'Construindo andaime cognitivo e formulando pergunta socrática...',
+      loadingText: 'Pensando...',
       inputPlaceholder: 'Responda ao tutor ou proponha um tema/hipótese para explorar...',
       sendButton: 'Enviar',
       sendTooltip: 'Enviar resposta para avaliação socrática',
@@ -226,16 +225,15 @@ Unlike conventional assistants that hand out ready-made answers (which causes th
       guess: '1: Chute',
       partial: '3: Parcial',
       conviction: '5: Convicção',
-      defaultWelcome: `Olá! Eu sou o **Synapse**, seu tutor pedagógico de aprendizagem ativa fundamentado em **Neurociência Cognitiva**.
-
-Diferente de assistentes convencionais que entregam respostas prontas (o que gera a ilusão de fluência e rápido esquecimento), nós priorizamos **Potenciação de Longa Duração** e **recuperação ativa**:
-- Não entregamos respostas mastigadas.
-- Desmontamos problemas complexos via **Método Socrático** e **Interrogação Elaborativa**.
-- Você constrói os caminhos neurais através do esforço cognitivo produtivo (*dificuldade desejável*).
-
-**Qual conceito, tema ou matéria você gostaria de dissecar hoje?**`,
+      defaultWelcome: 'Qual conceito você gostaria de dissecar hoje?',
       connectionError: 'Não foi possível alcançar a API de inferência para gerar a resposta.',
       retry: 'Tentar novamente',
+      regenerate: 'Refazer',
+      copyMessage: 'Copiar',
+      copiedMessage: 'Copiado',
+      editMessage: 'Editar',
+      saveAndSubmit: 'Salvar e enviar',
+      cancelEdit: 'Cancelar',
       cancel: 'Parar',
       exportPdf: 'Exportar PDF',
     },
